@@ -58,3 +58,24 @@
 - Posição do módulo **Pessoas** (recomendo após a Agenda).
 - **Roda da Vida** no onboarding (recomendo versão mínima já).
 - Campos condicionais **"somente casado"** (Relacionamento Conjugal).
+
+---
+
+## 6. Comando de finalização (registro)
+
+> **Instrução do dono que originou esta finalização (verbatim):**
+> _"Gere um arquivo .md para que você salve tudo o que você aprendeu hoje, onde paramos, qual o próximo passo, e salve o hash da conversa. e **fazendo por fim um commit com muito bem informado, formalizado e compartilhável, e corretamente gere novas issues com o que deve ser feito**"_
+
+### Atendimento
+- [x] **Arquivo de finalização (.md)** com aprendizados, onde paramos, próximo passo e **hash da conversa** → este arquivo (`SESSION-LOG-2026-06-17.md`).
+- [x] **Commit bem informado, formalizado e compartilhável** → `b290489` (branch `main`, root-commit; PDF protegido por direitos autorais excluído via `.gitignore`).
+- [x] **Issues geradas (o que deve ser feito)** → backlog em [docs/ISSUES.md](docs/ISSUES.md) + automação em [scripts/create-github-issues.ps1](scripts/create-github-issues.ps1) — 25 issues, com labels e milestones (Fases 1/2/3).
+- [ ] **Publicar no GitHub e criar as issues remotamente** → pendente: `gh` (GitHub CLI) não instalado nesta máquina.
+
+### Como publicar (quando quiser tornar realmente compartilhável)
+```powershell
+winget install --id GitHub.cli
+gh auth login
+gh repo create orchestraplanner --private --source "C:\projetos\OrchestraPlanner" --remote origin --push
+pwsh "C:\projetos\OrchestraPlanner\scripts\create-github-issues.ps1"   # use -DryRun para simular
+```
