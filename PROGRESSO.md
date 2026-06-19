@@ -35,3 +35,9 @@
   - Criou as **25 issues** no GitHub (`#1`–`#25`) + 10 labels + 3 milestones via `scripts/create-github-issues.ps1`.
   - **#1 ✅** Next.js 16 + TS strict + Tailwind v4 + shadcn/ui + Prettier + `.gitattributes`. typecheck/lint/build verdes (`2c85664`, `fac686f`). _Nota: Next 16 (latest) em vez do 15 da visão — a confirmar._
   - **#2 ✅** Drizzle + postgres-js + drizzle-kit + zod + dotenv; client lazy; `docker-compose.yml`; `.env.example`; scripts `db:*`. typecheck/lint verdes; `db:generate` lê o config (`d89ffc1`).
+  - **#3 🟡 código pronto** (`44e50aa`) — schema `users`, migrations 0000+0001 (RLS ENABLE+FORCE+policy), `withUserContext()`, teste de isolamento (`skip` sem DB). _Falta: rodar com `DATABASE_URL` p/ provar isolamento._
+  - **#5 ✅** (`72b17e1`) — tRPC (context `userId`, `protectedProcedure`, `healthcheck`), route handler, client React no layout, teste unitário do router verde.
+  - **#4 🟡 código pronto** (`aeb6dba`) — ClerkProvider, middleware (`/dashboard`), sign-in/up, dashboard (UserButton + upsert), landing auth-aware. Build verde sem chaves. _Falta: chaves Clerk p/ login real._
+  - **#7 🟡 unit ✅ / E2E pendente** (`d1a43cb`) — `validateGoalTitle` + 5 testes verdes; Playwright + spec login→home (`skip` sem chaves). _Falta: rodar E2E com Clerk._
+  - **#6 ✅ CI / deploy pendente** (`2153dbe`,`907bb17`) — GitHub Actions (typecheck·lint·test·build) **verde** em ~44s. `docs/SETUP.md`. _Falta: conectar Vercel; branch protection é decisão do dono._
+  - **Resumo Iteração 0:** Phase A (tudo sem segredo) **concluída e verde**. Phase B (Neon + Clerk + Vercel) documentada em `docs/SETUP.md`; issues #3/#4/#6/#7 abertas com comentário do que falta.
