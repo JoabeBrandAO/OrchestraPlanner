@@ -32,3 +32,17 @@
 - **Causa raiz:** a regra foi escrita como `docs/RELATORIOS.md   # comentário` — o `.gitignore` **não suporta comentário na mesma linha do padrão**; o `#` e o texto viraram parte do padrão, que então não casou com o arquivo.
 - **Correção:** mover o comentário para a linha de cima (começando com `#`) e deixar o padrão sozinho na sua linha. Confirmado com `git check-ignore docs/RELATORIOS.md`.
 - **Como evitar a recorrência:** comentários no `.gitignore` sempre em linha própria. Validar regras novas com `git check-ignore <caminho>` antes de dar por feito.
+
+### 2026-06-19 — `_backups/` (autohook global) poluindo tsc/eslint/prettier
+- **Contexto:** typecheck e lint da Iteração 0 falhando/avisando em arquivos dentro de `_backups/`.
+- **O que ocorreu:** um autohook global cria backups (`*.autohook.*`) ao editar arquivos; como ficam dentro do projeto, o `tsc` (via `**/*.ts`) e o ESLint os analisavam, gerando erros de versões antigas.
+- **Causa raiz:** `_backups/` é gitignored, mas ignore do git não exclui das ferramentas de build.
+- **Correção:** excluir `_backups`/`**/_backups` em `tsconfig.json` (`exclude`), `eslint.config.mjs` (`globalIgnores`) e `.prettierignore`.
+- **Como evitar a recorrência:** ao adicionar diretórios gerados, lembrar que cada ferramenta tem seu próprio ignore (git ≠ tsc ≠ eslint ≠ prettier) — propagar para todos.
+
+### 2026-06-19 — shadcn (base-ui) Button sem `asChild` e Clerk sem `SignedIn/SignedOut` no índice
+- **Contexto:** integração do Clerk (#4) com botões shadcn na landing.
+- **O que ocorreu:** (a) `<Button asChild>` deu erro de tipo — esta versão do shadcn usa o primitivo `@base-ui/react` que não tem `asChild`; (b) `import { SignedIn, SignedOut } from "@clerk/nextjs"` quebrou o build — não são exportados pelo índice nesta versão.
+- **Causa raiz:** APIs assumidas de memória diferem das versões instaladas (shadcn base-ui; Clerk recente).
+- **Correção:** (a) usar `buttonVariants({ variant })` como `className` de um `<Link>`; (b) tornar a landing server component e usar `auth()` de `@clerk/nextjs/server` para gating, em vez dos control components.
+- **Como evitar a recorrência:** conferir a API real (ler o componente/d.ts instalado) antes de usar; não assumir props/exports de versões antigas. O ciclo §6 (typecheck+build) pegou ambos antes do commit.
