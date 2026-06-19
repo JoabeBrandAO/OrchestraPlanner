@@ -34,3 +34,4 @@
   - Consolidou o bootstrap em 2 commits limpos (`97812b6` infra, `e45eef2` docs) + push.
   - Criou as **25 issues** no GitHub (`#1`–`#25`) + 10 labels + 3 milestones via `scripts/create-github-issues.ps1`.
   - **#1 ✅** Next.js 16 + TS strict + Tailwind v4 + shadcn/ui + Prettier + `.gitattributes`. typecheck/lint/build verdes (`2c85664`, `fac686f`). _Nota: Next 16 (latest) em vez do 15 da visão — a confirmar._
+  - **#2 ✅** Drizzle + postgres-js + drizzle-kit + zod + dotenv; client lazy; `docker-compose.yml`; `.env.example`; scripts `db:*`. typecheck/lint verdes; `db:generate` lê o config (`d89ffc1`).
