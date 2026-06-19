@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Backups gerados por autohook global — fora de toda análise.
+    "**/_backups/**",
+    "drizzle/**",
   ]),
 ]);
 

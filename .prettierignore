@@ -5,3 +5,5 @@ public/
 pnpm-lock.yaml
 package-lock.json
 drizzle/
+_backups/
+**/_backups/
