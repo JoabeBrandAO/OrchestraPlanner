@@ -1,0 +1,24 @@
+# Postgres local para desenvolvimento (issue #2).
+# Uso: `docker compose up -d` → DATABASE_URL=postgres://postgres:postgres@localhost:5432/orchestraplanner
+# Obs.: esta máquina ainda não tem Docker; em dev pode-se usar uma branch do Neon.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: orchestraplanner-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orchestraplanner
+    ports:
+      - "5432:5432"
+    volumes:
+      - orchestraplanner_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orchestraplanner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  orchestraplanner_pgdata:
