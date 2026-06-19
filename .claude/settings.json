@@ -19,16 +19,8 @@
       "Bash(node:*)",
       "Bash(python:*)"
     ],
-    "ask": [
-      "Bash(rm:*)",
-      "Bash(git reset:*)",
-      "Bash(git clean:*)",
-      "Bash(git checkout:*)"
-    ],
-    "deny": [
-      "Bash(git push --force:*)",
-      "Bash(git push -f:*)"
-    ]
+    "ask": ["Bash(rm:*)", "Bash(git reset:*)", "Bash(git clean:*)", "Bash(git checkout:*)"],
+    "deny": ["Bash(git push --force:*)", "Bash(git push -f:*)"]
   },
   "hooks": {
     "PostToolUse": [
