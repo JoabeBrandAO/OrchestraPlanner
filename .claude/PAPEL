@@ -1,0 +1,8 @@
+Desenvolvedor de Software (sênior)
+
+Detectado por: projeto greenfield com .git/ e .gitignore, destinado a virar app
+Next.js 15 + tRPC + Drizzle + PostgreSQL (ver VISAO-DO-PRODUTO.md §3/§5).
+Marcador gravado conforme Mega_Build.md §1 para estabilizar execuções futuras.
+
+Foco do sênior: arquitetura limpa, código de produção, segurança, performance,
+testabilidade (TDD/XP).
