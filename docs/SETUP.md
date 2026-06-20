@@ -22,15 +22,36 @@ Copie `.env.example` para `.env` e preencha:
 
 | Variável | Onde obter | Destrava |
 |---|---|---|
-| `DATABASE_URL` | [Neon](https://neon.tech) → connection string (pooled, `sslmode=require`) | migrations + teste de RLS (#3); upsert de usuário |
+| `DATABASE_URL` | Neon → role **`app_rls`** (ver abaixo), `sslmode=require` | runtime da app + teste de RLS (#3); upsert de usuário |
+| `MIGRATION_DATABASE_URL` | Neon → role **`neondb_owner`** (o padrão do projeto) | migrations/DDL (drizzle-kit) e setup do teste de RLS |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | [Clerk](https://dashboard.clerk.com) → API Keys | login/logout (#4); E2E (#7) |
 | `CLERK_SECRET_KEY` | Clerk → API Keys | idem |
 
-### Aplicar o banco (com `DATABASE_URL` definida)
+> ⚠️ **RLS no Neon — dois roles, por design.** O `neondb_owner` (e **qualquer role
+> criado pelo Console do Neon**) vem com o atributo `BYPASSRLS`, que **ignora a RLS**
+> e fura o isolamento multi-tenant — e isso **não** pode ser removido (`ALTER ROLE`
+> é negado; o Neon não dá superusuário). A app **precisa** conectar por um role
+> criado **via SQL**, que nasce **sem** `BYPASSRLS`. Detalhes em `docs/ERROS.md`
+> (2026-06-20). Crie o role da app uma vez, como `neondb_owner`:
+>
+> ```sql
+> CREATE ROLE app_rls WITH LOGIN PASSWORD '<senha-forte>';
+> GRANT USAGE ON SCHEMA public TO app_rls;
+> GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_rls;
+> GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_rls;
+> ALTER DEFAULT PRIVILEGES IN SCHEMA public
+>   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_rls;
+> ALTER DEFAULT PRIVILEGES IN SCHEMA public
+>   GRANT USAGE, SELECT ON SEQUENCES TO app_rls;
+> ```
+>
+> Depois monte `DATABASE_URL` com `app_rls` e `MIGRATION_DATABASE_URL` com `neondb_owner`.
+
+### Aplicar o banco
 
 ```bash
-npm run db:migrate         # cria a tabela users + RLS (migrations 0000, 0001)
-npm run test               # agora a suíte de RLS roda e prova o isolamento (#3)
+npm run db:migrate         # roda como neondb_owner (MIGRATION_DATABASE_URL): users + RLS
+npm run test               # a suíte de RLS roda como app_rls e prova o isolamento (#3)
 ```
 
 ### Postgres local (alternativa ao Neon, se tiver Docker)

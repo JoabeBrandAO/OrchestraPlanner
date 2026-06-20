@@ -41,3 +41,9 @@
   - **#7 🟡 unit ✅ / E2E pendente** (`d1a43cb`) — `validateGoalTitle` + 5 testes verdes; Playwright + spec login→home (`skip` sem chaves). _Falta: rodar E2E com Clerk._
   - **#6 ✅ CI / deploy pendente** (`2153dbe`,`907bb17`) — GitHub Actions (typecheck·lint·test·build) **verde** em ~44s. `docs/SETUP.md`. _Falta: conectar Vercel; branch protection é decisão do dono._
   - **Resumo Iteração 0:** Phase A (tudo sem segredo) **concluída e verde**. Phase B (Neon + Clerk + Vercel) documentada em `docs/SETUP.md`; issues #3/#4/#6/#7 abertas com comentário do que falta.
+- **2026-06-20 — Sessão Mão-na-massa (Phase B / Neon):**
+  - **#3 ✅ PROVADO** — RLS isolando de verdade contra o Neon. Banco real conectado (`DATABASE_URL`), migrations aplicadas, suíte **11/11 verde** (4 testes de RLS rodando, antes pulados).
+  - **Achado de segurança:** o `neondb_owner` e todo role criado pelo **Console do Neon** vêm com `BYPASSRLS` → a RLS era furada em silêncio (e `ALTER ROLE NOBYPASSRLS` é negado pelo Neon). Via oficial: criar o role da app **via SQL** (`app_rls`, sem BYPASSRLS). Registrado em `docs/ERROS.md` (2026-06-20).
+  - **Arquitetura de 2 roles:** `DATABASE_URL` = `app_rls` (restrito, runtime) · `MIGRATION_DATABASE_URL` = `neondb_owner` (migrations/DDL). Atualizados `drizzle.config.ts`, `.env(.example)`, `docs/SETUP.md`.
+  - **Blindagem:** `rls.test.ts` agora tem teste fail-safe que assere `rolbypassrls = false` no role corrente; `vitest.config.ts` carrega `.env` via `dotenv/config`. `users.ts` (upsert) já usava `withUserContext` → app RLS-safe em runtime.
+  - typecheck · lint · build verdes. _Falta Phase B: chaves Clerk (#4/#7) e deploy Vercel._

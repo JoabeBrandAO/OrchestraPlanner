@@ -1,4 +1,7 @@
+import { sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { getDb } from "./index";
@@ -12,6 +15,12 @@ import { users } from "./schema";
  *
  * Prova: dois usuários inseridos em contextos distintos; cada um, ao consultar,
  * enxerga somente a própria linha. A barreira é a policy `users_isolation` + FORCE.
+ *
+ * ⚠️ Pré-condição crítica (ver docs/ERROS.md): a app precisa conectar como um role
+ * SEM `BYPASSRLS`. No Neon, o `neondb_owner` e qualquer role criado pelo Console têm
+ * `BYPASSRLS` e furam a RLS silenciosamente — por isso a app usa `app_rls` (criado via
+ * SQL) e as migrations usam `MIGRATION_DATABASE_URL` (dono). O primeiro teste abaixo é
+ * um fail-safe que detecta um role com BYPASSRLS e quebra alto em vez de passar furado.
  */
 const hasDb = Boolean(process.env.DATABASE_URL);
 
@@ -22,7 +31,13 @@ const userB = { id: `user_b_${stamp}`, email: `b_${stamp}@test.local`, name: "B"
 
 describe.skipIf(!hasDb)("RLS isolation on users", () => {
   beforeAll(async () => {
-    await migrate(getDb(), { migrationsFolder: "drizzle" });
+    // Migrations rodam como o DONO (BYPASSRLS/DDL ok). O role da app (app_rls) não
+    // tem privilégio sobre o schema `drizzle`. Fallback p/ DATABASE_URL (dono == app).
+    const migrationUrl = process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL!;
+    const migClient = postgres(migrationUrl, { prepare: false, max: 1 });
+    await migrate(drizzle(migClient), { migrationsFolder: "drizzle" });
+    await migClient.end();
+
     await withUserContext(userA.id, (tx) => tx.insert(users).values(userA));
     await withUserContext(userB.id, (tx) => tx.insert(users).values(userB));
   });
@@ -31,6 +46,13 @@ describe.skipIf(!hasDb)("RLS isolation on users", () => {
     // FORCE RLS vale para o cleanup também: cada um remove a própria linha.
     await withUserContext(userA.id, (tx) => tx.delete(users));
     await withUserContext(userB.id, (tx) => tx.delete(users));
+  });
+
+  it("o role da app NÃO tem BYPASSRLS (senão a RLS é furada em silêncio)", async () => {
+    const rows = await getDb().execute<{ rolbypassrls: boolean }>(
+      sql`select rolbypassrls from pg_roles where rolname = current_user`,
+    );
+    expect(rows[0]?.rolbypassrls).toBe(false);
   });
 
   it("usuário A só enxerga a própria linha", async () => {
