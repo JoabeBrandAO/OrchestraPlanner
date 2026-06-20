@@ -22,6 +22,20 @@
       "when": 1781993575087,
       "tag": "0002_app_rls_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781993800241,
+      "tag": "0003_life_areas_goals",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781993817103,
+      "tag": "0004_life_areas_goals_rls",
+      "breakpoints": true
     }
   ]
 }

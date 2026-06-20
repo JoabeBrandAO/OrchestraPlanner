@@ -1,6 +1,8 @@
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
+import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
 import { ensureUserRecord } from "@/server/users";
 
 import { HealthStatus } from "./health-status";
@@ -24,9 +26,17 @@ export default async function DashboardPage() {
       <section className="rounded-lg border p-6">
         <h2 className="mb-2 text-lg font-medium">OrchestraPlanner</h2>
         <p className="text-muted-foreground text-sm">
-          Walking skeleton autenticado. Os módulos (Metas, Agenda, Financeiro, Pessoas) chegam nas
-          próximas iterações.
+          Núcleo de valor da Iteração 1: organize suas Metas por Áreas de Vida. Agenda, Financeiro e
+          Pessoas chegam nas próximas iterações.
         </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href="/dashboard/metas" className={buttonVariants({ variant: "default" })}>
+            Minhas Metas
+          </Link>
+          <Link href="/dashboard/areas" className={buttonVariants({ variant: "outline" })}>
+            Áreas de Vida
+          </Link>
+        </div>
         <div className="mt-4">
           <HealthStatus />
         </div>
