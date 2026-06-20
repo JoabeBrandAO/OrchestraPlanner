@@ -1,10 +1,8 @@
 import { sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { getDb } from "./index";
+import { migrateForTests } from "./migrate-for-tests";
 import { withUserContext } from "./rls";
 import { users } from "./schema";
 
@@ -31,12 +29,8 @@ const userB = { id: `user_b_${stamp}`, email: `b_${stamp}@test.local`, name: "B"
 
 describe.skipIf(!hasDb)("RLS isolation on users", () => {
   beforeAll(async () => {
-    // Migrations rodam como o DONO (BYPASSRLS/DDL ok). O role da app (app_rls) não
-    // tem privilégio sobre o schema `drizzle`. Fallback p/ DATABASE_URL (dono == app).
-    const migrationUrl = process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL!;
-    const migClient = postgres(migrationUrl, { prepare: false, max: 1 });
-    await migrate(drizzle(migClient), { migrationsFolder: "drizzle" });
-    await migClient.end();
+    // Migrations rodam como o DONO (DDL/BYPASSRLS ok); a app usa o role restrito app_rls.
+    await migrateForTests();
 
     await withUserContext(userA.id, (tx) => tx.insert(users).values(userA));
     await withUserContext(userB.id, (tx) => tx.insert(users).values(userB));

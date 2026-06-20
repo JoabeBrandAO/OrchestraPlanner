@@ -1,8 +1,6 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { migrateForTests } from "@/server/db/migrate-for-tests";
 import { withUserContext } from "@/server/db/rls";
 import { lifeAreas, users } from "@/server/db/schema";
 
@@ -27,10 +25,7 @@ const other = `la_other_${stamp}`;
 
 describe.skipIf(!hasDb)("life areas — seed + CRUD + isolamento", () => {
   beforeAll(async () => {
-    const migrationUrl = process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL!;
-    const migClient = postgres(migrationUrl, { prepare: false, max: 1 });
-    await migrate(drizzle(migClient), { migrationsFolder: "drizzle" });
-    await migClient.end();
+    await migrateForTests();
 
     for (const id of [uid, other]) {
       await withUserContext(id, (tx) =>
