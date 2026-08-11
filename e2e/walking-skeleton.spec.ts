@@ -1,3 +1,4 @@
+import { setupClerkTestingToken } from "@clerk/testing/playwright";
 import { expect, test } from "@playwright/test";
 
 /**
@@ -22,12 +23,26 @@ test.describe("walking skeleton", () => {
   test("login leva ao painel autenticado", async ({ page }) => {
     test.skip(!hasTestUser, "Requer E2E_CLERK_EMAIL/E2E_CLERK_PASSWORD (Phase B).");
 
-    await page.goto("/sign-in");
-    await page.getByLabel(/e-?mail/i).fill(process.env.E2E_CLERK_EMAIL!);
-    await page.getByRole("button", { name: /continuar|continue/i }).click();
-    await page.getByLabel(/senha|password/i).fill(process.env.E2E_CLERK_PASSWORD!);
-    await page.getByRole("button", { name: /continuar|continue|entrar|sign in/i }).click();
+    // Seletores ancorados nos `name`/classe do próprio Clerk, não em texto visível: os
+    // rótulos mudam com o idioma da instância, e buscar por "password"/"continue" casa
+    // também com o botão "Mostrar senha" e com o "Entrar com o Google".
+    const submit = page.locator("button.cl-formButtonPrimary");
+    const identifier = page.locator('input[name="identifier"]');
+    const password = page.locator('input[name="password"]');
 
+    // Marca esta página como confiável para o Clerk (ver e2e/global-setup.ts).
+    await setupClerkTestingToken({ page });
+
+    await page.goto("/sign-in");
+    await identifier.fill(process.env.E2E_CLERK_EMAIL!);
+    await submit.click();
+
+    await password.waitFor({ state: "visible" });
+    await password.fill(process.env.E2E_CLERK_PASSWORD!);
+    await submit.click();
+
+    // O Clerk sai do /sign-in assim que a sessão existe; daí navegamos ao painel.
+    await page.waitForURL((url) => !url.pathname.startsWith("/sign-in"));
     await page.goto("/dashboard");
     await expect(page.getByRole("heading", { name: /olá|ola/i })).toBeVisible();
   });
