@@ -34,22 +34,36 @@ export function TagEditor({
     .map((id) => known.find((tag) => tag.id === id) ?? selected.find((tag) => tag.id === id))
     .filter((tag): tag is TagLike => Boolean(tag));
 
-  const createTag = trpc.tags.create.useMutation({
-    onSuccess: async (tag) => {
-      setDraft("");
-      setIds((current) => (current.includes(tag.id) ? current : [...current, tag.id]));
-      await utils.tags.list.invalidate();
-    },
-  });
-
-  const setForPriority = trpc.tags.setForPriority.useMutation({
-    onSuccess: async () => {
-      await utils.priorities.list.invalidate();
-      onClose();
-    },
-  });
+  const createTag = trpc.tags.create.useMutation();
+  const setForPriority = trpc.tags.setForPriority.useMutation();
 
   const busy = createTag.isPending || setForPriority.isPending;
+
+  /**
+   * Transforma o texto digitado em tag selecionada e devolve a lista resultante.
+   * Devolver (em vez de só chamar `setIds`) é o que permite salvar na mesma ação:
+   * o estado do React só valeria no próximo render, e a tag se perderia.
+   */
+  async function commitDraft(): Promise<string[]> {
+    const name = draft.trim();
+    if (!name) return ids;
+
+    const existing = known.find((tag) => tag.name.toLowerCase() === name.toLowerCase());
+    const tag = existing ?? (await createTag.mutateAsync({ name }));
+
+    const next = ids.includes(tag.id) ? ids : [...ids, tag.id];
+    setIds(next);
+    setDraft("");
+    if (!existing) await utils.tags.list.invalidate();
+    return next;
+  }
+
+  async function save() {
+    const tagIds = await commitDraft();
+    await setForPriority.mutateAsync({ priorityId, tagIds });
+    await utils.priorities.list.invalidate();
+    onClose();
+  }
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-dashed p-2">
@@ -73,25 +87,15 @@ export function TagEditor({
         <input
           list={listId}
           className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 min-w-40 flex-1 rounded-lg border px-2 py-1 text-sm outline-none focus-visible:ring-3"
-          placeholder="Adicionar tag…"
+          placeholder="Digite uma tag e tecle Enter…"
           value={draft}
           maxLength={TAG_NAME_MAX_LENGTH}
+          disabled={busy}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
             e.preventDefault();
-            const name = draft.trim();
-            if (!name) return;
-            // Já existe? só seleciona. Se não, cria (o serviço é idempotente de qualquer forma).
-            const existing = known.find((tag) => tag.name.toLowerCase() === name.toLowerCase());
-            if (existing) {
-              setIds((current) =>
-                current.includes(existing.id) ? current : [...current, existing.id],
-              );
-              setDraft("");
-            } else {
-              createTag.mutate({ name });
-            }
+            void commitDraft();
           }}
         />
         <datalist id={listId}>
@@ -102,15 +106,24 @@ export function TagEditor({
 
         <Button
           size="sm"
-          disabled={busy}
-          onClick={() => setForPriority.mutate({ priorityId, tagIds: ids })}
+          variant="outline"
+          disabled={busy || draft.trim().length === 0}
+          onClick={() => void commitDraft()}
         >
+          {createTag.isPending ? "Adicionando…" : "Adicionar"}
+        </Button>
+        <Button size="sm" disabled={busy} onClick={() => void save()}>
           {setForPriority.isPending ? "Salvando…" : "Salvar tags"}
         </Button>
         <Button size="sm" variant="ghost" disabled={busy} onClick={onClose}>
           Cancelar
         </Button>
       </div>
+
+      <p className="text-muted-foreground text-xs">
+        A tag passa a existir assim que você a adiciona, e já aparece no filtro do topo. Clique num
+        chip para tirá-lo desta prioridade.
+      </p>
 
       {(createTag.error ?? setForPriority.error) && (
         <span className="text-xs text-red-500">

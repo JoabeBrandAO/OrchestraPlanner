@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { inferRouterOutputs } from "@trpc/server";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
@@ -91,6 +92,10 @@ export function PrioritiesBoard() {
   const [moveError, setMoveError] = useState<string | null>(null);
 
   const board = dragBoard ?? toBoard(priorities.data ?? []);
+
+  // `undefined` enquanto carrega — o rótulo "nenhuma ainda" só é honesto depois da resposta.
+  const hasGoals = goals.data ? goals.data.length > 0 : undefined;
+  const hasTags = tags.data ? tags.data.length > 0 : undefined;
 
   const invalidate = () => utils.priorities.list.invalidate();
 
@@ -197,8 +202,9 @@ export function PrioritiesBoard() {
           value={goalFilter}
           onChange={(e) => setGoalFilter(e.target.value)}
           aria-label="Filtrar por meta"
+          disabled={hasGoals === false}
         >
-          <option value="">Todas as metas</option>
+          <option value="">{hasGoals ? "Todas as metas" : "Nenhuma meta ainda"}</option>
           {goals.data?.map((goal) => (
             <option key={goal.id} value={goal.id}>
               {goal.title}
@@ -210,8 +216,9 @@ export function PrioritiesBoard() {
           value={tagFilter}
           onChange={(e) => setTagFilter(e.target.value)}
           aria-label="Filtrar por tag"
+          disabled={hasTags === false}
         >
-          <option value="">Todas as tags</option>
+          <option value="">{hasTags ? "Todas as tags" : "Nenhuma tag ainda"}</option>
           {tags.data?.map((tag) => (
             <option key={tag.id} value={tag.id}>
               {tag.name}
@@ -537,19 +544,30 @@ function NewPriorityForm({
         onChange={(e) => setTitle(e.target.value)}
       />
       <div className="flex flex-wrap gap-3">
-        <select
-          className={`${inputClass} max-w-56`}
-          value={goalId}
-          onChange={(e) => setGoalId(e.target.value)}
-          aria-label="Meta vinculada"
-        >
-          <option value="">Sem meta</option>
-          {goals.map((goal) => (
-            <option key={goal.id} value={goal.id}>
-              {goal.title}
-            </option>
-          ))}
-        </select>
+        <div className="flex max-w-56 flex-col gap-1">
+          <select
+            className={inputClass}
+            value={goalId}
+            onChange={(e) => setGoalId(e.target.value)}
+            aria-label="Meta vinculada"
+          >
+            <option value="">Sem meta</option>
+            {goals.map((goal) => (
+              <option key={goal.id} value={goal.id}>
+                {goal.title}
+              </option>
+            ))}
+          </select>
+          {goals.length === 0 && (
+            <span className="text-muted-foreground text-xs">
+              Você ainda não tem metas —{" "}
+              <Link href="/dashboard/metas" className="underline">
+                crie uma
+              </Link>{" "}
+              para poder vincular. Prioridades soltas funcionam normalmente.
+            </span>
+          )}
+        </div>
         <input
           type="date"
           className={`${inputClass} max-w-44`}
