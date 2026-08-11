@@ -47,3 +47,12 @@
   - **Arquitetura de 2 roles:** `DATABASE_URL` = `app_rls` (restrito, runtime) · `MIGRATION_DATABASE_URL` = `neondb_owner` (migrations/DDL). Atualizados `drizzle.config.ts`, `.env(.example)`, `docs/SETUP.md`.
   - **Blindagem:** `rls.test.ts` agora tem teste fail-safe que assere `rolbypassrls = false` no role corrente; `vitest.config.ts` carrega `.env` via `dotenv/config`. `users.ts` (upsert) já usava `withUserContext` → app RLS-safe em runtime.
   - typecheck · lint · build verdes. _Falta Phase B: chaves Clerk (#4/#7) e deploy Vercel._
+- **2026-06-20 (cont.) — Sessão Mão-na-massa (Iteração 1, autônoma):**
+  - **#3 fechada** na `main` (`4e05e71`): migration `0002` (GRANTs idempotentes do `app_rls`) + commit + issue fechada.
+  - **Iteração 1** entregue na branch `feat/iteracao-1-metas` (PR aberto — Closes #8–#12):
+    - **#8 Áreas de Vida** — `life_areas` + enum dimensão; seed idempotente das 12 sub-áreas padrão (Visão §4) no upsert; serviço CRUD + tRPC; UI `/dashboard/areas`.
+    - **#9–#12 Metas (US-1.1…1.4)** — `goals` + status enum; serviço `createGoal/listGoals/updateGoal/changeGoalStatus` (máquina de estados pura `canTransition`, reusa `validateGoalTitle`); tRPC `goals`; UI `/dashboard/metas` (criar/listar/editar/status + estado vazio). Walking skeleton de negócio coberto por unit/integração.
+    - Migrations `0003` (tabelas) + `0004` (RLS ENABLE+FORCE+policy por `user_id`). Tudo sob `withUserContext` → RLS isola.
+    - Qualidade: helper `migrateForTests`; `docs/FORMATACAO.md` atualizado. **Suíte 23 verdes**; typecheck·lint·build verdes.
+  - **Decisões abertas registradas:** Next 16 vs 15 (**#26**, nova); #23/#24/#25 (produto). Bloqueios comentados em #4/#6/#7.
+  - **Pendência do dono:** apagar o role órfão `app_user` (Console, BYPASSRLS) no Neon.

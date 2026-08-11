@@ -4,18 +4,34 @@
 > **refina continuamente**. O hook `PostToolUse` (`.claude/hooks/format.ps1`) aplica
 > automaticamente o que for automatizável; este documento registra as convenções.
 
-## Estado atual (projeto greenfield)
+## Estado atual
 
-Ainda **não há** toolchain instalado (o projeto Next.js não foi inicializado). Até lá,
-o hook de formatação é um no-op seguro. As convenções abaixo passam a valer assim que a
-Iteração 0 criar o `package.json`.
+Toolchain ativo (desde a Iteração 0): Next.js 16 + TS strict + ESLint + Prettier +
+Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos editados.
 
-## Convenções-alvo (a aplicar na Iteração 0)
+## Convenções de código (TS/TSX/JS/CSS/JSON)
+- **Prettier** como formatador único (aspas duplas, ponto-e-vírgula on).
+- **ESLint** (TS strict) + **import ordering** (grupos: libs externas → `@/...` → relativos
+  `./`, cada grupo em ordem alfabética; quebra de linha entre grupos).
+- TypeScript **strict**; sem `any` implícito. Para tipos ponta-a-ponta no front, derivar de
+  `inferRouterOutputs<AppRouter>` em vez de reconstruir tipos do schema no client.
 
-### Código (TS/TSX/JS/CSS/JSON)
-- **Prettier** como formatador único (largura padrão, aspas duplas, ponto-e-vírgula on).
-- **ESLint** com config do `create-next-app` (TS strict) + import ordering.
-- TypeScript em **strict mode**; sem `any` implícito.
+## Convenções de arquitetura (Iteração 1+)
+- **Tabela nova** → sempre `user_id` (ou `id` de tenancy) + `created_at`/`updated_at`;
+  migration de tabela (`drizzle-kit generate`) **+** migration custom de RLS
+  (`ENABLE` + `FORCE` + policy `user_id = current_setting('app.user_id', true)`), como
+  em `drizzle/0001`/`0004`. Índices `(user_id, …)` para as queries quentes (Visão §10).
+- **Serviço de domínio** (`src/server/services/<modulo>/`): funções puras de aplicação que
+  recebem `userId` e rodam sob `withUserContext(userId, (tx) => …)` — a RLS isola, sem
+  `where(user_id)` manual. Lógica pura (validações, máquinas de estado) em módulos próprios,
+  testáveis **sem DB** (rodam no CI).
+- **tRPC**: routers finos em `src/server/trpc/routers/`, `protectedProcedure` + `zod`,
+  delegando ao serviço com `ctx.userId`. Registrar em `root.ts`.
+- **UI** autenticada sob `src/app/dashboard/<rota>/`: página server (`force-dynamic`,
+  `ensureUserRecord()`) + client manager (`"use client"`) usando `trpc` + `useUtils` para
+  invalidar. Rotas em português (`/dashboard/metas`, `/dashboard/areas`).
+- **Testes de integração** com DB: `describe.skipIf(!hasDb)` + `migrateForTests()`
+  (`src/server/db/migrate-for-tests.ts`) no `beforeAll` — pulam no CI sem banco.
 
 ### Markdown
 - Títulos em sentence case; uma frase por linha em parágrafos longos quando ajudar o diff.
@@ -28,3 +44,5 @@ Iteração 0 criar o `package.json`.
 
 ## Histórico de refinamentos
 - **2026-06-18** — documento criado no auto-bootstrap do Mega_Build (papel: Desenvolvedor de Software).
+- **2026-06-20** — convenções reais (toolchain ativo) + padrões de arquitetura da Iteração 1
+  (tabela+RLS, serviço com `userId`+`withUserContext`, tRPC fino, UI server+client, helper de teste).
