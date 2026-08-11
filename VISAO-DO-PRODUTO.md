@@ -34,10 +34,10 @@ Um **sistema de gestão de vida pessoal** que ajuda a pessoa a organizar a vida 
 | **Público** | Começa **single-user (pessoal)**; arquitetura pronta para **SaaS pago** depois |
 | **Visão SaaS** | **Produtividade pessoal** → multi-tenant por **`user_id`** (sem `organization_id`) |
 | **Plataforma** | **Web** → mobile → desktop; design **API-first** |
-| **Stack** | **Next.js 15 + tRPC + Drizzle + PostgreSQL (Neon) + shadcn/ui** |
+| **Stack** | **Next.js 16 + tRPC + Drizzle + PostgreSQL (Neon) + shadcn/ui** *(era 15; decisão #26 em 2026-08-11)* |
 | **Auth** | **Clerk** ✅ |
 | **Metodologia** | **XP** (TDD, fatias verticais, iterações curtas, CI) |
-| **Ordem dos módulos** | **Prioridades & Metas (MVP) → Agenda → Financeiro → Pessoas/Relacionamentos** *(Pessoas integra com Agenda — ver §8)* |
+| **Ordem dos módulos** | **Prioridades & Metas (MVP) → Agenda → Pessoas/Relacionamentos → Financeiro** *(Pessoas logo após a Agenda — decisão #23; ver §8)* |
 | **Áreas de Vida** | Padrão **Corpo / Alma / Espírito** com sub-áreas, **customizáveis** pelo usuário |
 | **Financeiro** | **Simples** no MVP; **importação OFX/CSV só na última implementação** do módulo |
 
@@ -134,11 +134,20 @@ SHOULD: Priorizar (Kanban) · Marcos/progresso · Dashboard. COULD: Tags · Data
 ---
 
 ## 8. Decisões em aberto
-1. **Posição do módulo Pessoas:** recomendo **logo após a Agenda** (aniversários/lembretes dependem do calendário) — ou manter como 4º após o Financeiro. ⚠️ confirmar.
-2. **Roda da Vida:** entra já no **Onboarding** (1ª avaliação) ou vira módulo só na Fase 2? Recomendo uma versão mínima no Onboarding.
-3. Campos "somente casado" (Relacionamento Conjugal) — exibir condicionalmente conforme estado civil.
 
-*(Resolvidas: Auth=Clerk · Financeiro simples→OFX/CSV no fim · Áreas=Corpo/Alma/Espírito customizável · SaaS=produtividade pessoal.)*
+Nenhuma. As últimas quatro foram fechadas em **2026-08-11** (issues #23–#26):
+
+1. **Posição do módulo Pessoas** → **logo após a Agenda** (iteração 6). Aniversários e lembretes
+   viram compromissos, então Pessoas depende do calendário existir. (#23)
+2. **Roda da Vida** → **versão mínima já no Onboarding** (iteração 3): pontuar as áreas 0–10 e
+   mostrar o radar. É o diagnóstico que ancora as metas nas áreas mais fracas. (#24)
+3. **Campos "somente casado"** (Relacionamento Conjugal) → **condicionais por `marital_status`**:
+   cônjuge e data de casamento só aparecem para casado/união estável. Entra junto do módulo
+   Pessoas. (#25)
+4. **Next.js 16 (e não 15)** → mantido; a stack em §3 foi corrigida. Validado desde a Iteração 0
+   em typecheck·lint·test·build, App Router, middleware, tRPC e RLS. (#26)
+
+*(Resolvidas antes: Auth=Clerk · Financeiro simples→OFX/CSV no fim · Áreas=Corpo/Alma/Espírito customizável · SaaS=produtividade pessoal.)*
 
 ---
 
@@ -146,17 +155,17 @@ SHOULD: Priorizar (Kanban) · Marcos/progresso · Dashboard. COULD: Tags · Data
 
 | Fase | Janela | Entrega |
 |---|---|---|
-| **1** | 0–60 d | App **web pessoal** (Metas → Agenda → Financeiro → Pessoas) + Roda da Vida no onboarding |
+| **1** | 0–60 d | App **web pessoal** (Metas → Agenda → Pessoas → Financeiro) + Roda da Vida no onboarding |
 | **2** | 60–120 d | **Público (SaaS)** + **app mobile** |
 | **3** | 120–180 d | **Desktop** |
 
 ### Iterações XP (~1 semana) — Fase 1
 | Iter | Objetivo |
 |---|---|
-| **0** | Setup: repo, CI, Clerk (auth single-user), DB+RLS, walking skeleton, deploy automático |
-| **1** | Áreas de Vida (seed Corpo/Alma/Espírito) + CRUD de Metas |
-| **2** | Prioridades em Kanban + drag-and-drop |
-| **3** | Marcos, progresso, dashboard + Roda da Vida (mínima) → **MVP Metas em produção** |
+| **0** ✅ | Setup: repo, CI, Clerk (auth single-user), DB+RLS, walking skeleton, deploy automático *(falta o deploy)* |
+| **1** ✅ | Áreas de Vida (seed Corpo/Alma/Espírito) + CRUD de Metas |
+| **2** ✅ | Prioridades em Kanban + drag-and-drop **+ tags** |
+| **3** | Marcos, progresso, dashboard + Roda da Vida (mínima, **no onboarding** — #24) → **MVP Metas em produção** |
 | 4–5 | Agenda (calendário + recorrência/lembretes) |
 | 6 | Pessoas & Relacionamentos (cadastro, círculos, aniversários→agenda) |
 | 7–8 | Financeiro (contas, orçamento, relatórios; OFX/CSV por último) |
