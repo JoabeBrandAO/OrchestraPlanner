@@ -77,3 +77,18 @@
   - **Ainda bloqueado no dono:** chaves do Clerk (#4/#7 — sem elas `/dashboard` responde 404 em
     modo keyless, então a validação manual no browser fica pendente), deploy Vercel (#6), role
     órfão `app_user` no Neon, decisões #23–#26.
+- **2026-08-11 (cont.) — fechamento da sessão** (log completo em
+  [docs/sessions/2026-08-11-iteracao-2.md](docs/sessions/2026-08-11-iteracao-2.md)):
+  - **PR #28 e #29 mergeados**; #13 e #14 fechadas. Correções do 1º teste manual do dono: a tag
+    digitada era descartada ao salvar (só o `Enter` a criava), e os selects de filtro agora
+    dizem "Nenhuma meta/tag ainda" em vez de fingir um filtro vazio.
+  - **Decisões #23–#26 fechadas** — §8 da Visão zerada. **#4 (Clerk) fechado.**
+  - **Neon limpo** (verificado por query): `app_user` removido, `app_rls` com
+    `rolbypassrls = false`.
+  - **#7 parcial:** a suíte E2E passava "verde" **pulando os dois testes** (o Playwright nunca
+    carregava o `.env`). Corrigido + seletores estáveis + `@clerk/testing`. A landing pública
+    passa de verdade; o login para em `/sign-in/client-trust` — falta desligar a proteção
+    anti-bot na instância de desenvolvimento do Clerk.
+  - **🔴 Incidente de segurança (#30):** credenciais de teste foram publicadas no `.env.example`
+    (repo público) pelo commit `ed711e8` e **a senha ainda é válida**. Rotacionar no Clerk.
+  - **Próximo:** Iteração 3 — #15 Marcos · #16 Dashboard · #17 Roda da Vida.
