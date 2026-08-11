@@ -56,3 +56,24 @@
     - Qualidade: helper `migrateForTests`; `docs/FORMATACAO.md` atualizado. **Suíte 23 verdes**; typecheck·lint·build verdes.
   - **Decisões abertas registradas:** Next 16 vs 15 (**#26**, nova); #23/#24/#25 (produto). Bloqueios comentados em #4/#6/#7.
   - **Pendência do dono:** apagar o role órfão `app_user` (Console, BYPASSRLS) no Neon.
+- **2026-08-11 — Sessão Mão-na-massa (Iteração 2: Prioridades + Tags):**
+  - **Iteração 1 fechada:** PR #27 mergeado na `main` (`4ed22de`); issues **#8–#12 fechadas**.
+  - **Iteração 2** entregue na branch `feat/iteracao-2-prioridades` (Closes #13–#14):
+    - **#13 Prioridades (Kanban)** — tabela `priorities` (status/position/nível/prazo, meta opcional);
+      `computeReorder` puro (matemática do DnD, testada sem banco) + `movePriority` numa transação,
+      mantendo as posições contíguas; regra de `completed_at` isolada em `priority-status.ts`.
+    - **#14 Tags** — `tags` + junção `priority_tags` (com `user_id` próprio para a RLS isolar a
+      associação); `createTag` idempotente case-insensitive (índice único em `lower(name)`);
+      `setPriorityTags` substitui o conjunto; filtro por tag.
+    - Migrations `0005` (tabelas) + `0006` (RLS ENABLE+FORCE+policies + GRANTs ao `app_rls`),
+      **aplicadas no Neon**.
+    - UI `/dashboard/prioridades`: board de 3 colunas com **@dnd-kit** (sensores de teclado —
+      mover card sem mouse), update otimista no cache do React Query, editor de tags com
+      autocomplete, filtros por meta/tag, link no dashboard.
+    - `validateGoalTitle` promovido a `shared/validate-title` (Metas e Prioridades usam a mesma regra).
+  - Qualidade: **suíte 38 verdes** (era 23), typecheck · lint · format · build verdes.
+    2 erros registrados em `docs/ERROS.md` (diff que apagava a própria mudança; import de serviço
+    puxando `postgres` para o bundle do client) e as lições viraram convenção em `FORMATACAO.md`.
+  - **Ainda bloqueado no dono:** chaves do Clerk (#4/#7 — sem elas `/dashboard` responde 404 em
+    modo keyless, então a validação manual no browser fica pendente), deploy Vercel (#6), role
+    órfão `app_user` no Neon, decisões #23–#26.

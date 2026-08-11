@@ -1,5 +1,16 @@
 import { sql } from "drizzle-orm";
-import { date, index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  date,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 // Schema Drizzle do OrchestraPlanner.
 // Toda tabela carrega o dono (`user_id`/`id`) e é protegida por RLS (ver VISAO §5/§10).
@@ -97,3 +108,100 @@ export const goals = pgTable(
 
 export type Goal = typeof goals.$inferSelect;
 export type NewGoal = typeof goals.$inferInsert;
+
+// === Prioridades (Kanban) & Tags — issues #13–#14 ===
+
+/** Coluna do Kanban de prioridades (Visão §5). `done` carrega `completed_at`. */
+export const priorityStatus = pgEnum("priority_status", ["todo", "in_progress", "done"]);
+
+/**
+ * Prioridades: as tarefas acionáveis do dia a dia, opcionalmente puxando uma meta.
+ * Ao remover a meta, a prioridade permanece (`goal_id` vira NULL) — mesmo critério de
+ * `goals.life_area_id`. `position` é a ordem **dentro da coluna** (contígua, 0-based),
+ * mantida pelo serviço em transação; é ela que o drag-and-drop persiste.
+ */
+export const priorities = pgTable(
+  "priorities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    status: priorityStatus("status").notNull().default("todo"),
+    priorityLevel: integer("priority_level").notNull().default(0),
+    position: integer("position").notNull().default(0),
+    dueDate: date("due_date"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    index("priorities_user_status_position_idx").on(t.userId, t.status, t.position),
+    index("priorities_user_goal_idx").on(t.userId, t.goalId),
+  ],
+);
+
+export type Priority = typeof priorities.$inferSelect;
+export type NewPriority = typeof priorities.$inferInsert;
+
+/**
+ * Tags reutilizáveis do usuário. O único por `(user_id, lower(name))` evita duplicar
+ * "Casa" e "casa" — o serviço reaproveita a tag existente em vez de criar outra.
+ */
+export const tags = pgTable(
+  "tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [uniqueIndex("tags_user_lower_name_uq").on(t.userId, sql`lower(${t.name})`)],
+);
+
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+/**
+ * Junção N:N prioridade↔tag. Carrega `user_id` porque a RLS é por linha: sem ele a
+ * policy não teria como isolar a associação (as FKs sozinhas não são verificadas sob RLS).
+ */
+export const priorityTags = pgTable(
+  "priority_tags",
+  {
+    priorityId: uuid("priority_id")
+      .notNull()
+      .references(() => priorities.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.priorityId, t.tagId] }),
+    index("priority_tags_user_tag_idx").on(t.userId, t.tagId),
+  ],
+);
+
+export type PriorityTag = typeof priorityTags.$inferSelect;
+export type NewPriorityTag = typeof priorityTags.$inferInsert;
