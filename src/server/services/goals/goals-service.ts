@@ -39,10 +39,7 @@ export async function createGoal(userId: string, input: CreateGoalInput): Promis
 }
 
 /** US-1.2 — lista metas por `updated_at DESC`, com filtro opcional por área. */
-export async function listGoals(
-  userId: string,
-  filter?: { lifeAreaId?: string },
-): Promise<Goal[]> {
+export async function listGoals(userId: string, filter?: { lifeAreaId?: string }): Promise<Goal[]> {
   return withUserContext(userId, (tx) =>
     tx
       .select()
@@ -99,10 +96,7 @@ export async function changeGoalStatus(
   to: GoalStatusValue,
 ): Promise<Goal> {
   return withUserContext(userId, async (tx) => {
-    const [current] = await tx
-      .select({ status: goals.status })
-      .from(goals)
-      .where(eq(goals.id, id));
+    const [current] = await tx.select({ status: goals.status }).from(goals).where(eq(goals.id, id));
     if (!current) throw new Error("Meta não encontrada.");
     if (!canTransition(current.status, to)) {
       throw new Error(`Transição de status inválida: ${current.status} → ${to}.`);

@@ -51,3 +51,6 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# clerk configuration (can include secrets)
+/.clerk/

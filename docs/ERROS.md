@@ -53,3 +53,17 @@
 - **Causa raiz:** o role tinha o atributo **`BYPASSRLS = true`**, que ignora RLS em qualquer tabela — e `FORCE` **não** vence `BYPASSRLS`. No Neon, o `neondb_owner` **e todo role criado pelo Console/CLI/API** ganham membership em `neon_superuser` + `BYPASSRLS`. Pior: `ALTER ROLE ... NOBYPASSRLS` **não é permitido** (nem pelo dono — "permission denied to alter role"), pois o Neon não expõe superusuário.
 - **Correção:** seguir a via oficial do Neon — criar o role da app **via SQL** (`CREATE ROLE app_rls WITH LOGIN PASSWORD '…'`), que **não** entra no `neon_superuser` e nasce **sem** `BYPASSRLS`. Arquitetura de dois roles: `app_rls` (restrito, só DML) em `DATABASE_URL` para runtime; `neondb_owner` em `MIGRATION_DATABASE_URL` só para migrations/DDL. Isolamento provado: A vê só A, B só B, sem contexto vê 0.
 - **Como evitar a recorrência:** (1) **nunca** usar role criado pelo Console do Neon para a app — só via SQL; (2) `rls.test.ts` agora tem um teste fail-safe que assere `rolbypassrls = false` no role corrente — se alguém apontar a app para um role que fura RLS, a suíte quebra alto em vez de passar furada; (3) migrations e runtime usam roles distintos por design (ver `docs/SETUP.md`). Refs: [Neon — RLS query execution](https://neon.com/docs/guides/rls-query-execution), [Neon — Manage roles](https://neon.com/docs/manage/roles).
+
+### 2026-08-11 — Reordenação do Kanban perdia a troca de coluna
+- **Contexto:** Iteração 2, `computeReorder` (`src/server/services/priorities/reorder.ts`, #13).
+- **O que ocorreu:** mover um card para **outra** coluna sem mudar de índice (ex.: `todo[0]` → `done[0]`) não gerava nenhum update — o teste puro `clampeia o índice…` falhou com a coluna destino vazia.
+- **Causa raiz:** ao inserir o item na coluna destino eu já o inseria com o `status` novo (`{...moved, status: toStatus}`). A comparação final (`item.status !== status || item.position !== position`) então não via diferença alguma — o próprio código apagara a mudança que precisava detectar.
+- **Correção:** inserir o item com o **status original** e deixar a comparação final descobrir a troca. Comentário no ponto exato explicando o porquê.
+- **Como evitar a recorrência:** em rotinas de diff, **nunca** normalizar o dado para o estado-alvo antes de comparar com o estado-alvo. O teste puro pegou antes de qualquer ida ao banco — manter a matemática de ordenação fora do serviço, testável sem DB.
+
+### 2026-08-11 — Import de serviço puxou `postgres` para o bundle do client
+- **Contexto:** `npm run build` da Iteração 2; `tag-editor.tsx` (client component) importava `TAG_NAME_MAX_LENGTH` de `tags-service.ts`.
+- **O que ocorreu:** build quebrou com *module not found* em `node_modules/postgres/src/connection.js`, listando a cadeia `tag-editor.tsx → tags-service.ts → db/rls.ts → db/index.ts → postgres`.
+- **Causa raiz:** importar **qualquer** símbolo de um módulo traz o módulo inteiro para o grafo — mesmo uma constante. Como o serviço importa o client do banco, o bundler tentou empacotar o driver `postgres` para o browser.
+- **Correção:** extrair a regra pura para `src/server/services/tags/tag-name.ts` (sem dependência de banco) e importar dela tanto na UI quanto no serviço/router.
+- **Como evitar a recorrência:** constantes e regras puras que a UI compartilha moram em módulo próprio, sem import de `db/`. Regra geral já usada em `validate-title.ts` e `priority-status.ts`; agora documentada em `docs/FORMATACAO.md`.

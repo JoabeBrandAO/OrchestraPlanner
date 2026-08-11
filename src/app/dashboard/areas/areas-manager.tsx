@@ -76,7 +76,9 @@ export function AreasManager() {
           if (items.length === 0) return null;
           return (
             <section key={d.value}>
-              <h2 className="text-muted-foreground mb-2 text-sm font-medium uppercase">{d.label}</h2>
+              <h2 className="text-muted-foreground mb-2 text-sm font-medium uppercase">
+                {d.label}
+              </h2>
               <ul className="flex flex-col gap-2">
                 {items.map((area) => (
                   <li
