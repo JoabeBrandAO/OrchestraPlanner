@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   date,
   index,
   integer,
@@ -283,3 +284,63 @@ export const priorityTags = pgTable(
 
 export type PriorityTag = typeof priorityTags.$inferSelect;
 export type NewPriorityTag = typeof priorityTags.$inferInsert;
+
+// === Agenda — issue #18 ===
+
+/** Frequência da recorrência de um compromisso. `none` = evento único. */
+export const recurrenceFrequency = pgEnum("recurrence_frequency", [
+  "none",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+]);
+
+/**
+ * Compromissos da Agenda (Visão §6, épico 4).
+ *
+ * A recorrência é guardada como **regra**, não como linhas materializadas: um "toda
+ * segunda" vira uma linha só, e as ocorrências são expandidas na leitura (ver
+ * `events/recurrence.ts`). Materializar exigiria decidir até quando gerar, e editar a
+ * série significaria caçar e reescrever N linhas.
+ *
+ * `priority_id` é o "vincular tarefas a blocos" do épico: o compromisso pode ser o bloco
+ * de tempo reservado para uma prioridade do Kanban. Ao apagar a prioridade o bloco
+ * permanece (vira NULL) — mesmo critério de `goals.life_area_id`.
+ */
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lifeAreaId: uuid("life_area_id").references(() => lifeAreas.id, { onDelete: "set null" }),
+    priorityId: uuid("priority_id").references(() => priorities.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    allDay: boolean("all_day").notNull().default(false),
+    frequency: recurrenceFrequency("frequency").notNull().default("none"),
+    /** A cada quantos períodos repete (2 = de duas em duas semanas). */
+    recurrenceInterval: integer("recurrence_interval").notNull().default(1),
+    /** Fim da série; NULL = sem fim previsto (a expansão é sempre limitada pela janela). */
+    recurrenceUntil: timestamp("recurrence_until", { withTimezone: true }),
+    /** Minutos de antecedência do lembrete; NULL = sem lembrete. */
+    reminderMinutesBefore: integer("reminder_minutes_before"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    index("events_user_starts_idx").on(t.userId, t.startsAt),
+    index("events_user_priority_idx").on(t.userId, t.priorityId),
+  ],
+);
+
+export type EventRow = typeof events.$inferSelect;
+export type NewEventRow = typeof events.$inferInsert;
