@@ -109,6 +109,40 @@ export const goals = pgTable(
 export type Goal = typeof goals.$inferSelect;
 export type NewGoal = typeof goals.$inferInsert;
 
+// === Marcos das metas — issue #15 ===
+
+/**
+ * Marcos (checkpoints) de uma meta — os passos que provam que ela anda. A conclusão é
+ * representada **só** por `completed_at` (NULL = pendente): um booleano paralelo poderia
+ * discordar da data. `goals.progress` é derivado destes marcos (ver `goals/progress.ts`)
+ * e recalculado pelo serviço a cada mudança — a coluna é cache do cálculo, não a verdade.
+ */
+export const goalMilestones = pgTable(
+  "goal_milestones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    goalId: uuid("goal_id")
+      .notNull()
+      .references(() => goals.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    position: integer("position").notNull().default(0),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [index("goal_milestones_user_goal_position_idx").on(t.userId, t.goalId, t.position)],
+);
+
+export type GoalMilestone = typeof goalMilestones.$inferSelect;
+export type NewGoalMilestone = typeof goalMilestones.$inferInsert;
+
 // === Prioridades (Kanban) & Tags — issues #13–#14 ===
 
 /** Coluna do Kanban de prioridades (Visão §5). `done` carrega `completed_at`. */
