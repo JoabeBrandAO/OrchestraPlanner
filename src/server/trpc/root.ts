@@ -1,3 +1,4 @@
+import { dashboardRouter } from "./routers/dashboard";
 import { goalsRouter } from "./routers/goals";
 import { healthRouter } from "./routers/health";
 import { lifeAreasRouter } from "./routers/life-areas";
@@ -8,6 +9,7 @@ import { router } from "./trpc";
 
 export const appRouter = router({
   health: healthRouter,
+  dashboard: dashboardRouter,
   lifeAreas: lifeAreasRouter,
   goals: goalsRouter,
   milestones: milestonesRouter,

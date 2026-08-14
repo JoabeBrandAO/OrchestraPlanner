@@ -5,6 +5,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { ensureUserRecord } from "@/server/users";
 
+import { GoalsOverview } from "./goals-overview";
 import { HealthStatus } from "./health-status";
 
 // Área autenticada — sempre dinâmica (depende da sessão Clerk).
@@ -43,6 +44,12 @@ export default async function DashboardPage() {
         <div className="mt-4">
           <HealthStatus />
         </div>
+      </section>
+
+      {/* Panorama das metas (#16) — o que está ativo, atrasado e andando. */}
+      <section className="rounded-lg border p-6">
+        <h2 className="mb-4 text-lg font-medium">Panorama das metas</h2>
+        <GoalsOverview />
       </section>
     </main>
   );
