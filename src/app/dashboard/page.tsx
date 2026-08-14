@@ -7,6 +7,7 @@ import { ensureUserRecord } from "@/server/users";
 
 import { GoalsOverview } from "./goals-overview";
 import { HealthStatus } from "./health-status";
+import { LifeWheelCallout } from "./life-wheel-callout";
 
 // Área autenticada — sempre dinâmica (depende da sessão Clerk).
 export const dynamic = "force-dynamic";
@@ -40,11 +41,16 @@ export default async function DashboardPage() {
           <Link href="/dashboard/areas" className={buttonVariants({ variant: "outline" })}>
             Áreas de Vida
           </Link>
+          <Link href="/dashboard/roda-da-vida" className={buttonVariants({ variant: "outline" })}>
+            Roda da Vida
+          </Link>
         </div>
         <div className="mt-4">
           <HealthStatus />
         </div>
       </section>
+
+      <LifeWheelCallout />
 
       {/* Panorama das metas (#16) — o que está ativo, atrasado e andando. */}
       <section className="rounded-lg border p-6">

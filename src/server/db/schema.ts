@@ -109,6 +109,44 @@ export const goals = pgTable(
 export type Goal = typeof goals.$inferSelect;
 export type NewGoal = typeof goals.$inferInsert;
 
+// === Roda da Vida — issue #17 ===
+
+/**
+ * Avaliação da Roda da Vida (Visão §5): **uma linha por área** com a nota 0–10.
+ *
+ * Uma "rodada" (a roda inteira de um dia) é o conjunto de linhas que compartilham o mesmo
+ * `assessed_at` — o serviço grava todas com o mesmo instante, então agrupar por ele é
+ * exato, e não uma janela de tempo aproximada. Guardar rodadas em vez de sobrescrever a
+ * nota é o que dá o histórico ("como eu estava em março").
+ */
+export const lifeAssessments = pgTable(
+  "life_assessments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lifeAreaId: uuid("life_area_id")
+      .notNull()
+      .references(() => lifeAreas.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    assessedAt: timestamp("assessed_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    index("life_assessments_user_assessed_idx").on(t.userId, t.assessedAt),
+    uniqueIndex("life_assessments_round_area_uq").on(t.userId, t.assessedAt, t.lifeAreaId),
+  ],
+);
+
+export type LifeAssessment = typeof lifeAssessments.$inferSelect;
+export type NewLifeAssessment = typeof lifeAssessments.$inferInsert;
+
 // === Marcos das metas — issue #15 ===
 
 /**
