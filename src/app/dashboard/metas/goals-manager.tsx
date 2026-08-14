@@ -5,7 +5,10 @@ import { useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { trpc } from "@/trpc/react";
+
+import { MilestonesPanel } from "./milestones-panel";
 
 type GoalItem = inferRouterOutputs<AppRouter>["goals"]["list"][number];
 
@@ -146,6 +149,7 @@ function GoalRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(goal.title);
+  const [showMilestones, setShowMilestones] = useState(false);
   const draftValid = draft.trim().length > 0;
 
   return (
@@ -170,6 +174,18 @@ function GoalRow({
         )}
         <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-xs whitespace-nowrap">
           {STATUS_LABEL[goal.status]}
+        </span>
+      </div>
+
+      {/* Progresso derivado dos marcos (#15) — o número vem calculado do servidor. */}
+      <div className="flex items-center gap-3">
+        <ProgressBar
+          value={goal.progress}
+          label={`Progresso da meta ${goal.title}`}
+          className="flex-1"
+        />
+        <span className="text-muted-foreground w-10 text-right text-xs tabular-nums">
+          {goal.progress}%
         </span>
       </div>
 
@@ -213,9 +229,19 @@ function GoalRow({
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => setEditing(true)}>
               Editar
             </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-expanded={showMilestones}
+              onClick={() => setShowMilestones((open) => !open)}
+            >
+              {showMilestones ? "Ocultar marcos" : "Marcos"}
+            </Button>
           </>
         )}
       </div>
+
+      {showMilestones && <MilestonesPanel goalId={goal.id} />}
     </div>
   );
 }
