@@ -61,6 +61,35 @@ describe.skipIf(!hasDb)("life areas — seed + CRUD + isolamento", () => {
     expect(await listLifeAreas(other)).toHaveLength(0);
   });
 
+  it("dois seeds simultâneos de um usuário novo não duplicam (regressão)", async () => {
+    // O bug real (docs/ERROS.md 2026-08-13): `ensureUserRecord()` roda em toda página
+    // autenticada, então dois requests concorrentes de um usuário novo passavam ambos
+    // pelo "já existe?" antes de qualquer um gravar, e a pessoa via 24 áreas.
+    const racer = `la_race_${stamp}`;
+    await withUserContext(racer, (tx) =>
+      tx.insert(users).values({ id: racer, email: `${racer}@test.local`, name: "T" }),
+    );
+
+    await Promise.all([seedDefaultLifeAreas(racer), seedDefaultLifeAreas(racer)]);
+    expect(await listLifeAreas(racer)).toHaveLength(DEFAULT_LIFE_AREAS.length);
+
+    await withUserContext(racer, (tx) => tx.delete(lifeAreas));
+    await withUserContext(racer, (tx) => tx.delete(users));
+  });
+
+  it("recusa duas áreas com o mesmo nome, ignorando maiúsculas", async () => {
+    const created = await createLifeArea(other, { dimension: "alma", name: "Estudos" });
+
+    try {
+      await expect(createLifeArea(other, { dimension: "corpo", name: "estudos" })).rejects.toThrow(
+        /já tem uma área/i,
+      );
+    } finally {
+      // Limpa mesmo se a asserção falhar, senão a área vaza para o teste seguinte.
+      await deleteLifeArea(other, created.id);
+    }
+  });
+
   it("CRUD — cria, edita e remove uma área customizada", async () => {
     const created = await createLifeArea(other, { dimension: "corpo", name: "Hobbies" });
     expect(created.name).toBe("Hobbies");

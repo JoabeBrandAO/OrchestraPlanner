@@ -64,7 +64,13 @@ export const lifeAreas = pgTable(
       .notNull()
       .default(sql`now()`),
   },
-  (t) => [index("life_areas_user_position_idx").on(t.userId, t.position)],
+  (t) => [
+    index("life_areas_user_position_idx").on(t.userId, t.position),
+    // Duas áreas com o mesmo nome não significam nada para o usuário — e sem esta regra
+    // no banco, dois requests simultâneos do seed padrão criavam 24 áreas em vez de 12
+    // (ver docs/ERROS.md 2026-08-13). O único é a garantia; o serviço só a respeita.
+    uniqueIndex("life_areas_user_lower_name_uq").on(t.userId, sql`lower(${t.name})`),
+  ],
 );
 
 export type LifeArea = typeof lifeAreas.$inferSelect;

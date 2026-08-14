@@ -11,14 +11,23 @@ import { DEFAULT_LIFE_AREAS, type LifeDimension } from "./default-areas";
  * `where(user_id)` manual é necessário (a policy cuida). Reutilizável por tRPC/mobile.
  */
 
-/** Seed idempotente das áreas padrão (Visão §4). Retorna quantas inseriu (0 se já existiam). */
+/**
+ * Seed idempotente das áreas padrão (Visão §4). Retorna quantas inseriu (0 se já existiam).
+ *
+ * A idempotência é do **banco**, não de um `if`: `ensureUserRecord()` roda em toda página
+ * autenticada, e duas requisições simultâneas de um usuário novo passavam as duas pelo
+ * "já existe?" antes de qualquer uma gravar — cada uma inseria as 12 áreas e o usuário
+ * via 24 (docs/ERROS.md 2026-08-13). Com o índice único + `on conflict do nothing`, a
+ * segunda simplesmente não insere nada, sem corrida possível.
+ */
 export async function seedDefaultLifeAreas(userId: string): Promise<number> {
   return withUserContext(userId, async (tx) => {
-    const existing = await tx.select({ id: lifeAreas.id }).from(lifeAreas).limit(1);
-    if (existing.length > 0) return 0;
-
     const rows = DEFAULT_LIFE_AREAS.map((area, position) => ({ ...area, userId, position }));
-    const inserted = await tx.insert(lifeAreas).values(rows).returning({ id: lifeAreas.id });
+    const inserted = await tx
+      .insert(lifeAreas)
+      .values(rows)
+      .onConflictDoNothing()
+      .returning({ id: lifeAreas.id });
     return inserted.length;
   });
 }
@@ -38,17 +47,38 @@ export type CreateLifeAreaInput = {
   position?: number;
 };
 
+/**
+ * Violação de unicidade do Postgres (23505) — aqui só pode ser o nome de área repetido.
+ * Percorre a cadeia de `cause` porque o Drizzle embrulha o erro do driver num
+ * `DrizzleQueryError`: o `code` do Postgres não está no topo.
+ */
+function isDuplicateName(error: unknown): boolean {
+  for (let current = error; current != null; current = (current as { cause?: unknown }).cause) {
+    if (typeof current !== "object") return false;
+    if ("code" in current && (current as { code?: string }).code === "23505") return true;
+  }
+  return false;
+}
+
+const DUPLICATE_MESSAGE = "Você já tem uma área de vida com esse nome.";
+
 export async function createLifeArea(
   userId: string,
   input: CreateLifeAreaInput,
 ): Promise<LifeArea> {
-  return withUserContext(userId, async (tx) => {
-    const [row] = await tx
-      .insert(lifeAreas)
-      .values({ ...input, userId })
-      .returning();
-    return row!;
-  });
+  try {
+    return await withUserContext(userId, async (tx) => {
+      const [row] = await tx
+        .insert(lifeAreas)
+        .values({ ...input, userId })
+        .returning();
+      return row!;
+    });
+  } catch (error) {
+    // Sem isto o índice único vazaria "duplicate key value violates..." para a tela.
+    if (isDuplicateName(error)) throw new Error(DUPLICATE_MESSAGE);
+    throw error;
+  }
 }
 
 export type UpdateLifeAreaInput = Partial<CreateLifeAreaInput>;
@@ -59,14 +89,19 @@ export async function updateLifeArea(
   id: string,
   patch: UpdateLifeAreaInput,
 ): Promise<LifeArea | null> {
-  return withUserContext(userId, async (tx) => {
-    const [row] = await tx
-      .update(lifeAreas)
-      .set({ ...patch, updatedAt: sql`now()` })
-      .where(eq(lifeAreas.id, id))
-      .returning();
-    return row ?? null;
-  });
+  try {
+    return await withUserContext(userId, async (tx) => {
+      const [row] = await tx
+        .update(lifeAreas)
+        .set({ ...patch, updatedAt: sql`now()` })
+        .where(eq(lifeAreas.id, id))
+        .returning();
+      return row ?? null;
+    });
+  } catch (error) {
+    if (isDuplicateName(error)) throw new Error(DUPLICATE_MESSAGE);
+    throw error;
+  }
 }
 
 export async function deleteLifeArea(userId: string, id: string): Promise<void> {
