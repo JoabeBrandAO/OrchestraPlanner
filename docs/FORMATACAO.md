@@ -42,6 +42,21 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   barra o espelhamento. Estado local só para o que é efêmero de verdade (ex.: o preview
   enquanto se arrasta um card).
 
+- **Valor derivado** (progresso de meta, média da roda) tem **uma fonte** — os registros
+  de origem — e é recalculado pelo serviço **na mesma transação** da mutação. A coluna
+  agregada (`goals.progress`) é cache do cálculo, nunca uma segunda verdade; a matemática
+  fica num módulo puro (`goals/progress.ts`, `dashboard/summary.ts`, `life-wheel/wheel.ts`).
+- **Estado de conclusão** com um campo só: `completed_at` nulo/preenchido em vez de
+  `done` + data, que podem discordar entre si.
+- **Mutação devolve o retrato completo** do que mudou (lista + agregado) quando o client
+  precisa dos dois — aí ele escreve direto no cache do React Query, sem refetch em cascata.
+- **Formulário sobre dado do servidor:** estado local começa **vazio** e a leitura cai para
+  o valor do servidor (`draft[id] ?? server[id] ?? padrão`). Copiar o servidor para o estado
+  num efeito é barrado pelo lint e dessincroniza depois de salvar.
+- **Data do Postgres (`date`)** trafega como string ISO "YYYY-MM-DD" e é comparada como
+  string (elas ordenam como as datas). O "hoje" é **injetável** no serviço para o teste não
+  mudar de resultado na virada do dia.
+
 ### Markdown
 - Títulos em sentence case; uma frase por linha em parágrafos longos quando ajudar o diff.
 - Tabelas alinhadas por pipe; blocos de código com linguagem declarada.
@@ -57,3 +72,6 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   (tabela+RLS, serviço com `userId`+`withUserContext`, tRPC fino, UI server+client, helper de teste).
 - **2026-08-11** — Iteração 2: módulo puro para regra compartilhada com a UI, update otimista
   via cache do React Query, timeout dos testes de integração contra o Neon.
+- **2026-08-13** — Iteração 3: valor derivado recalculado na transação (progresso/média),
+  conclusão com um campo só, mutação devolvendo o retrato completo, formulário com fallback
+  para o dado do servidor, "hoje" injetável e datas ISO comparadas como string.

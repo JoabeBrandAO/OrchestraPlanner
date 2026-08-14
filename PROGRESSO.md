@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-06-17
+## Estado atual — atualizado em 2026-08-13
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -16,14 +16,21 @@
 - Modelo de dados estendido: `life_areas` (com dimensão), `life_assessments` (Roda da Vida), `people`/`circles`/`interactions`.
 - **Infra Mega_Build (auto-bootstrap §2/§3/§7/§8)** — sessão mão-na-massa: papel gravado (`.claude/PAPEL` = Desenvolvedor de Software), `.claude/settings.json` (permissões + hooks), hooks `PostToolUse` (format) e `Stop/SubagentStop` (report), slash commands `/test-cycle` `/status` `/erro`, skill `senior-dev-cycle`, `docs/ERROS.md` + `docs/FORMATACAO.md`. Hooks testados ✅ (1 bug de encoding detectado e corrigido — ver ERROS.md).
 
+- **Módulo Prioridades & Metas (épico 1) entregue** — Iteração 0 (setup + walking skeleton),
+  1 (Áreas de Vida + Metas), 2 (Prioridades/Kanban + Tags) e 3 (Marcos + Dashboard + Roda da
+  Vida). Tudo sob RLS por `user_id`, com serviço de domínio puro + tRPC + UI em português.
+
 ### 🔄 Fazendo
 - **Sessão de Visão** (`C:\projetos`): consolidou requisitos, fontes conceituais e este diário; dona dos docs de produto.
 - **Sessão Mão-na-massa** (`OrchestraPlanner`): infra + código. Divisão acordada: eu = `.claude/`, `docs/ERROS.md`, `docs/FORMATACAO.md`, código; Visão = `VISAO-DO-PRODUTO.md`, `SESSION-LOG-*.md`. `PROGRESSO.md` = terreno comum (append no Histórico).
 
 ### 📋 A fazer (próximo)
-- Confirmar micro-decisões: **posição do módulo Pessoas** (após Agenda?), **Roda da Vida no onboarding?**, campos condicionais "somente casado".
-- **Iteração 0** — setup: repo GitHub, Next.js+TS, tRPC, Drizzle, Postgres (Neon)+RLS, **Clerk**, CI (GitHub Actions), deploy (Vercel), walking skeleton.
-- Walking skeleton de negócio: criar meta → listar → concluir + 1 teste E2E.
+- **Bloqueado no dono:** 🔴 rotacionar a senha de teste do Clerk (**#30**, ainda válida no
+  repo público) · desligar a proteção anti-bot da instância de dev do Clerk para o E2E de
+  login (**#7**) · conectar o deploy na Vercel (**#6**).
+- **Validação manual** das telas da Iteração 3 (marcos, panorama, roda) — depende do Clerk.
+- **Iteração 4 — Agenda (#18):** calendário, compromissos, recorrência e lembretes.
+- Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
 
 ---
 
@@ -92,3 +99,25 @@
   - **🔴 Incidente de segurança (#30):** credenciais de teste foram publicadas no `.env.example`
     (repo público) pelo commit `ed711e8` e **a senha ainda é válida**. Rotacionar no Clerk.
   - **Próximo:** Iteração 3 — #15 Marcos · #16 Dashboard · #17 Roda da Vida.
+- **2026-08-13 — Sessão Mão-na-massa (Iteração 3: Marcos + Dashboard + Roda da Vida):**
+  - Entregue na branch `feat/iteracao-3-marcos` (Closes #15–#17):
+    - **#15 Marcos** — `goal_milestones` (conclusão só por `completed_at`, sem booleano
+      paralelo); `computeProgress` puro traduz concluídos/total em % e o serviço recalcula
+      `goals.progress` **na mesma transação** de toda mutação — a coluna vira cache, não uma
+      segunda verdade. UI: barra por meta + painel de marcos que só consulta ao abrir.
+    - **#16 Dashboard de metas** — cards (ativas/vencidas/progresso/concluídas), distribuição
+      por área e atividade recente (metas mexidas + marcos concluídos). Agregação pura em
+      `dashboard/summary.ts`; "vencida" inclui a pausada e a média ignora as concluídas.
+      O "hoje" é injetável, então o teste não vira com o dia.
+    - **#17 Roda da Vida** — `life_assessments` com **uma linha por área** e o mesmo
+      `assessed_at` por rodada (grupo exato → histórico real); notas validadas antes de
+      qualquer escrita; radar em SVG à mão (geometria testada em `wheel.ts`, sem biblioteca
+      de gráficos); sugestão das menores notas; convite de onboarding no `/dashboard`.
+    - Migrations `0007`/`0009` (tabelas) + `0008`/`0010` (RLS ENABLE+FORCE+policies + GRANTs),
+      **aplicadas no Neon**.
+  - Qualidade: **suíte 71 verdes** (era 38), typecheck · lint · format · build verdes.
+    Convenções novas registradas em `FORMATACAO.md` (valor derivado, retrato completo na
+    mutação, formulário com fallback do servidor, "hoje" injetável).
+  - **Ainda bloqueado no dono:** 🔴 **#30 rotacionar a senha de teste do Clerk** (segue
+    válida no repo público), proteção anti-bot do Clerk para o E2E de login (#7), deploy
+    Vercel (#6). Validação manual no browser das telas novas também pende do Clerk.
