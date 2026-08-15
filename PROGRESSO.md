@@ -201,3 +201,20 @@
   - Fechar **desmonta** o formulário, então a limpeza entre uma marcação e a seguinte deixou
     de precisar do contador de `key` no container.
   - Suíte **146 verdes** (era 139; +7 na janela); typecheck · lint · format · build verdes.
+- **2026-08-15 (cont.) — padrão de "novo registro" em todas as telas de cadastro:**
+  - A pedido do dono, o botão + janela flutuante da Agenda virou o padrão de **Áreas de
+    Vida**, **Metas** e **Prioridades**: o formulário sai do topo da página (onde empurrava
+    a lista para baixo) e passa a abrir por `+ Nova …`. Nas Metas, o estado vazio também
+    ganhou o botão — é onde a primeira meta nasce.
+  - Peças novas: `components/ui/form-dialog.tsx` (janela de cadastro, usada inclusive pela
+    Agenda) e `lib/form.ts` (`fieldValue`/`hasText` — leitura de formulário não controlado,
+    uma implementação só).
+  - Cada formulário virou **componente próprio** (`area-form`, `goal-form`, `priority-form`)
+    que recebe opções e devolve valores de domínio, sem conhecer tRPC — por isso os três
+    ganharam teste de componente sem precisar de provider. Todos seguem o padrão não
+    controlado da correção anterior.
+  - **Ficaram inline de propósito:** marcos (um campo dentro de um painel já aberto), tags
+    (autocomplete dentro do card) e a Roda da Vida (as 12 notas *são* a tela, e o radar ao
+    lado é o ponto). Modal ali seria mais clique para menos.
+  - Suíte **158 verdes** (era 146; +12 nos formulários); typecheck · lint · format · build
+    verdes.

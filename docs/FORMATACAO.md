@@ -88,6 +88,14 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   que já é a limpeza, e o primitivo entrega foco preso, `Esc` e clique fora sem código
   nosso. Toda janela rola por dentro (`max-h-[90svh]`) — no celular, formulário comprido em
   caixa fixa esconde o botão de salvar.
+- **Padrão de "novo registro" em toda tela de cadastro:** botão `+ Nova …` → `FormDialog`
+  (`components/ui/form-dialog.tsx`) → um componente de formulário próprio
+  (`<entidade>-form.tsx`), que recebe `pending`/`error`/opções e devolve **valores de
+  domínio** por `onSubmit`, sem conhecer tRPC. É o que torna o formulário testável sem
+  provider — todos têm teste de componente. Cadastro de um campo só dentro de um painel
+  (marcos, tags) fica inline: modal ali é mais clique para menos.
+- **Leitura de formulário não controlado** usa `fieldValue`/`hasText` (`lib/form.ts`), pelo
+  `name` do campo — uma implementação só para todas as telas.
 - **Custo de interação tem teste**, medido em **commits do React** (`Profiler`), não em
   milissegundos: é determinístico e não fica flaky no CI (`agenda/event-form.test.tsx`).
 - **Container/apresentação nas telas que crescem:** um container `"use client"` com as

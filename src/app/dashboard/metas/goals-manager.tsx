@@ -5,9 +5,11 @@ import { useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/ui/form-dialog";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { trpc } from "@/trpc/react";
 
+import { GoalForm } from "./goal-form";
 import { MilestonesPanel } from "./milestones-panel";
 
 type GoalItem = inferRouterOutputs<AppRouter>["goals"]["list"][number];
@@ -38,76 +40,37 @@ export function GoalsManager() {
   const goals = trpc.goals.list.useQuery();
   const areas = trpc.lifeAreas.list.useQuery();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [lifeAreaId, setLifeAreaId] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const invalidate = () => utils.goals.list.invalidate();
 
   const createGoal = trpc.goals.create.useMutation({
     onSuccess: async () => {
-      setTitle("");
-      setDescription("");
-      setLifeAreaId("");
+      setCreating(false);
       await invalidate();
     },
   });
   const setStatus = trpc.goals.setStatus.useMutation({ onSuccess: invalidate });
   const updateGoal = trpc.goals.update.useMutation({ onSuccess: invalidate });
 
-  const titleValid = title.trim().length > 0;
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Criar meta (US-1.1) */}
-      <form
-        className="flex flex-col gap-3 rounded-lg border p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!titleValid) return;
-          createGoal.mutate({
-            title,
-            description: description.trim() || null,
-            lifeAreaId: lifeAreaId || null,
-          });
-        }}
-      >
-        <h2 className="text-lg font-medium">Nova meta</h2>
-        <input
-          className={inputClass}
-          placeholder="Título da meta"
-          value={title}
-          maxLength={120}
-          onChange={(e) => setTitle(e.target.value)}
+      {/* Criar meta (US-1.1) — janela flutuante, para a lista ficar inteira à vista. */}
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setCreating(true)}>
+          + Nova meta
+        </Button>
+      </div>
+
+      <FormDialog open={creating} onOpenChange={setCreating} title="Nova meta">
+        <GoalForm
+          areas={areas.data ?? []}
+          pending={createGoal.isPending}
+          error={createGoal.error?.message}
+          onCancel={() => setCreating(false)}
+          onSubmit={(values) => createGoal.mutate(values)}
         />
-        <textarea
-          className={inputClass}
-          placeholder="Descrição (opcional)"
-          rows={2}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <select
-          className={inputClass}
-          value={lifeAreaId}
-          onChange={(e) => setLifeAreaId(e.target.value)}
-        >
-          <option value="">Sem área</option>
-          {areas.data?.map((area) => (
-            <option key={area.id} value={area.id}>
-              {area.name}
-            </option>
-          ))}
-        </select>
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={!titleValid || createGoal.isPending}>
-            {createGoal.isPending ? "Criando…" : "Criar meta"}
-          </Button>
-          {createGoal.error && (
-            <span className="text-sm text-red-500">{createGoal.error.message}</span>
-          )}
-        </div>
-      </form>
+      </FormDialog>
 
       {/* Lista (US-1.2) */}
       {goals.isLoading ? (
@@ -126,10 +89,13 @@ export function GoalsManager() {
           ))}
         </ul>
       ) : (
-        <div className="rounded-lg border border-dashed p-8 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground text-sm">
-            Você ainda não tem metas. Crie a primeira acima para começar. ✨
+            Você ainda não tem metas. Crie a primeira para começar. ✨
           </p>
+          <Button size="sm" onClick={() => setCreating(true)}>
+            + Nova meta
+          </Button>
         </div>
       )}
     </div>
