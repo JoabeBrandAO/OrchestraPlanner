@@ -53,14 +53,20 @@ export function GoalsManager() {
   const setStatus = trpc.goals.setStatus.useMutation({ onSuccess: invalidate });
   const updateGoal = trpc.goals.update.useMutation({ onSuccess: invalidate });
 
+  const hasGoals = (goals.data?.length ?? 0) > 0;
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Criar meta (US-1.1) — janela flutuante, para a lista ficar inteira à vista. */}
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setCreating(true)}>
-          + Nova meta
-        </Button>
-      </div>
+      {/* Criar meta (US-1.1) — janela flutuante, para a lista ficar inteira à vista.
+          Some quando não há metas: ali o estado vazio já é o convite, e dois botões
+          iguais na mesma tela fazem o usuário se perguntar qual é o certo. */}
+      {hasGoals && (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => setCreating(true)}>
+            + Nova meta
+          </Button>
+        </div>
+      )}
 
       <FormDialog open={creating} onOpenChange={setCreating} title="Nova meta">
         <GoalForm

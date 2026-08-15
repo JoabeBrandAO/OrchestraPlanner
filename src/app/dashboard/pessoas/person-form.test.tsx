@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { PersonForm } from "./person-form";
-import { type PersonFormValues } from "./person-input";
+import { todayISO, type PersonFormValues } from "./person-input";
 
 /** Cadastro de pessoa (#41) — o que aparece, o que libera o salvar e o que é enviado. */
 
@@ -32,9 +32,7 @@ function renderForm(initial?: PersonFormValues) {
 const campo = {
   nome: () => screen.getByLabelText("Nome") as HTMLInputElement,
   apelido: () => screen.getByLabelText("Apelido") as HTMLInputElement,
-  dia: () => screen.getByLabelText("Dia do aniversário") as HTMLSelectElement,
-  mes: () => screen.getByLabelText("Mês do aniversário") as HTMLSelectElement,
-  ano: () => screen.getByLabelText("Ano do aniversário") as HTMLInputElement,
+  nascimento: () => screen.getByLabelText("Data de nascimento") as HTMLInputElement,
   estadoCivil: () => screen.getByLabelText("Estado civil") as HTMLSelectElement,
   cadastrar: () => screen.getByRole("button", { name: "Cadastrar" }) as HTMLButtonElement,
 };
@@ -44,7 +42,7 @@ describe("PersonForm — estado inicial", () => {
     renderForm();
 
     expect(campo.nome().value).toBe("");
-    expect(campo.dia().value).toBe("");
+    expect(campo.nascimento().value).toBe("");
     expect(campo.cadastrar().disabled).toBe(true);
   });
 
@@ -89,41 +87,49 @@ describe("PersonForm — data de casamento condicional (#25)", () => {
   });
 });
 
-describe("PersonForm — aniversário", () => {
-  it("dia e mês bastam; o ano é opcional", () => {
-    const form = renderForm();
+describe("PersonForm — data de nascimento", () => {
+  it("é um campo só, que o próprio formato impede de apontar para o futuro", () => {
+    renderForm();
 
-    fireEvent.change(campo.nome(), { target: { value: "Maria" } });
-    fireEvent.change(campo.dia(), { target: { value: "15" } });
-    fireEvent.change(campo.mes(), { target: { value: "8" } });
-    fireEvent.click(campo.cadastrar());
-
-    expect(form.submetidas[0]!.birthday).toEqual({ day: 15, month: 8, year: null });
+    const campoData = campo.nascimento();
+    expect(campoData.type).toBe("date");
+    // `max` de hoje: o calendário nativo nem oferece as datas seguintes.
+    expect(campoData.getAttribute("max")).toBe(todayISO());
   });
 
-  it("bloqueia e avisa quando a data não existe no calendário", () => {
+  it("vira dia, mês e ano no envio", () => {
     const form = renderForm();
 
     fireEvent.change(campo.nome(), { target: { value: "Maria" } });
-    fireEvent.change(campo.dia(), { target: { value: "31" } });
-    fireEvent.change(campo.mes(), { target: { value: "2" } });
+    fireEvent.change(campo.nascimento(), { target: { value: "1990-08-15" } });
+    fireEvent.click(campo.cadastrar());
 
-    expect(screen.getByText("Essa data não existe no calendário.")).toBeTruthy();
+    expect(form.submetidas[0]!.birthday).toEqual({ day: 15, month: 8, year: 1990 });
+  });
+
+  it("é opcional — dá para cadastrar sem saber a data", () => {
+    const form = renderForm();
+
+    fireEvent.change(campo.nome(), { target: { value: "Maria" } });
+    fireEvent.click(campo.cadastrar());
+
+    expect(form.submetidas[0]!.birthday).toBeNull();
+  });
+
+  it("bloqueia e avisa se uma data futura chegar mesmo assim", () => {
+    // O `max` cobre o calendário; digitação em navegador teimoso, não. Quem decide é a regra.
+    const form = renderForm();
+    const amanha = new Date();
+    amanha.setDate(amanha.getDate() + 1);
+
+    fireEvent.change(campo.nome(), { target: { value: "Maria" } });
+    fireEvent.change(campo.nascimento(), { target: { value: todayISO(amanha) } });
+
+    expect(screen.getByText("Confira a data: não pode ser futura nem inexistente.")).toBeTruthy();
     expect(campo.cadastrar().disabled).toBe(true);
 
     fireEvent.click(campo.cadastrar());
     expect(form.submetidas).toHaveLength(0);
-  });
-
-  it("dia sem mês não vira aniversário nem erro — é preenchimento pela metade", () => {
-    const form = renderForm();
-
-    fireEvent.change(campo.nome(), { target: { value: "Maria" } });
-    fireEvent.change(campo.dia(), { target: { value: "15" } });
-
-    expect(campo.cadastrar().disabled).toBe(false);
-    fireEvent.click(campo.cadastrar());
-    expect(form.submetidas[0]!.birthday).toBeNull();
   });
 });
 
@@ -132,9 +138,7 @@ describe("PersonForm — envio", () => {
     const form = renderForm();
 
     fireEvent.change(campo.nome(), { target: { value: "  Maria Silva  " } });
-    fireEvent.change(campo.ano(), { target: { value: "1990" } });
-    fireEvent.change(campo.dia(), { target: { value: "15" } });
-    fireEvent.change(campo.mes(), { target: { value: "8" } });
+    fireEvent.change(campo.nascimento(), { target: { value: "1990-08-15" } });
     fireEvent.click(campo.cadastrar());
 
     const values = form.submetidas[0]!;
@@ -160,8 +164,7 @@ describe("PersonForm — envio", () => {
 
     expect(campo.nome().value).toBe("Maria");
     expect(campo.apelido().value).toBe("Mari");
-    expect(campo.dia().value).toBe("15");
-    expect(campo.ano().value).toBe("1990");
+    expect(campo.nascimento().value).toBe("1990-08-15");
     expect((screen.getByLabelText("Data de casamento") as HTMLInputElement).value).toBe(
       "2015-06-20",
     );

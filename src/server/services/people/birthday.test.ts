@@ -43,9 +43,26 @@ describe("isValidBirthday", () => {
     expect(isValidBirthday(aniversario(29, 2, 1999))).toBe(false);
   });
 
-  it("recusa ano fora do razoável — dedo errado no teclado vira dado ruim", () => {
+  it("recusa ano abaixo do piso — dedo errado no teclado vira dado ruim", () => {
     expect(isValidBirthday(aniversario(15, 8, 1800))).toBe(false);
-    expect(isValidBirthday(aniversario(15, 8, 3000))).toBe(false);
+  });
+
+  it("recusa nascer no futuro", () => {
+    // O `max` do campo já barra na tela, mas quem decide é o domínio.
+    const hoje = local(2026, 8, 15);
+    expect(isValidBirthday(aniversario(16, 8, 2026), hoje)).toBe(false);
+    expect(isValidBirthday(aniversario(15, 8, 2027), hoje)).toBe(false);
+    expect(isValidBirthday(aniversario(15, 8, 3000), hoje)).toBe(false);
+  });
+
+  it("nascer hoje é válido — recém-nascido tem data de nascimento", () => {
+    const hoje = local(2026, 8, 15);
+    expect(isValidBirthday(aniversario(15, 8, 2026), hoje)).toBe(true);
+  });
+
+  it("sem ano não há futuro possível — dia e mês são cíclicos", () => {
+    const hoje = local(2026, 8, 15);
+    expect(isValidBirthday(aniversario(31, 12), hoje)).toBe(true);
   });
 });
 

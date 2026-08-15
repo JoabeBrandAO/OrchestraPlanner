@@ -64,17 +64,20 @@ export function PeopleManager() {
 
   const person = editing === "new" ? null : editing;
   const busy = addContact.isPending || deleteContact.isPending || deletePerson.isPending;
+  const hasPeople = (people.data?.length ?? 0) > 0;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-muted-foreground text-sm">
-          {people.data ? `${people.data.length} pessoa(s)` : "Carregando…"}
-        </span>
-        <Button size="sm" onClick={() => setEditing("new")}>
-          + Nova pessoa
-        </Button>
-      </div>
+      {/* Some quando não há ninguém: ali o estado vazio já é o convite, e dois botões
+          iguais na mesma tela fazem o usuário se perguntar qual é o certo. */}
+      {hasPeople && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-muted-foreground text-sm">{people.data?.length} pessoa(s)</span>
+          <Button size="sm" onClick={() => setEditing("new")}>
+            + Nova pessoa
+          </Button>
+        </div>
+      )}
 
       {people.isLoading ? (
         <p className="text-muted-foreground text-sm">Carregando pessoas…</p>

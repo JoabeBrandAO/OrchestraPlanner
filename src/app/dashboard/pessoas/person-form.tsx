@@ -8,7 +8,6 @@ import {
   GENDERS,
   MARITAL_STATUS_LABELS,
   MARITAL_STATUSES,
-  MONTH_LABELS,
   RELATION_TYPE_LABELS,
   RELATION_TYPES,
   type MaritalStatusValue,
@@ -17,8 +16,10 @@ import { Button } from "@/components/ui/button";
 import { fieldValue } from "@/lib/form";
 
 import {
+  birthdayToISO,
   checkPersonFields,
   parsePersonFields,
+  todayISO,
   type PersonFormValues,
   type PersonStatus,
   type RawPersonFields,
@@ -45,9 +46,7 @@ function readFields(form: HTMLFormElement): RawPersonFields {
   return {
     name: value("name"),
     nickname: value("nickname"),
-    birthDay: value("birthDay"),
-    birthMonth: value("birthMonth"),
-    birthYear: value("birthYear"),
+    birthDate: value("birthDate"),
     gender: value("gender"),
     maritalStatus: value("maritalStatus"),
     marriedAt: value("marriedAt"),
@@ -56,8 +55,6 @@ function readFields(form: HTMLFormElement): RawPersonFields {
     notes: value("notes"),
   };
 }
-
-const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 /**
  * Cadastro de pessoa (#41), no formulário não controlado padrão do app: o estado guarda só
@@ -123,45 +120,20 @@ export function PersonForm({
         />
       </div>
 
-      <fieldset className="grid gap-3 sm:grid-cols-3">
-        <legend className="text-muted-foreground mb-1 text-xs">Aniversário</legend>
-        <select
-          name="birthDay"
-          className={inputClass}
-          aria-label="Dia do aniversário"
-          defaultValue={initial?.birthday?.day ?? ""}
-        >
-          <option value="">Dia</option>
-          {DAYS.map((day) => (
-            <option key={day} value={day}>
-              {day}
-            </option>
-          ))}
-        </select>
-        <select
-          name="birthMonth"
-          className={inputClass}
-          aria-label="Mês do aniversário"
-          defaultValue={initial?.birthday?.month ?? ""}
-        >
-          <option value="">Mês</option>
-          {MONTH_LABELS.map((label, index) => (
-            <option key={label} value={index + 1}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <input
-          name="birthYear"
-          type="number"
-          className={inputClass}
-          placeholder="Ano (se souber)"
-          aria-label="Ano do aniversário"
-          defaultValue={initial?.birthday?.year ?? ""}
-        />
-      </fieldset>
-
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+          Data de nascimento
+          {/* Um campo só, com calendário nativo. O `max` de hoje é o que impede escolher
+              data futura sem precisar de mensagem de erro — e o domínio confere de novo. */}
+          <input
+            name="birthDate"
+            type="date"
+            max={todayISO()}
+            className={inputClass}
+            aria-label="Data de nascimento"
+            defaultValue={birthdayToISO(initial?.birthday ?? null)}
+          />
+        </label>
         <label className="text-muted-foreground flex flex-col gap-1 text-xs">
           Gênero
           <select
@@ -252,7 +224,9 @@ export function PersonForm({
           Cancelar
         </Button>
         {status.invalidBirthday && (
-          <span className="text-muted-foreground text-sm">Essa data não existe no calendário.</span>
+          <span className="text-muted-foreground text-sm">
+            Confira a data: não pode ser futura nem inexistente.
+          </span>
         )}
         {error && <span className="text-sm text-red-500">{error}</span>}
       </div>

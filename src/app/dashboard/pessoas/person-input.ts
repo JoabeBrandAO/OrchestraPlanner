@@ -18,9 +18,8 @@ import {
 export type RawPersonFields = {
   name: string;
   nickname: string;
-  birthDay: string;
-  birthMonth: string;
-  birthYear: string;
+  /** Data completa "YYYY-MM-DD", como sai de um `<input type="date">`. */
+  birthDate: string;
   gender: string;
   maritalStatus: string;
   marriedAt: string;
@@ -51,22 +50,36 @@ function oneOf<T extends string>(options: readonly T[], value: string, fallback:
   return (options as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 
-/**
- * O aniversário só existe com **dia e mês**; o ano é opcional. Dia sem mês (ou o contrário)
- * é um preenchimento pela metade — não vira data nem erro, só ainda não é aniversário.
- */
-export function readBirthday(raw: RawPersonFields): Birthday | null {
-  const day = Number(raw.birthDay);
-  const month = Number(raw.birthMonth);
-  if (!day || !month) return null;
-
-  const year = raw.birthYear.trim() === "" ? null : Number(raw.birthYear);
-  return { day, month, year };
+/** Hoje em "YYYY-MM-DD" — é o `max` do campo, que impede escolher data futura. */
+export function todayISO(today: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 }
 
-export function checkPersonFields(raw: RawPersonFields): PersonStatus {
+/** Um `Birthday` de volta para o formato do campo; sem ano não há data completa a mostrar. */
+export function birthdayToISO(birthday: Birthday | null): string {
+  if (birthday === null || birthday.year === null) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${birthday.year}-${pad(birthday.month)}-${pad(birthday.day)}`;
+}
+
+/**
+ * A data de nascimento é **um campo só** (`<input type="date">`), então ou vem completa ou
+ * não vem. O modelo continua aceitando aniversário sem ano — é o que permite mostrar "15 de
+ * agosto" sem inventar idade —, mas quem preenche pela tela sempre informa o ano.
+ */
+export function readBirthday(raw: RawPersonFields): Birthday | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.birthDate.trim());
+  if (!match) return null;
+
+  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+}
+
+export function checkPersonFields(raw: RawPersonFields, today: Date = new Date()): PersonStatus {
   const birthday = readBirthday(raw);
-  const invalidBirthday = birthday !== null && !isValidBirthday(birthday);
+  // Campo pela metade (o navegador devolve vazio) não é erro; data impossível ou futura é.
+  const invalidBirthday =
+    birthday !== null ? !isValidBirthday(birthday, today) : raw.birthDate.trim() !== "";
 
   return {
     canSubmit: raw.name.trim() !== "" && !invalidBirthday,
@@ -74,8 +87,11 @@ export function checkPersonFields(raw: RawPersonFields): PersonStatus {
   };
 }
 
-export function parsePersonFields(raw: RawPersonFields): PersonFormValues | null {
-  if (!checkPersonFields(raw).canSubmit) return null;
+export function parsePersonFields(
+  raw: RawPersonFields,
+  today: Date = new Date(),
+): PersonFormValues | null {
+  if (!checkPersonFields(raw, today).canSubmit) return null;
 
   const maritalStatus = oneOf(MARITAL_STATUSES, raw.maritalStatus, "nao_informado");
 

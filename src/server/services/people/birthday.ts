@@ -14,9 +14,8 @@ export type Birthday = {
   year: number | null;
 };
 
-/** Faixa de anos aceita: o suficiente para gente viva, o bastante para barrar dedo errado. */
+/** Piso do ano: barra o dedo errado no teclado. O teto é o dia de hoje, e não uma constante. */
 const MIN_YEAR = 1900;
-const MAX_YEAR = new Date().getFullYear();
 
 const FEBRUARY = 2;
 const LEAP_DAY = 29;
@@ -33,16 +32,24 @@ function daysInMonth(month: number, year: number | null): number {
   return [1, 3, 5, 7, 8, 10, 12].includes(month) ? 31 : 30;
 }
 
-export function isValidBirthday(birthday: Birthday): boolean {
+/**
+ * Data de nascimento válida? Além do calendário, **nascer no futuro não existe** — e a
+ * checagem é aqui, não só no `max` do campo: a tela é conveniência, o domínio é a regra.
+ * O "hoje" é injetável para o teste não virar na passagem do dia.
+ */
+export function isValidBirthday(birthday: Birthday, today: Date = new Date()): boolean {
   const { day, month, year } = birthday;
 
   if (!Number.isInteger(day) || !Number.isInteger(month)) return false;
   if (month < 1 || month > 12) return false;
-  if (year !== null) {
-    if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) return false;
-  }
+  if (day < 1 || day > daysInMonth(month, year)) return false;
 
-  return day >= 1 && day <= daysInMonth(month, year);
+  if (year === null) return true;
+  if (!Number.isInteger(year) || year < MIN_YEAR) return false;
+
+  const reference = new Date(today);
+  reference.setHours(0, 0, 0, 0);
+  return new Date(year, month - 1, day) <= reference;
 }
 
 /**
