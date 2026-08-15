@@ -30,10 +30,8 @@
 - **Sessão Mão-na-massa** (`OrchestraPlanner`): infra + código. Divisão acordada: eu = `.claude/`, `docs/ERROS.md`, `docs/FORMATACAO.md`, código; Visão = `VISAO-DO-PRODUTO.md`, `SESSION-LOG-*.md`. `PROGRESSO.md` = terreno comum (append no Histórico).
 
 ### 📋 A fazer (próximo)
-- **Bloqueado no dono (só o que exige o painel do Clerk):** 🔴 rotacionar a senha de teste
-  (**#30**, segue válida no repo público) · desligar a proteção anti-bot, que **segue ativa**
-  e trava o E2E de login em `/sign-in/client-trust` (**#7**). Os secrets do GitHub já foram
-  cadastrados (#6 destravado).
+- **Nada bloqueado no dono.** O dono rotacionou a senha (#30) e desligou a proteção anti-bot;
+  o E2E de login **passa** (#7 fechada). Os secrets do GitHub já estavam cadastrados (#6).
 - **Validação manual** da Agenda: semana, mês, edição, exceções e o "Ativar lembretes".
 - **Épico Agenda (#18) fechado** com a #36; sobram melhorias, não fatias.
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
@@ -335,3 +333,18 @@
     **aplicadas no Neon**).
   - Suíte **309 verdes** (era 291): +9 puros, +6 de integração dos aniversários, +3 dos
     lembretes de aniversário. typecheck · lint · format · build verdes.
+- **2026-08-15 (cont.) — E2E de login destravado (#7 e #30 fechadas):**
+  - O dono rotacionou a senha de teste do Clerk (**#30**) e desligou a proteção anti-bot.
+  - **A causa real do travamento não era o anti-bot:** a página parada em
+    `/sign-in/client-trust` dizia *"You're signing in from a new device"* — é a verificação
+    de dispositivo novo, que pede código por e-mail **depois** de a senha ser aceita.
+  - **Resolvido sem depender de caixa de entrada:** o E2E passou a usar um usuário com
+    e-mail de teste do Clerk (`+clerk_test@`), criado pela Backend API. Em instância de
+    desenvolvimento, o código desses e-mails é sempre `424242` — é a via oficial.
+  - Dois defeitos de teste corrigidos no caminho: `isVisible()` **não espera** (respondia na
+    hora, antes de a tela do código existir, e o passo era pulado em silêncio), e o campo
+    de código é mascarado — ignora digitação tecla a tecla, precisa de `fill`.
+  - **E um servidor fantasma:** havia um `next start` das 06:51 ocupando a porta 3000, e o
+    Playwright o reusava (`reuseExistingServer`). Todo o "This page couldn't load" vinha de
+    um build de antes do trabalho do dia.
+  - **E2E: 2/2 verdes** — landing pública e login → painel.
