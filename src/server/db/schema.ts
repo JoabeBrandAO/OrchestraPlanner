@@ -670,3 +670,43 @@ export const circleMembers = pgTable(
 );
 
 export type CircleMemberRow = typeof circleMembers.$inferSelect;
+
+export const interactionKind = pgEnum("interaction_kind", [
+  "encontro",
+  "ligacao",
+  "mensagem",
+  "outro",
+]);
+
+/**
+ * Interações com uma pessoa (#43) — o acompanhamento do convívio, que é o que separa este
+ * módulo de uma agenda de telefone.
+ *
+ * `happened_at` é uma **data**, não um instante: ninguém lembra que horas ligou para a mãe,
+ * e o que a tela pergunta é "há quanto tempo", que se mede em dias. O cálculo vive em
+ * `people/contact-gap.ts`, puro, com o "hoje" injetável.
+ */
+export const interactions = pgTable(
+  "interactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    happenedAt: date("happened_at").notNull(),
+    kind: interactionKind("kind").notNull().default("outro"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    // A consulta quente é "o último contato de cada pessoa".
+    index("interactions_user_person_date_idx").on(t.userId, t.personId, t.happenedAt),
+  ],
+);
+
+export type InteractionRow = typeof interactions.$inferSelect;

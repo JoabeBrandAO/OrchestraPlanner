@@ -5,6 +5,7 @@ import { people, peopleContacts, type PersonContactRow, type PersonRow } from "@
 import { validateTitle } from "@/server/services/shared/validate-title";
 
 import { isValidBirthday, type Birthday } from "./birthday";
+import { lastContactByPerson } from "./interactions-service";
 import {
   MARRIED_STATUSES,
   type ContactKindValue,
@@ -19,7 +20,15 @@ import {
  * `birthday.ts`, pura; aqui ficam as regras de escrita.
  */
 
-export type PersonWithContacts = PersonRow & { contacts: PersonContactRow[] };
+export type PersonWithContacts = PersonRow & {
+  contacts: PersonContactRow[];
+  /**
+   * Data do último contato registrado (#43), ou `null` para quem nunca foi procurado —
+   * que é diferente de "há 0 dias". Vem da própria tabela de interações, não de uma coluna
+   * espelho em `people` que precisaria ser mantida em sincronia.
+   */
+  lastInteractionAt: string | null;
+};
 
 export type PersonInput = {
   name: string;
@@ -98,7 +107,14 @@ export async function listPeople(userId: string): Promise<PersonWithContacts[]> 
       byPerson.set(contact.personId, list);
     }
 
-    return rows.map((person) => ({ ...person, contacts: byPerson.get(person.id) ?? [] }));
+    // Uma consulta agregada para todos, em vez de uma por linha da lista.
+    const lastContact = await lastContactByPerson(tx);
+
+    return rows.map((person) => ({
+      ...person,
+      contacts: byPerson.get(person.id) ?? [],
+      lastInteractionAt: lastContact.get(person.id) ?? null,
+    }));
   });
 }
 

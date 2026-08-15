@@ -304,3 +304,18 @@
     - UI: painel de **vínculos** por pessoa (frase completa: "Bruno é filho(a) de Ana") e
       seção de **círculos** na mesma tela.
   - Suíte **272 verdes** (era 250): +10 puros, +12 de integração sob RLS.
+- **2026-08-15 (cont.) — Pessoas #43: interações e "há quanto tempo não falo":**
+  - Tabela `interactions` (migrations `0022` + `0023` RLS/GRANTs, **aplicadas no Neon**).
+    `happened_at` é **data, não instante**: ninguém lembra a que horas ligou para a mãe, e
+    a pergunta da tela ("há quanto tempo") se mede em dias.
+  - **"Nunca procurado" é `null`, não zero** — são coisas diferentes, e a ordenação "há mais
+    tempo sem contato" põe esse caso **em primeiro**, que é exatamente quem a tela precisa
+    mostrar. Mandá-lo para o fim esconderia o problema que o módulo existe para resolver.
+  - O último contato **sai da própria tabela** (`max(happened_at)`), sem coluna espelho em
+    `people` para manter em sincronia — mesma regra do progresso das metas. Uma consulta
+    agregada para a lista inteira, não uma por linha.
+  - Toda mutação devolve o **retrato completo** (histórico + último contato) e o client
+    escreve direto no cache, inclusive na linha da lista: registrar uma conversa atualiza o
+    "há quanto tempo" sem refazer a lista.
+  - Frases em vez de números crus: "falaram ontem", "há 5 dias", "há mais de um mês".
+  - Suíte **291 verdes** (era 272): +10 puros, +9 de integração sob RLS.

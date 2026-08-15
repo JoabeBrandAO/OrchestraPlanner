@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import {
+  addInteraction,
+  deleteInteraction,
+  listInteractionsOf,
+} from "@/server/services/people/interactions-service";
+import {
   addContact,
   createPerson,
   deleteContact,
@@ -19,6 +24,7 @@ import { TITLE_MAX_LENGTH } from "@/server/services/shared/validate-title";
 import { protectedProcedure, router } from "../trpc";
 
 const uuid = z.string().uuid();
+const INTERACTION_KINDS = ["encontro", "ligacao", "mensagem", "outro"] as const;
 const name = z.string().trim().min(1, "O nome é obrigatório.").max(TITLE_MAX_LENGTH);
 
 /** Dia, mês e ano opcional — a validação fina (31 de fevereiro) é do domínio. */
@@ -81,4 +87,30 @@ export const peopleRouter = router({
   deleteContact: protectedProcedure
     .input(z.object({ id: uuid }))
     .mutation(({ ctx, input }) => deleteContact(ctx.userId, input.id)),
+
+  /* Interações — o acompanhamento do convívio (#43). Toda mutação devolve o retrato
+     completo (histórico + último contato) para a tela escrever no cache sem refazer a
+     lista inteira. */
+
+  interactionsOf: protectedProcedure
+    .input(z.object({ personId: uuid }))
+    .query(({ ctx, input }) => listInteractionsOf(ctx.userId, input.personId)),
+
+  addInteraction: protectedProcedure
+    .input(
+      z.object({
+        personId: uuid,
+        happenedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        kind: z.enum(INTERACTION_KINDS).optional(),
+        notes: z.string().max(2000).nullish(),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      const { personId, ...interaction } = input;
+      return addInteraction(ctx.userId, personId, interaction);
+    }),
+
+  deleteInteraction: protectedProcedure
+    .input(z.object({ id: uuid }))
+    .mutation(({ ctx, input }) => deleteInteraction(ctx.userId, input.id)),
 });

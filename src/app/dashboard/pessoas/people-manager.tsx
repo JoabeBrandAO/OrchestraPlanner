@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { inferRouterOutputs } from "@trpc/server";
 
 import { ageOn, nextBirthday } from "@/server/services/people/birthday";
+import { byMostForgotten, describeGap } from "@/server/services/people/contact-gap";
 import { MONTH_LABELS, RELATION_TYPE_LABELS } from "@/server/services/people/person-fields";
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
@@ -12,11 +13,14 @@ import { trpc } from "@/trpc/react";
 
 import { CirclesSection } from "./circles-section";
 import { ContactsPanel } from "./contacts-panel";
+import { InteractionsPanel } from "./interactions-panel";
 import { LinksPanel } from "./links-panel";
 import { PersonForm } from "./person-form";
 import { type PersonFormValues } from "./person-input";
 
 type Person = inferRouterOutputs<AppRouter>["people"]["list"][number];
+type Panel = "contatos" | "vinculos" | "convivio";
+type Ordem = "nome" | "esquecidos";
 
 /** Como a pessoa é descrita numa linha: aniversário, idade e a relação. */
 function resumo(person: Person, today: Date): string {
@@ -50,13 +54,12 @@ export function PeopleManager() {
 
   const [editing, setEditing] = useState<"new" | Person | null>(null);
   /** Qual painel está aberto e de quem — só um por vez mantém a lista legível. */
-  const [openPanel, setOpenPanel] = useState<{ id: string; kind: "contatos" | "vinculos" } | null>(
-    null,
-  );
-  const isOpen = (id: string, kind: "contatos" | "vinculos") =>
-    openPanel?.id === id && openPanel.kind === kind;
-  const toggle = (id: string, kind: "contatos" | "vinculos") =>
+  const [openPanel, setOpenPanel] = useState<{ id: string; kind: Panel } | null>(null);
+  const isOpen = (id: string, kind: Panel) => openPanel?.id === id && openPanel.kind === kind;
+  const toggle = (id: string, kind: Panel) =>
     setOpenPanel((current) => (current?.id === id && current.kind === kind ? null : { id, kind }));
+  /** Ordem da lista: alfabética para achar alguém, "esquecidos" para saber quem procurar. */
+  const [ordem, setOrdem] = useState<Ordem>("nome");
 
   const today = new Date();
   const invalidate = () => utils.people.list.invalidate();
@@ -74,6 +77,10 @@ export function PeopleManager() {
   const person = editing === "new" ? null : editing;
   const busy = addContact.isPending || deleteContact.isPending || deletePerson.isPending;
   const hasPeople = (people.data?.length ?? 0) > 0;
+  // A ordenação é do client: a lista é pequena e trocar a ordem não deve ir ao servidor.
+  const lista = [...(people.data ?? [])].sort(
+    ordem === "nome" ? (a, b) => a.name.localeCompare(b.name, "pt-BR") : byMostForgotten,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,9 +89,27 @@ export function PeopleManager() {
       {hasPeople && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-muted-foreground text-sm">{people.data?.length} pessoa(s)</span>
-          <Button size="sm" onClick={() => setEditing("new")}>
-            + Nova pessoa
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant={ordem === "nome" ? "default" : "ghost"}
+              aria-pressed={ordem === "nome"}
+              onClick={() => setOrdem("nome")}
+            >
+              Por nome
+            </Button>
+            <Button
+              size="sm"
+              variant={ordem === "esquecidos" ? "default" : "ghost"}
+              aria-pressed={ordem === "esquecidos"}
+              onClick={() => setOrdem("esquecidos")}
+            >
+              Há mais tempo sem contato
+            </Button>
+            <Button size="sm" onClick={() => setEditing("new")}>
+              + Nova pessoa
+            </Button>
+          </div>
         </div>
       )}
 
@@ -92,7 +117,7 @@ export function PeopleManager() {
         <p className="text-muted-foreground text-sm">Carregando pessoas…</p>
       ) : people.data && people.data.length > 0 ? (
         <ul className="flex flex-col gap-3">
-          {people.data.map((item) => (
+          {lista.map((item) => (
             <li key={item.id} className="rounded-lg border p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -102,7 +127,9 @@ export function PeopleManager() {
                       <span className="text-muted-foreground font-normal"> ({item.nickname})</span>
                     )}
                   </p>
-                  <p className="text-muted-foreground text-xs">{resumo(item, today)}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {resumo(item, today)} · {describeGap(item.lastInteractionAt, today)}
+                  </p>
                   {item.notes && <p className="mt-1 text-sm">{item.notes}</p>}
                 </div>
 
@@ -124,6 +151,14 @@ export function PeopleManager() {
                     onClick={() => toggle(item.id, "vinculos")}
                   >
                     {isOpen(item.id, "vinculos") ? "Ocultar vínculos" : "Vínculos"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-expanded={isOpen(item.id, "convivio")}
+                    onClick={() => toggle(item.id, "convivio")}
+                  >
+                    {isOpen(item.id, "convivio") ? "Ocultar convívio" : "Convívio"}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditing(item)}>
                     Editar
@@ -147,6 +182,10 @@ export function PeopleManager() {
                   onAdd={(contact) => addContact.mutate({ personId: item.id, ...contact })}
                   onRemove={(id) => deleteContact.mutate({ id })}
                 />
+              )}
+
+              {isOpen(item.id, "convivio") && (
+                <InteractionsPanel personId={item.id} today={today} />
               )}
 
               {isOpen(item.id, "vinculos") && (
