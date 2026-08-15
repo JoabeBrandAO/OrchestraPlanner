@@ -25,11 +25,12 @@
 - **Sessão Mão-na-massa** (`OrchestraPlanner`): infra + código. Divisão acordada: eu = `.claude/`, `docs/ERROS.md`, `docs/FORMATACAO.md`, código; Visão = `VISAO-DO-PRODUTO.md`, `SESSION-LOG-*.md`. `PROGRESSO.md` = terreno comum (append no Histórico).
 
 ### 📋 A fazer (próximo)
-- **Bloqueado no dono:** 🔴 rotacionar a senha de teste do Clerk (**#30**, ainda válida no
-  repo público) · desligar a proteção anti-bot da instância de dev do Clerk para o E2E de
-  login (**#7**) · conectar o deploy na Vercel (**#6**).
-- **Validação manual** das telas da Iteração 3 (marcos, panorama, roda) — depende do Clerk.
-- **Iteração 4 — Agenda (#18):** calendário, compromissos, recorrência e lembretes.
+- **Bloqueado no dono:** cadastrar o secret `MIGRATION_DATABASE_URL` no GitHub (senão o
+  workflow de migrations falha de propósito) · desligar a proteção anti-bot do Clerk, que
+  **segue ativa** e trava o E2E de login em `/sign-in/client-trust` (**#7**).
+- **Validação manual** das telas da Iteração 4 (agenda semanal).
+- **Agenda — fatias seguintes (#18):** visão de mês, editar compromisso pela tela, exceções
+  numa ocorrência da série, disparo real dos lembretes (hoje só o horário é calculado).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
 
 ---
@@ -121,3 +122,22 @@
   - **Ainda bloqueado no dono:** 🔴 **#30 rotacionar a senha de teste do Clerk** (segue
     válida no repo público), proteção anti-bot do Clerk para o E2E de login (#7), deploy
     Vercel (#6). Validação manual no browser das telas novas também pende do Clerk.
+- **2026-08-13 (cont.) — Sessão Mão-na-massa (Iteração 4: Agenda + correções):**
+  - **PR #31 mergeado** (`42fdc8f`); **#15, #16 e #17 fechadas**. Dono validou as três telas
+    no browser: metas/marcos, panorama e roda da vida funcionando.
+  - 🐛 **Bug achado pelo dono:** Áreas de Vida apareciam **duplicadas**. Causa: o seed era
+    idempotente por um `if` (*check-then-act*) e `ensureUserRecord()` roda em toda página —
+    dois requests simultâneos de usuário novo inseriam as 12 áreas cada. Corrigido com
+    índice único `(user_id, lower(name))` + `on conflict do nothing` (migration `0011`,
+    que **remapeia metas e avaliações** antes de apagar cópias). Registrado em `ERROS.md`.
+  - **#6 automatizado:** `.github/workflows/migrate.yml` aplica as migrations no merge para
+    `main` que toque `drizzle/` — nunca no build da Vercel, que roda em preview de cada PR.
+    _Falta o dono cadastrar o secret `MIGRATION_DATABASE_URL`._
+  - **Iteração 4 — Agenda (#18), 1ª fatia:** tabela `events`; recorrência guardada como
+    **regra** e expandida na leitura (`recurrence.ts` puro, 13 testes: mês sem o dia é
+    pulado, ocorrência que atravessa a janela entra, intervalo inválido não vira laço);
+    lembrete (minutos antes) e **bloco de tempo para uma prioridade**. Migrations `0012`
+    (tabela) + `0013` (RLS), aplicadas no Neon. UI `/dashboard/agenda` com navegação semanal.
+  - Qualidade: **suíte 93 verdes** (era 71), typecheck · lint · format · build verdes.
+  - **E2E ainda travado (#7):** rodado nesta sessão, o login para em `/sign-in/client-trust`
+    — a proteção anti-bot do Clerk continua ativa. A landing pública passa.

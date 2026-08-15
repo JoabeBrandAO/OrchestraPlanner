@@ -1,0 +1,50 @@
+name: Migrations
+
+# Aplica as migrations pendentes no banco de produção quando um merge em `main` toca
+# `drizzle/`. Até aqui isso era manual (`npm run db:migrate` na máquina do dono), o que
+# significa que um deploy podia subir com o schema atrasado.
+#
+# Por que **não** no build da Vercel: o build roda também em preview, de cada PR, e com
+# a env do projeto — bastaria um PR para migrar o banco de produção antes da revisão.
+# Aqui a migration acontece uma vez, depois do merge, com credencial que só existe no CI.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "drizzle/**"
+      - ".github/workflows/migrate.yml"
+  # Permite rodar à mão pelo GitHub (Actions → Migrations → Run workflow), útil quando
+  # uma migration falhou e foi corrigida sem um commit novo em `drizzle/`.
+  workflow_dispatch:
+
+# Migrations não podem correr em paralelo consigo mesmas.
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: drizzle-kit migrate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Aplicar migrations
+        # O `drizzle.config.ts` usa MIGRATION_DATABASE_URL (role dono, com DDL) e cai
+        # para DATABASE_URL se ela faltar — ver docs/SETUP.md.
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: |
+          if [ -z "$MIGRATION_DATABASE_URL" ]; then
+            echo "::error::Secret MIGRATION_DATABASE_URL ausente — configure em Settings → Secrets → Actions."
+            exit 1
+          fi
+          npm run db:migrate

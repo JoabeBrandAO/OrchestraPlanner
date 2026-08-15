@@ -78,6 +78,31 @@ Recomendado via **integração Git** (sem token em workflow):
    `CLERK_SECRET_KEY`) no projeto Vercel.
 3. Merge em `main` → deploy automático de produção; PRs ganham preview.
 
+⚠️ **Não** coloque `MIGRATION_DATABASE_URL` na Vercel: o build roda também em preview,
+de cada PR, e um PR qualquer passaria a poder migrar o banco de produção. As migrations
+têm workflow próprio (§4.1).
+
+### 4.1 Migrations automáticas (GitHub Actions)
+
+`.github/workflows/migrate.yml` roda `npm run db:migrate` quando um push em `main` toca
+`drizzle/` — uma vez, depois do merge, nunca em preview. Antes disso o passo era manual e
+um deploy podia subir com o schema atrasado.
+
+**Pré-requisito (uma vez):** cadastrar o secret em
+*Settings → Secrets and variables → Actions → New repository secret*:
+
+| Secret | Valor |
+|---|---|
+| `MIGRATION_DATABASE_URL` | conexão do **`neondb_owner`** (o role dono, com DDL) |
+
+```bash
+gh secret set MIGRATION_DATABASE_URL   # cola o valor quando pedir
+```
+
+O job falha com mensagem explícita se o secret não existir — em vez de rodar contra um
+banco errado. Dá para disparar à mão em *Actions → Migrations → Run workflow* (útil quando
+uma migration falhou e foi corrigida sem commit novo em `drizzle/`).
+
 ## 5. E2E (Playwright — Phase B)
 
 ```bash

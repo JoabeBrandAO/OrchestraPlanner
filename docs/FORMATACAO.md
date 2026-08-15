@@ -57,6 +57,18 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   string (elas ordenam como as datas). O "hoje" é **injetável** no serviço para o teste não
   mudar de resultado na virada do dia.
 
+- **Idempotência de escrita concorrente é do banco**, não de um `if`. Ler "já existe?" e
+  só então inserir é *check-then-act*: em READ COMMITTED duas transações passam as duas
+  pela checagem. Use índice único + `on conflict do nothing` (ver `docs/ERROS.md` 2026-08-13).
+- **Erro do driver não vaza para a tela:** traduza o `23505` para uma frase do domínio,
+  percorrendo a cadeia de `cause` — o Drizzle embrulha o erro e o `code` não está no topo.
+- **Comparação de data em query** usa os helpers do Drizzle (`gt`/`gte`/`lt`), nunca o
+  template `sql` cru: ele não mapeia o tipo do parâmetro e o driver recebe um `Date` que
+  não sabe serializar.
+- **Recorrência/derivação temporal** guarda a **regra**, não as linhas expandidas, e a
+  expansão vive num módulo puro (`events/recurrence.ts`). Filtro SQL largo + decisão fina
+  em TypeScript, quando o passo não se expressa bem em SQL.
+
 ### Markdown
 - Títulos em sentence case; uma frase por linha em parágrafos longos quando ajudar o diff.
 - Tabelas alinhadas por pipe; blocos de código com linguagem declarada.
@@ -75,3 +87,6 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **2026-08-13** — Iteração 3: valor derivado recalculado na transação (progresso/média),
   conclusão com um campo só, mutação devolvendo o retrato completo, formulário com fallback
   para o dado do servidor, "hoje" injetável e datas ISO comparadas como string.
+- **2026-08-13 (cont.)** — Iteração 4: idempotência concorrente pelo banco (índice único +
+  `on conflict`), tradução do `23505` percorrendo `cause`, helpers de data do Drizzle em vez
+  de `sql` cru, e recorrência guardada como regra com expansão pura.

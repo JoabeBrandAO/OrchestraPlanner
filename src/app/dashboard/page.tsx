@@ -28,8 +28,8 @@ export default async function DashboardPage() {
       <section className="rounded-lg border p-6">
         <h2 className="mb-2 text-lg font-medium">OrchestraPlanner</h2>
         <p className="text-muted-foreground text-sm">
-          Organize suas Metas por Áreas de Vida e leve o dia a dia no quadro de Prioridades. Agenda,
-          Financeiro e Pessoas chegam nas próximas iterações.
+          Organize suas Metas por Áreas de Vida, leve o dia a dia no quadro de Prioridades e marque
+          os compromissos na Agenda. Financeiro e Pessoas chegam nas próximas iterações.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/dashboard/metas" className={buttonVariants({ variant: "default" })}>
@@ -37,6 +37,9 @@ export default async function DashboardPage() {
           </Link>
           <Link href="/dashboard/prioridades" className={buttonVariants({ variant: "outline" })}>
             Prioridades
+          </Link>
+          <Link href="/dashboard/agenda" className={buttonVariants({ variant: "outline" })}>
+            Agenda
           </Link>
           <Link href="/dashboard/areas" className={buttonVariants({ variant: "outline" })}>
             Áreas de Vida
