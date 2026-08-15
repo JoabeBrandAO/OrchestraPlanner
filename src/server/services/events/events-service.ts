@@ -1,6 +1,6 @@
 // Comparações de data usam os helpers do Drizzle (`gt`/`gte`/`lt`), nunca `sql` cru: o
 // template não mapeia o tipo do parâmetro e o driver recebe um `Date` que não sabe serializar.
-import { and, asc, eq, gt, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, gt, gte, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import { eventExceptions, events, lifeAreas, priorities, type EventRow } from "@/server/db/schema";
@@ -120,38 +120,51 @@ export async function listEventsInRange(userId: string, range: Range): Promise<E
       ),
     );
 
-    const rows = await tx
+    // Uma consulta só: o evento, os rótulos que a tela mostra e as exceções dele.
+    // Contra o Neon cada statement é uma viagem pela rede — buscar as exceções à parte
+    // dobrava o custo da agenda (ver `query-budget.test.ts`). O join duplica o evento por
+    // exceção e o agrupamento é feito aqui.
+    //
+    // As exceções vêm **sem filtro de janela**, de propósito: uma ocorrência remarcada
+    // *para dentro* da semana pode ter vindo de um instante fora dela, e o filtro
+    // esconderia justamente essa. São poucas linhas por evento num uso pessoal; se um dia
+    // crescer, é aqui que se aperta (índice `event_exceptions_user_event_idx`).
+    const joined = await tx
       .select({
         event: events,
         lifeAreaName: lifeAreas.name,
         priorityTitle: priorities.title,
+        exception: eventExceptions,
       })
       .from(events)
       .leftJoin(lifeAreas, eq(lifeAreas.id, events.lifeAreaId))
       .leftJoin(priorities, eq(priorities.id, events.priorityId))
+      .leftJoin(eventExceptions, eq(eventExceptions.eventId, events.id))
       .where(candidates)
       .orderBy(asc(events.startsAt));
 
-    // Exceções dos candidatos (#35). Sem filtro de janela de propósito: uma ocorrência
-    // remarcada **para dentro** da semana pode ter vindo de um instante fora dela, e o
-    // filtro esconderia justamente essa. São poucas linhas por evento num uso pessoal; se
-    // um dia crescer, é aqui que se aperta (índice `event_exceptions_user_event_idx`).
+    type Candidate = {
+      event: EventRow;
+      lifeAreaName: string | null;
+      priorityTitle: string | null;
+    };
+    const rows: Candidate[] = [];
     const exceptionsByEvent = new Map<string, OccurrenceException[]>();
-    if (rows.length > 0) {
-      const exceptionRows = await tx
-        .select()
-        .from(eventExceptions)
-        .where(
-          inArray(
-            eventExceptions.eventId,
-            rows.map((row) => row.event.id),
-          ),
-        );
+    const seenExceptions = new Set<string>();
 
-      for (const exception of exceptionRows) {
-        const list = exceptionsByEvent.get(exception.eventId) ?? [];
-        list.push(exception);
-        exceptionsByEvent.set(exception.eventId, list);
+    for (const row of joined) {
+      if (!exceptionsByEvent.has(row.event.id)) {
+        rows.push({
+          event: row.event,
+          lifeAreaName: row.lifeAreaName,
+          priorityTitle: row.priorityTitle,
+        });
+        exceptionsByEvent.set(row.event.id, []);
+      }
+      // O join repete a exceção quando o evento também casa com mais de um rótulo.
+      if (row.exception && !seenExceptions.has(row.exception.id)) {
+        seenExceptions.add(row.exception.id);
+        exceptionsByEvent.get(row.event.id)!.push(row.exception);
       }
     }
 

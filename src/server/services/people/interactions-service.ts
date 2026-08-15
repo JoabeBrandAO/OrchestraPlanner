@@ -1,4 +1,4 @@
-import { and, desc, eq, max } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { withUserContext, type Tx } from "@/server/db/rls";
 import { interactions, people, type InteractionRow } from "@/server/db/schema";
@@ -85,19 +85,4 @@ export async function deleteInteraction(
 
     return row ? snapshotOf(tx, row.personId) : null;
   });
-}
-
-/**
- * Data do último contato de **cada** pessoa, para a lista mostrar "há quanto tempo" sem
- * uma consulta por linha.
- */
-export async function lastContactByPerson(tx: Tx): Promise<Map<string, string>> {
-  const rows = await tx
-    .select({ personId: interactions.personId, lastAt: max(interactions.happenedAt) })
-    .from(interactions)
-    .groupBy(interactions.personId);
-
-  return new Map(
-    rows.filter((row) => row.lastAt !== null).map((row) => [row.personId, row.lastAt!]),
-  );
 }

@@ -136,26 +136,30 @@ export async function deleteCircle(userId: string, id: string): Promise<void> {
   await withUserContext(userId, (tx) => tx.delete(circles).where(eq(circles.id, id)));
 }
 
-/** Círculos do usuário com os membros e os nomes deles — a tela mostra os dois juntos. */
+/**
+ * Círculos do usuário com os membros e os nomes deles — **uma consulta só**, porque a tela
+ * mostra os dois juntos e cada statement contra o Neon é uma viagem pela rede
+ * (ver `query-budget.test.ts`). O join duplica o círculo por membro; agrupa-se aqui.
+ */
 export async function listCircles(userId: string): Promise<CircleWithMembers[]> {
   return withUserContext(userId, async (tx) => {
-    const rows = await tx.select().from(circles).orderBy(asc(circles.name));
-    if (rows.length === 0) return [];
+    const rows = await tx
+      .select({ circle: circles, member: circleMembers, name: people.name })
+      .from(circles)
+      .leftJoin(circleMembers, eq(circleMembers.circleId, circles.id))
+      .leftJoin(people, eq(people.id, circleMembers.personId))
+      .orderBy(asc(circles.name), asc(people.name));
 
-    const members = await tx
-      .select({ member: circleMembers, name: people.name })
-      .from(circleMembers)
-      .innerJoin(people, eq(people.id, circleMembers.personId))
-      .orderBy(asc(people.name));
-
-    const byCircle = new Map<string, (CircleMemberRow & { name: string })[]>();
-    for (const { member, name } of members) {
-      const list = byCircle.get(member.circleId) ?? [];
-      list.push({ ...member, name });
-      byCircle.set(member.circleId, list);
+    const byId = new Map<string, CircleWithMembers>();
+    for (const row of rows) {
+      const current = byId.get(row.circle.id) ?? { ...row.circle, members: [] };
+      if (row.member && row.name !== null) {
+        current.members.push({ ...row.member, name: row.name });
+      }
+      byId.set(row.circle.id, current);
     }
 
-    return rows.map((circle) => ({ ...circle, members: byCircle.get(circle.id) ?? [] }));
+    return [...byId.values()];
   });
 }
 
