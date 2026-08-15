@@ -17,7 +17,8 @@ import { trpc } from "@/trpc/react";
 
 import { AgendaMonth } from "./agenda-month";
 import { AgendaWeek } from "./agenda-week";
-import { EventForm, type EventFormValues } from "./event-form";
+import { EventDialog } from "./event-dialog";
+import { type EventFormValues } from "./event-form";
 
 type Occurrence = inferRouterOutputs<AppRouter>["events"]["list"][number];
 type EventRow = Occurrence["event"];
@@ -36,16 +37,16 @@ export function Agenda() {
   const utils = trpc.useUtils();
   const [mode, setMode] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState(() => new Date());
-  /** Retrato do evento em edição — sobrevive mesmo se ele sair da janela ao ser salvo. */
-  const [editing, setEditing] = useState<EventRow | null>(null);
   /**
-   * Conta quantos compromissos foram marcados: trocar a `key` remonta o formulário de
-   * criação, e é isso que o limpa **por inteiro** depois de salvar. A fatia anterior
-   * devolvia o dia e a repetição do compromisso recém-marcado, na ideia de poupar
-   * digitação; na prática o campo pré-preenchido é campo para apagar, e o formulário
-   * parecia não ter limpado. Campo em branco é o padrão.
+   * O que a janela flutuante está mostrando: `"new"` em branco, o **retrato** de um evento
+   * para edição, ou `null` (fechada). Guardar o retrato — e não só o id — mantém o
+   * formulário de pé mesmo que o compromisso saia da janela de datas ao ser salvo.
+   *
+   * Fechar desmonta o formulário, e é isso que o limpa por inteiro entre uma marcação e a
+   * seguinte: campo pré-preenchido é campo para apagar (ver `docs/ERROS.md` 2026-08-15).
    */
-  const [created, setCreated] = useState(0);
+  const [target, setTarget] = useState<"new" | EventRow | null>(null);
+  const editing = target === "new" ? null : target;
 
   const today = new Date();
   const range = mode === "week" ? weekRange(anchor) : monthRange(anchor);
@@ -55,14 +56,14 @@ export function Agenda() {
   const areas = trpc.lifeAreas.list.useQuery();
 
   const invalidate = () => utils.events.list.invalidate();
-  const createEvent = trpc.events.create.useMutation({ onSuccess: invalidate });
+  /** Salvou: a janela fecha, e fechar já limpa o formulário. */
+  const close = () => {
+    invalidate();
+    setTarget(null);
+  };
+  const createEvent = trpc.events.create.useMutation({ onSuccess: close });
+  const updateEvent = trpc.events.update.useMutation({ onSuccess: close });
   const deleteEvent = trpc.events.delete.useMutation({ onSuccess: invalidate });
-  const updateEvent = trpc.events.update.useMutation({
-    onSuccess: () => {
-      invalidate();
-      setEditing(null);
-    },
-  });
 
   const areaOptions = areas.data ?? [];
   const priorityOptions = (priorities.data ?? []).map((priority) => ({
@@ -108,7 +109,7 @@ export function Agenda() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-muted-foreground text-sm capitalize">
             {mode === "week"
               ? `${rangeLabel.format(range.from)} – ${rangeLabel.format(addDays(range.from, 6))}`
@@ -132,6 +133,9 @@ export function Agenda() {
               Mês
             </Button>
           </div>
+          <Button size="sm" onClick={() => setTarget("new")}>
+            + Novo compromisso
+          </Button>
         </div>
       </div>
 
@@ -142,7 +146,7 @@ export function Agenda() {
           loading={occurrences.isLoading}
           today={today}
           deletingId={deleteEvent.isPending ? (deleteEvent.variables?.id ?? null) : null}
-          onEdit={(occurrence) => setEditing(occurrence.event)}
+          onEdit={(occurrence) => setTarget(occurrence.event)}
           onDelete={(id) => deleteEvent.mutate({ id })}
         />
       ) : (
@@ -155,53 +159,41 @@ export function Agenda() {
         />
       )}
 
-      {editing ? (
-        <EventForm
-          // Trocar a `key` remonta o formulário ao mudar de compromisso — é como o estado
-          // inicial acompanha o alvo sem copiar prop para estado num efeito.
-          key={editing.id}
-          heading="Editar compromisso"
-          submitLabel="Salvar"
-          pendingLabel="Salvando…"
-          pending={updateEvent.isPending}
-          error={updateEvent.error?.message}
-          areas={areaOptions}
-          priorities={priorityOptions}
-          notice={
-            editing.frequency !== "none"
-              ? "Este compromisso se repete: a edição vale para toda a série. Os horários abaixo são os da regra, não os da ocorrência clicada."
-              : undefined
-          }
-          initial={{
-            title: editing.title,
-            description: editing.description,
-            startsAt: editing.startsAt,
-            endsAt: editing.endsAt,
-            frequency: editing.frequency,
-            lifeAreaId: editing.lifeAreaId,
-            priorityId: editing.priorityId,
-            reminderMinutesBefore: editing.reminderMinutesBefore,
-          }}
-          onCancel={() => setEditing(null)}
-          onSubmit={(values: EventFormValues) => updateEvent.mutate({ id: editing.id, ...values })}
-        />
-      ) : (
-        <EventForm
-          key={`novo-${created}`}
-          heading="Novo compromisso"
-          submitLabel="Marcar"
-          pendingLabel="Marcando…"
-          pending={createEvent.isPending}
-          error={createEvent.error?.message}
-          areas={areaOptions}
-          priorities={priorityOptions}
-          onSubmit={(values: EventFormValues) =>
-            createEvent.mutate(values, {
-              onSuccess: () => setCreated((count) => count + 1),
-            })
-          }
-        />
-      )}
+      <EventDialog
+        target={target}
+        heading={editing ? "Editar compromisso" : "Novo compromisso"}
+        submitLabel={editing ? "Salvar" : "Marcar"}
+        pendingLabel={editing ? "Salvando…" : "Marcando…"}
+        pending={editing ? updateEvent.isPending : createEvent.isPending}
+        error={editing ? updateEvent.error?.message : createEvent.error?.message}
+        areas={areaOptions}
+        priorities={priorityOptions}
+        notice={
+          editing && editing.frequency !== "none"
+            ? "Este compromisso se repete: a edição vale para toda a série. Os horários abaixo são os da regra, não os da ocorrência clicada."
+            : undefined
+        }
+        initial={
+          editing
+            ? {
+                title: editing.title,
+                description: editing.description,
+                startsAt: editing.startsAt,
+                endsAt: editing.endsAt,
+                frequency: editing.frequency,
+                lifeAreaId: editing.lifeAreaId,
+                priorityId: editing.priorityId,
+                reminderMinutesBefore: editing.reminderMinutesBefore,
+              }
+            : undefined
+        }
+        onOpenChange={(open) => {
+          if (!open) setTarget(null);
+        }}
+        onSubmit={(values: EventFormValues) =>
+          editing ? updateEvent.mutate({ id: editing.id, ...values }) : createEvent.mutate(values)
+        }
+      />
     </div>
   );
 }

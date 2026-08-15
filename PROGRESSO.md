@@ -190,3 +190,14 @@
     duas implementações alternadas no mesmo processo) — **−70,8%**, acima dos 40% pedidos.
   - Primeiros **testes de componente** do repositório (jsdom + Testing Library, devDeps).
     Suíte **139 verdes** (era 115); typecheck · lint · format · build verdes.
+- **2026-08-15 (cont.) — formulário da Agenda numa janela flutuante:**
+  - A pedido do dono, marcar e editar saíram do fim da página para um **modal**, aberto pelo
+    botão "+ Novo compromisso" (ou clicando num compromisso, que abre a mesma janela em modo
+    de edição). A agenda passa a ocupar a tela inteira.
+  - `src/components/ui/dialog.tsx` — wrapper fino sobre o `Dialog` do `@base-ui/react`, que
+    já entrega foco preso, `Esc`, clique fora e o resto da página escondido do leitor de
+    tela. No mesmo padrão do `button.tsx`: só estilo, sem lógica. No celular a janela rola
+    por dentro (`max-h-[90svh]`), senão o botão de salvar ficaria fora do alcance.
+  - Fechar **desmonta** o formulário, então a limpeza entre uma marcação e a seguinte deixou
+    de precisar do contador de `key` no container.
+  - Suíte **146 verdes** (era 139; +7 na janela); typecheck · lint · format · build verdes.

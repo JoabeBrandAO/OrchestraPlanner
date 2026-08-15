@@ -83,6 +83,11 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   2026-08-15). Controlar só o que a tela precisa reagir tecla a tecla.
 - **Depois de salvar, formulário volta em branco.** Pré-preencher "para poupar digitação"
   o que o usuário não pediu vira campo para apagar — e parece que a tela não limpou.
+- **Formulário de criar/editar mora numa janela flutuante** (`components/ui/dialog.tsx`,
+  wrapper fino sobre o `Dialog` do `@base-ui/react`): fechar **desmonta** o formulário, o
+  que já é a limpeza, e o primitivo entrega foco preso, `Esc` e clique fora sem código
+  nosso. Toda janela rola por dentro (`max-h-[90svh]`) — no celular, formulário comprido em
+  caixa fixa esconde o botão de salvar.
 - **Custo de interação tem teste**, medido em **commits do React** (`Profiler`), não em
   milissegundos: é determinístico e não fica flaky no CI (`agenda/event-form.test.tsx`).
 - **Container/apresentação nas telas que crescem:** um container `"use client"` com as

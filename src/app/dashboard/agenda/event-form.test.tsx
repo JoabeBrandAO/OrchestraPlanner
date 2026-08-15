@@ -20,7 +20,6 @@ const areas = [{ id: "area-1", name: "Corpo" }];
 const priorities = [{ id: "prio-1", name: "Treinar" }];
 
 const baseProps = {
-  heading: "Novo compromisso",
   submitLabel: "Marcar",
   pendingLabel: "Marcando…",
   pending: false,

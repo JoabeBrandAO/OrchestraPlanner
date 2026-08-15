@@ -24,7 +24,6 @@ const inputClass =
 export type SelectOption = { id: string; name: string };
 
 type Props = {
-  heading: string;
   submitLabel: string;
   pendingLabel: string;
   pending: boolean;
@@ -71,7 +70,6 @@ function readFields(form: HTMLFormElement): RawEventFields {
  * muda de alvo — remontar é o que limpa o formulário depois de salvar.
  */
 export function EventForm({
-  heading,
   submitLabel,
   pendingLabel,
   pending,
@@ -111,7 +109,8 @@ export function EventForm({
 
   return (
     <form
-      className="flex flex-col gap-3 rounded-lg border p-4"
+      // Sem moldura própria: quem dá a caixa é a janela flutuante que o contém.
+      className="flex flex-col gap-3"
       onChange={revalidate}
       onSubmit={(event) => {
         event.preventDefault();
@@ -119,8 +118,6 @@ export function EventForm({
         if (values !== null) onSubmit(values);
       }}
     >
-      <h2 className="text-lg font-medium">{heading}</h2>
-
       <input
         name="title"
         className={inputClass}
