@@ -1,8 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import { pushSubscriptions, reminderSends, type PushSubscriptionRow } from "@/server/db/schema";
 import { listEventsInRange } from "@/server/services/events/events-service";
+import { birthdayReminderAt } from "@/server/services/people/birthday-agenda";
+import { listBirthdaysInRange } from "@/server/services/people/people-service";
 
 import { dueReminders, type DueReminder } from "./due";
 
@@ -15,6 +17,15 @@ import { dueReminders, type DueReminder } from "./due";
 
 /** Antecedência máxima aceita pelo router (30 dias) — o quanto o disparo olha para frente. */
 const MAX_REMINDER_LEAD_MS = 30 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Um aniversário pronto para virar notificação. */
+export type BirthdayReminder = {
+  personId: string;
+  name: string;
+  turningAge: number | null;
+  remindAt: Date;
+};
 
 export type SubscriptionInput = {
   endpoint: string;
@@ -104,6 +115,67 @@ export async function pendingReminders(
   return due.filter(
     (reminder) => !sentKeys.has(`${reminder.eventId}@${reminder.occurrenceStartsAt.getTime()}`),
   );
+}
+
+/**
+ * Aniversários que devem ser avisados agora (#44). Mesma janela e mesma marca de "já
+ * enviado" dos compromissos: são origens diferentes com o mesmo problema.
+ *
+ * A busca vai de `since` a `now`, e não além: o lembrete de aniversário dispara **no
+ * próprio dia** (8h da manhã), não com antecedência configurável.
+ */
+export async function pendingBirthdayReminders(
+  userId: string,
+  window: { since: Date; now: Date },
+): Promise<BirthdayReminder[]> {
+  // Um dia de folga de cada lado cobre o lembrete das 8h independentemente de quando a
+  // passada anterior aconteceu.
+  const birthdays = await listBirthdaysInRange(userId, {
+    from: new Date(window.since.getTime() - DAY_MS),
+    to: new Date(window.now.getTime() + DAY_MS),
+  });
+
+  const due = birthdays
+    .map((birthday) => ({ ...birthday, remindAt: birthdayReminderAt(birthday.date) }))
+    .filter((birthday) => birthday.remindAt > window.since && birthday.remindAt <= window.now);
+  if (due.length === 0) return [];
+
+  const alreadySent = await withUserContext(userId, (tx) =>
+    tx
+      .select({
+        personId: reminderSends.personId,
+        occurrenceStartsAt: reminderSends.occurrenceStartsAt,
+      })
+      .from(reminderSends)
+      .where(and(eq(reminderSends.userId, userId), isNotNull(reminderSends.personId))),
+  );
+
+  const sentKeys = new Set(
+    alreadySent.map((row) => `${row.personId}@${row.occurrenceStartsAt.getTime()}`),
+  );
+
+  return due.filter(
+    (birthday) => !sentKeys.has(`${birthday.personId}@${birthday.remindAt.getTime()}`),
+  );
+}
+
+/** Reserva o aniversário, pela mesma regra do compromisso: quem insere é quem manda. */
+export async function claimBirthdayReminder(
+  userId: string,
+  personId: string,
+  remindAt: Date,
+): Promise<boolean> {
+  const claimed = await withUserContext(userId, (tx) =>
+    tx
+      .insert(reminderSends)
+      .values({ userId, personId, occurrenceStartsAt: remindAt })
+      .onConflictDoNothing({
+        target: [reminderSends.personId, reminderSends.occurrenceStartsAt],
+      })
+      .returning({ id: reminderSends.id }),
+  );
+
+  return claimed.length > 0;
 }
 
 /**

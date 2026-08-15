@@ -7,6 +7,7 @@ import { RECURRENCE_LABELS } from "@/server/services/events/recurrence";
 import type { AppRouter } from "@/server/trpc/root";
 
 type Occurrence = inferRouterOutputs<AppRouter>["events"]["list"][number];
+type Birthday = inferRouterOutputs<AppRouter>["people"]["birthdaysInRange"][number];
 
 const dayLabel = new Intl.DateTimeFormat("pt-BR", {
   weekday: "long",
@@ -21,6 +22,8 @@ type Props = {
   weekStart: Date;
   occurrences: Occurrence[];
   loading: boolean;
+  /** Derivados de `people`, não compromissos: aparecem, mas não se abrem para editar (#44). */
+  birthdays: Birthday[];
   today: Date;
   onOpen: (occurrence: Occurrence) => void;
 };
@@ -29,7 +32,13 @@ type Props = {
  * Semana da Agenda (#18) — só desenha. O servidor devolve as ocorrências já expandidas da
  * recorrência, então a tela nunca precisa saber a regra.
  */
-export function AgendaWeek({ weekStart, occurrences, loading, today, onOpen }: Props) {
+export function AgendaWeek({ weekStart, occurrences, loading, birthdays, today, onOpen }: Props) {
+  const birthdaysByDay = new Map<string, Birthday[]>();
+  for (const birthday of birthdays) {
+    const key = birthday.date.toDateString();
+    birthdaysByDay.set(key, [...(birthdaysByDay.get(key) ?? []), birthday]);
+  }
+
   // Agrupa por dia da semana. Ocorrências que começaram antes da janela (mas a atravessam)
   // são ancoradas no primeiro dia visível, senão sumiriam da tela.
   const byDay: Record<number, Occurrence[]> = {};
@@ -51,6 +60,7 @@ export function AgendaWeek({ weekStart, occurrences, loading, today, onOpen }: P
       {Array.from({ length: DAYS_IN_WEEK }, (_, index) => {
         const day = addDays(weekStart, index);
         const items = byDay[index] ?? [];
+        const aniversarios = birthdaysByDay.get(day.toDateString()) ?? [];
         const isToday = isSameDay(day, today);
 
         return (
@@ -63,9 +73,18 @@ export function AgendaWeek({ weekStart, occurrences, loading, today, onOpen }: P
               {isToday && <span className="text-muted-foreground ml-2 text-xs">hoje</span>}
             </p>
 
-            {items.length === 0 ? (
+            {aniversarios.map((birthday) => (
+              <p key={birthday.personId} className="text-sm">
+                🎂 <span className="font-medium">{birthday.name}</span>
+                {birthday.turningAge !== null && (
+                  <span className="text-muted-foreground"> faz {birthday.turningAge} anos</span>
+                )}
+              </p>
+            ))}
+
+            {items.length === 0 && aniversarios.length === 0 ? (
               <p className="text-muted-foreground text-sm">Nada marcado.</p>
-            ) : (
+            ) : items.length === 0 ? null : (
               <ul className="flex flex-col gap-2">
                 {items.map((occurrence) => (
                   <li key={`${occurrence.event.id}-${occurrence.occurrenceStartsAt.toISOString()}`}>

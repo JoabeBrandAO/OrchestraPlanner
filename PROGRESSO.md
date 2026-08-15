@@ -319,3 +319,19 @@
     "há quanto tempo" sem refazer a lista.
   - Frases em vez de números crus: "falaram ontem", "há 5 dias", "há mais de um mês".
   - Suíte **291 verdes** (era 272): +10 puros, +9 de integração sob RLS.
+- **2026-08-15 (cont.) — Pessoas #44: aniversários na Agenda (épico #19 fechado):**
+  - **Decisão registrada:** o aniversário é **derivado** da data em `people` na leitura, e
+    **não** materializado como `event`. Materializar criaria uma segunda verdade — corrigir
+    a data de nascimento deixaria para trás um compromisso anual mentindo no calendário.
+    Derivado, corrigir a data já move o aniversário (tem teste exatamente disso).
+  - Aparece na semana e no mês com 🎂, com a idade que a pessoa completa; **sem ano de
+    nascimento, aparece sem idade** — nunca com uma errada. Quem nasceu em 29/02 aparece em
+    28/02 nos anos comuns, a mesma regra do resto do módulo.
+  - **Lembrete por Web Push** às **8h da manhã** do dia (fuso do Brasil, fixo): aniversário
+    é um dia, não um horário, então não há "minutos antes" configurável.
+  - `reminder_sends` passou a servir **duas origens** (`event_id` ou `person_id`), com
+    `CHECK` de que exatamente uma está preenchida — mesma marca de "já enviado", porque o
+    problema é o mesmo e duas tabelas se desencontrariam (migrations `0024` + `0025`,
+    **aplicadas no Neon**).
+  - Suíte **309 verdes** (era 291): +9 puros, +6 de integração dos aniversários, +3 dos
+    lembretes de aniversário. typecheck · lint · format · build verdes.

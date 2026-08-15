@@ -56,6 +56,8 @@ export function Agenda() {
   const range = mode === "week" ? weekRange(anchor) : monthRange(anchor);
 
   const occurrences = trpc.events.list.useQuery(range);
+  // Aniversários vêm à parte de propósito: são derivados de `people`, não compromissos.
+  const birthdays = trpc.people.birthdaysInRange.useQuery(range);
   const priorities = trpc.priorities.list.useQuery();
   const areas = trpc.lifeAreas.list.useQuery();
 
@@ -163,6 +165,7 @@ export function Agenda() {
           weekStart={startOfWeek(anchor)}
           occurrences={occurrences.data ?? []}
           loading={occurrences.isLoading}
+          birthdays={birthdays.data ?? []}
           today={today}
           onOpen={openOccurrence}
         />
@@ -171,6 +174,7 @@ export function Agenda() {
           monthAnchor={anchor}
           occurrences={occurrences.data ?? []}
           loading={occurrences.isLoading}
+          birthdays={birthdays.data ?? []}
           today={today}
           onOpenDay={openDay}
         />

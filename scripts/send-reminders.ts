@@ -19,9 +19,11 @@ import webpush from "web-push";
 import { VAPID_PUBLIC_KEY, VAPID_SUBJECT } from "../src/lib/push";
 import { lookbackStart } from "../src/server/services/reminders/due";
 import {
+  claimBirthdayReminder,
   claimReminder,
   deleteSubscription,
   listSubscriptions,
+  pendingBirthdayReminders,
   pendingReminders,
   releaseReminder,
 } from "../src/server/services/reminders/reminders-service";
@@ -57,6 +59,46 @@ async function usersWithSubscriptions(): Promise<string[]> {
   }
 }
 
+type Subscription = { endpoint: string; p256dh: string; auth: string };
+
+/**
+ * Manda a notificação para todos os aparelhos do usuário. Um aparelho morto não pode
+ * impedir os outros de receber, então cada envio é isolado; devolve se **algum** recebeu.
+ */
+async function deliver(
+  userId: string,
+  subscriptions: Subscription[],
+  payload: string,
+): Promise<boolean> {
+  const results = await Promise.all(
+    subscriptions.map(async (subscription) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+          },
+          payload,
+        );
+        return true;
+      } catch (error) {
+        const statusCode = (error as { statusCode?: number }).statusCode;
+        if (statusCode && GONE.includes(statusCode)) {
+          // O navegador desinstalou ou revogou: some com a inscrição em vez de tentar
+          // para sempre.
+          await deleteSubscription(userId, subscription.endpoint);
+          console.log(`[lembretes] inscrição removida (${statusCode})`);
+          return false;
+        }
+        console.error(`[lembretes] falha ao enviar: ${String(error)}`);
+        return false;
+      }
+    }),
+  );
+
+  return results.some(Boolean);
+}
+
 async function main() {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, requireEnv("VAPID_PRIVATE_KEY"));
 
@@ -75,10 +117,34 @@ async function main() {
 
   for (const userId of userIds) {
     const reminders = await pendingReminders(userId, { since, now });
-    if (reminders.length === 0) continue;
+    const birthdays = await pendingBirthdayReminders(userId, { since, now });
+    if (reminders.length === 0 && birthdays.length === 0) continue;
 
     const subscriptions = await listSubscriptions(userId);
     if (subscriptions.length === 0) continue;
+
+    // Aniversários (#44): mesma reserva, mesma entrega. Só o texto muda.
+    for (const birthday of birthdays) {
+      const claimed = await claimBirthdayReminder(userId, birthday.personId, birthday.remindAt);
+      if (!claimed) continue;
+
+      const enviado = await deliver(
+        userId,
+        subscriptions,
+        JSON.stringify({
+          title: `🎂 ${birthday.name}`,
+          body:
+            birthday.turningAge === null
+              ? "Faz aniversário hoje."
+              : `Faz ${birthday.turningAge} anos hoje.`,
+          url: "/dashboard/pessoas",
+          tag: `birthday-${birthday.personId}@${birthday.remindAt.getTime()}`,
+        }),
+      );
+
+      if (enviado) enviados += 1;
+      else falhas += 1;
+    }
 
     for (const reminder of reminders) {
       // Reserva antes de enviar: se duas execuções se cruzarem, só uma manda.
@@ -92,34 +158,9 @@ async function main() {
         tag: `${reminder.eventId}@${reminder.occurrenceStartsAt.getTime()}`,
       });
 
-      // Um aparelho morto não pode impedir os outros de receber: cada envio é isolado.
-      const results = await Promise.all(
-        subscriptions.map(async (subscription) => {
-          try {
-            await webpush.sendNotification(
-              {
-                endpoint: subscription.endpoint,
-                keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-              },
-              payload,
-            );
-            return true;
-          } catch (error) {
-            const statusCode = (error as { statusCode?: number }).statusCode;
-            if (statusCode && GONE.includes(statusCode)) {
-              // O navegador desinstalou ou revogou: some com a inscrição em vez de tentar
-              // para sempre.
-              await deleteSubscription(userId, subscription.endpoint);
-              console.log(`[lembretes] inscrição removida (${statusCode})`);
-              return false;
-            }
-            console.error(`[lembretes] falha ao enviar: ${String(error)}`);
-            return false;
-          }
-        }),
-      );
+      const entregue = await deliver(userId, subscriptions, payload);
 
-      if (results.some(Boolean)) {
+      if (entregue) {
         enviados += 1;
       } else {
         // Ninguém recebeu: devolve a reserva para a próxima passada tentar de novo.

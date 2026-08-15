@@ -53,11 +53,11 @@ export function isValidBirthday(birthday: Birthday, today: Date = new Date()): b
 }
 
 /**
- * O dia em que se comemora num ano qualquer. Quem nasceu em **29 de fevereiro** comemora
+ * O dia em que se comemora num ano qualquer — é o que a Agenda desenha (#44). Quem nasceu em **29 de fevereiro** comemora
  * em **28/02** nos anos comuns: continua no mês em que a pessoa nasceu, e é melhor que a
  * alternativa honesta-mas-inútil de pular três anos em cada quatro.
  */
-function celebrationIn(year: number, birthday: Birthday): Date {
+export function celebrationIn(year: number, birthday: Birthday): Date {
   const leapDayInCommonYear =
     birthday.month === FEBRUARY && birthday.day === LEAP_DAY && !isLeapYear(year);
 

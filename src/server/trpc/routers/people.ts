@@ -8,6 +8,7 @@ import {
 import {
   addContact,
   createPerson,
+  listBirthdaysInRange,
   deleteContact,
   deletePerson,
   listPeople,
@@ -54,6 +55,15 @@ const personFields = {
 /** Pessoas & Relacionamentos (#41). Router fino: valida a entrada e delega ao serviço. */
 export const peopleRouter = router({
   list: protectedProcedure.query(({ ctx }) => listPeople(ctx.userId)),
+
+  /** Aniversários da janela, derivados da data em `people` — é o que a Agenda desenha (#44). */
+  birthdaysInRange: protectedProcedure
+    .input(
+      z
+        .object({ from: z.date(), to: z.date() })
+        .refine((range) => range.to > range.from, "A janela precisa terminar depois de começar."),
+    )
+    .query(({ ctx, input }) => listBirthdaysInRange(ctx.userId, input)),
 
   create: protectedProcedure
     .input(z.object({ name, ...personFields }))

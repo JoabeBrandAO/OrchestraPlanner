@@ -169,6 +169,20 @@
       "when": 1786824271024,
       "tag": "0023_interactions_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1786824854525,
+      "tag": "0024_third_vision",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1786824856420,
+      "tag": "0025_birthday_reminder_origin",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import { isSameDay, monthGrid } from "@/server/services/events/calendar";
 import type { AppRouter } from "@/server/trpc/root";
 
 type Occurrence = inferRouterOutputs<AppRouter>["events"]["list"][number];
+type Birthday = inferRouterOutputs<AppRouter>["people"]["birthdaysInRange"][number];
 
 const timeLabel = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const fullDayLabel = new Intl.DateTimeFormat("pt-BR", {
@@ -21,6 +22,8 @@ type Props = {
   monthAnchor: Date;
   occurrences: Occurrence[];
   loading: boolean;
+  /** Derivados de `people`, não compromissos (#44). */
+  birthdays: Birthday[];
   today: Date;
   onOpenDay: (day: Date) => void;
 };
@@ -31,7 +34,14 @@ type Props = {
  *
  * Clicar num dia leva à semana daquele dia: o mês é para planejar, a semana para trabalhar.
  */
-export function AgendaMonth({ monthAnchor, occurrences, loading, today, onOpenDay }: Props) {
+export function AgendaMonth({
+  monthAnchor,
+  occurrences,
+  loading,
+  birthdays,
+  today,
+  onOpenDay,
+}: Props) {
   const grid = monthGrid(monthAnchor);
 
   // Indexa por dia local ("YYYY-M-D"): a chave sai da data, não do índice da grade, para
@@ -41,6 +51,12 @@ export function AgendaMonth({ monthAnchor, occurrences, loading, today, onOpenDa
   for (const occurrence of occurrences) {
     const key = keyOf(occurrence.startsAt);
     byDay.set(key, [...(byDay.get(key) ?? []), occurrence]);
+  }
+
+  const birthdaysByDay = new Map<string, Birthday[]>();
+  for (const birthday of birthdays) {
+    const key = keyOf(birthday.date);
+    birthdaysByDay.set(key, [...(birthdaysByDay.get(key) ?? []), birthday]);
   }
 
   if (loading) return <p className="text-muted-foreground text-sm">Carregando o mês…</p>;
@@ -56,6 +72,7 @@ export function AgendaMonth({ monthAnchor, occurrences, loading, today, onOpenDa
       <div className="grid grid-cols-7 gap-1">
         {grid.map(({ date, inMonth }) => {
           const items = byDay.get(keyOf(date)) ?? [];
+          const aniversarios = birthdaysByDay.get(keyOf(date)) ?? [];
           const isToday = isSameDay(date, today);
 
           return (
@@ -77,6 +94,16 @@ export function AgendaMonth({ monthAnchor, occurrences, loading, today, onOpenDa
               >
                 {date.getDate()}
               </span>
+
+              {aniversarios.map((birthday) => (
+                <span
+                  key={birthday.personId}
+                  className="truncate text-[11px] leading-tight"
+                  title={`Aniversário de ${birthday.name}`}
+                >
+                  🎂 {birthday.name}
+                </span>
+              ))}
 
               {items.slice(0, 3).map((occurrence) => (
                 <span
