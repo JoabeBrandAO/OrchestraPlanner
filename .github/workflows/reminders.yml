@@ -1,0 +1,57 @@
+name: Lembretes
+
+# Dispara os lembretes da Agenda por Web Push (#36).
+#
+# Por que aqui e não numa rota da Vercel com cron: o cron da Vercel só tem granularidade
+# de minuto no plano pago, e uma rota pública precisaria de um segredo compartilhado
+# configurado *lá*. Aqui o job fala direto com o Neon, e todos os segredos vivem no mesmo
+# lugar em que as migrations já vivem.
+#
+# **Limite conhecido:** o agendador do GitHub não é pontual — atrasos de 5 a 15 minutos são
+# normais em horário de pico. O script manda tudo que venceu desde a última passada (com
+# teto de 1 hora), então nada se perde; um lembrete pode é chegar atrasado. Se um dia isso
+# incomodar, a troca é o Vercel Cron (plano Pro).
+on:
+  schedule:
+    # A cada 5 minutos — o mais frequente que o GitHub aceita.
+    - cron: "*/5 * * * *"
+  # Para testar sem esperar o relógio (Actions → Lembretes → Run workflow).
+  workflow_dispatch:
+
+# Duas passadas ao mesmo tempo tentariam mandar o mesmo lembrete. A reserva em
+# `reminder_sends` já protege disso no banco; isto evita até a tentativa.
+concurrency:
+  group: send-reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    name: Enviar lembretes vencidos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Disparar
+        env:
+          # Restrito (role `app_rls`): tudo que lê ou escreve dado de usuário passa por aqui,
+          # sob RLS.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Elevado: usado numa única query, para descobrir quem tem inscrição.
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: |
+          for secret in DATABASE_URL MIGRATION_DATABASE_URL VAPID_PRIVATE_KEY; do
+            if [ -z "${!secret}" ]; then
+              echo "::error::Secret $secret ausente — configure em Settings → Secrets → Actions."
+              exit 1
+            fi
+          done
+          npx tsx scripts/send-reminders.ts

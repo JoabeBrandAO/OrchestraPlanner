@@ -6,6 +6,7 @@ import { lifeAreasRouter } from "./routers/life-areas";
 import { lifeWheelRouter } from "./routers/life-wheel";
 import { milestonesRouter } from "./routers/milestones";
 import { prioritiesRouter } from "./routers/priorities";
+import { pushRouter } from "./routers/push";
 import { tagsRouter } from "./routers/tags";
 import { router } from "./trpc";
 
@@ -18,6 +19,7 @@ export const appRouter = router({
   events: eventsRouter,
   milestones: milestonesRouter,
   priorities: prioritiesRouter,
+  push: pushRouter,
   tags: tagsRouter,
 });
 

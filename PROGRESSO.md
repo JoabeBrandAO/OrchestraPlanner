@@ -30,13 +30,12 @@
 - **Sessão Mão-na-massa** (`OrchestraPlanner`): infra + código. Divisão acordada: eu = `.claude/`, `docs/ERROS.md`, `docs/FORMATACAO.md`, código; Visão = `VISAO-DO-PRODUTO.md`, `SESSION-LOG-*.md`. `PROGRESSO.md` = terreno comum (append no Histórico).
 
 ### 📋 A fazer (próximo)
-- **Bloqueado no dono:** 🔴 rotacionar a senha de teste do Clerk (**#30**, segue válida no
-  repo público) · cadastrar o secret `MIGRATION_DATABASE_URL` no GitHub (senão o workflow de
-  migrations falha de propósito) · desligar a proteção anti-bot do Clerk, que **segue ativa**
-  e trava o E2E de login em `/sign-in/client-trust` (**#7**).
-- **Validação manual** das telas da Agenda (semana, mês e edição).
-- **Agenda — fatias restantes (#18):** exceções numa ocorrência da série (**#35**), disparo
-  real dos lembretes (**#36** — hoje só o horário é calculado).
+- **Bloqueado no dono (só o que exige o painel do Clerk):** 🔴 rotacionar a senha de teste
+  (**#30**, segue válida no repo público) · desligar a proteção anti-bot, que **segue ativa**
+  e trava o E2E de login em `/sign-in/client-trust` (**#7**). Os secrets do GitHub já foram
+  cadastrados (#6 destravado).
+- **Validação manual** da Agenda: semana, mês, edição, exceções e o "Ativar lembretes".
+- **Épico Agenda (#18) fechado** com a #36; sobram melhorias, não fatias.
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
 
 ---
@@ -239,3 +238,28 @@
     e há "Voltar ao horário da série" para desfazer.
   - Suíte **188 verdes** (era 158): +13 puros, +11 de integração com RLS, +6 de componente.
     typecheck · lint · format · build verdes.
+- **2026-08-15 (cont.) — Agenda: lembretes de verdade, por Web Push (#36):**
+  - **PR #39 mergeado** (`88a2ada`). Canal escolhido pelo dono: **Web Push**.
+  - **Desenhado para não exigir nada dele na Vercel:** a chave VAPID **pública** vai no
+    código (é pública por design — o navegador a recebe em toda inscrição), e o segredo
+    vive só no GitHub Secrets, onde as migrations já viviam.
+  - **Tabelas** `push_subscriptions` (a inscrição do navegador) e `reminder_sends` (a marca
+    que impede o reenvio), migrations `0016` + `0017` (RLS/GRANTs), **aplicadas no Neon**.
+  - **Disparo:** workflow `reminders.yml` a cada 5 min roda `scripts/send-reminders.ts`.
+    **Duas conexões de propósito:** a única leitura através dos usuários (quem tem
+    inscrição) usa o role elevado; todo o resto passa por `withUserContext` na conexão
+    restrita, então quem isola continua sendo a RLS, não a disciplina do laço.
+  - **Reserva antes de enviar** (`claimReminder`): se duas passadas se cruzarem, só uma
+    manda; falhou o envio, a reserva é devolvida e a próxima passada tenta. Inscrição morta
+    (404/410) é apagada em vez de ser tentada para sempre.
+  - **No app:** service worker (`public/sw.js`, só notificação — sem cache), botão
+    "Ativar lembretes" na Agenda, e manifest + ícones PWA, **porque no iPhone o Web Push só
+    existe para site adicionado à Tela de Início**.
+  - **Secrets cadastrados por mim** via `gh`: `DATABASE_URL`, `MIGRATION_DATABASE_URL` e
+    `VAPID_PRIVATE_KEY`. Isso **destrava o #6** — o workflow de migrations parou de falhar
+    por falta do secret.
+  - **Limite declarado:** o agendador do GitHub atrasa (5–15 min). O script manda tudo que
+    venceu na última hora, então nada se perde, mas um lembrete pode chegar atrasado. A
+    troca por precisão de minuto é o Vercel Cron (plano Pro).
+  - Suíte **209 verdes** (era 188): +12 puros (vencimento e teto de recuperação), +9 de
+    integração sob RLS. typecheck · lint · format · build verdes.
