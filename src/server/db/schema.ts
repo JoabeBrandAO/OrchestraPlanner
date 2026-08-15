@@ -436,6 +436,10 @@ export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
  *
  * A chave é a mesma identidade usada nas exceções — evento + instante **original** da
  * ocorrência —, então remarcar um dia não faz o lembrete dele ser reenviado.
+ *
+ * Aniversários (#44) usam a **mesma** marca, por `person_id`: são outra origem, mas o
+ * problema é idêntico, e duas tabelas se desencontrariam. Exatamente uma das duas origens
+ * é preenchida — garantido por CHECK na migration `0024`.
  */
 export const reminderSends = pgTable(
   "reminder_sends",
@@ -444,9 +448,8 @@ export const reminderSends = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    eventId: uuid("event_id")
-      .notNull()
-      .references(() => events.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
+    personId: uuid("person_id").references(() => people.id, { onDelete: "cascade" }),
     occurrenceStartsAt: timestamp("occurrence_starts_at", { withTimezone: true }).notNull(),
     sentAt: timestamp("sent_at", { withTimezone: true })
       .notNull()
@@ -454,6 +457,7 @@ export const reminderSends = pgTable(
   },
   (t) => [
     uniqueIndex("reminder_sends_event_occurrence_key").on(t.eventId, t.occurrenceStartsAt),
+    uniqueIndex("reminder_sends_person_occurrence_key").on(t.personId, t.occurrenceStartsAt),
     index("reminder_sends_user_sent_idx").on(t.userId, t.sentAt),
   ],
 );

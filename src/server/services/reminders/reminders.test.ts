@@ -2,13 +2,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { migrateForTests } from "@/server/db/migrate-for-tests";
 import { withUserContext } from "@/server/db/rls";
-import { events, pushSubscriptions, reminderSends, users } from "@/server/db/schema";
+import { events, people, pushSubscriptions, reminderSends, users } from "@/server/db/schema";
 import { createEvent } from "@/server/services/events/events-service";
+import { createPerson } from "@/server/services/people/people-service";
 
 import {
+  claimBirthdayReminder,
   claimReminder,
   deleteSubscription,
   listSubscriptions,
+  pendingBirthdayReminders,
   pendingReminders,
   releaseReminder,
   saveSubscription,
@@ -36,6 +39,7 @@ const inscricao = (endpoint: string) => ({
 const limpar = async (id: string) => {
   await withUserContext(id, (tx) => tx.delete(reminderSends));
   await withUserContext(id, (tx) => tx.delete(events));
+  await withUserContext(id, (tx) => tx.delete(people));
   await withUserContext(id, (tx) => tx.delete(pushSubscriptions));
 };
 
@@ -181,6 +185,56 @@ describe.skipIf(!hasDb)("lembretes — inscrições, vencimento e idempotência"
     });
     expect(daSemanaSeguinte).toHaveLength(1);
     expect(daSemanaSeguinte[0]!.occurrenceStartsAt.toISOString()).toBe("2026-08-17T09:00:00.000Z");
+
+    await limpar(uid);
+  });
+
+  it("avisa do aniversário no dia, às 8h da manhã", async () => {
+    // Aniversário é um dia, não um horário: o disparo é fixo, não configurável.
+    await createPerson(uid, { name: "Ana", birthday: { day: 17, month: 8, year: 1990 } });
+
+    const pendentes = await pendingBirthdayReminders(uid, {
+      since: utc("2026-08-17T10:50:00"),
+      now: utc("2026-08-17T11:10:00"),
+    });
+
+    expect(pendentes).toHaveLength(1);
+    expect(pendentes[0]!.name).toBe("Ana");
+    expect(pendentes[0]!.turningAge).toBe(36);
+    expect(pendentes[0]!.remindAt.toISOString()).toBe("2026-08-17T11:00:00.000Z");
+
+    await limpar(uid);
+  });
+
+  it("o aniversário reservado não sai de novo — a mesma marca dos compromissos", async () => {
+    const ana = await createPerson(uid, {
+      name: "Ana",
+      birthday: { day: 17, month: 8, year: 1990 },
+    });
+    const janela = { since: utc("2026-08-17T10:50:00"), now: utc("2026-08-17T11:10:00") };
+
+    expect(await claimBirthdayReminder(uid, ana.id, utc("2026-08-17T11:00:00"))).toBe(true);
+    expect(await pendingBirthdayReminders(uid, janela)).toEqual([]);
+    expect(await claimBirthdayReminder(uid, ana.id, utc("2026-08-17T11:00:00"))).toBe(false);
+
+    await limpar(uid);
+  });
+
+  it("a reserva de aniversário não colide com a de compromisso", async () => {
+    // As duas origens dividem a tabela; o CHECK garante que cada linha tem uma só.
+    const ana = await createPerson(uid, {
+      name: "Ana",
+      birthday: { day: 17, month: 8, year: 1990 },
+    });
+    const evento = await createEvent(uid, {
+      title: "Consulta",
+      startsAt: utc("2026-08-17T11:00:00"),
+      endsAt: utc("2026-08-17T12:00:00"),
+      reminderMinutesBefore: 0,
+    });
+
+    expect(await claimBirthdayReminder(uid, ana.id, utc("2026-08-17T11:00:00"))).toBe(true);
+    expect(await claimReminder(uid, evento.id, utc("2026-08-17T11:00:00"))).toBe(true);
 
     await limpar(uid);
   });

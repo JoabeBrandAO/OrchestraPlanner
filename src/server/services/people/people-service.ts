@@ -1,10 +1,11 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import { people, peopleContacts, type PersonContactRow, type PersonRow } from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
 
 import { isValidBirthday, type Birthday } from "./birthday";
+import { birthdaysInRange, type BirthdayOccurrence } from "./birthday-agenda";
 import { lastContactByPerson } from "./interactions-service";
 import {
   MARRIED_STATUSES,
@@ -188,5 +189,37 @@ export async function deleteContact(userId: string, id: string): Promise<void> {
     tx
       .delete(peopleContacts)
       .where(and(eq(peopleContacts.id, id), eq(peopleContacts.userId, userId))),
+  );
+}
+
+/**
+ * Aniversários que caem na janela (#44). **Derivado** da data em `people` a cada leitura,
+ * e não materializado como compromisso: corrigir a data de nascimento move o aniversário
+ * sozinho, sem deixar para trás um evento anual mentindo no calendário.
+ */
+export async function listBirthdaysInRange(
+  userId: string,
+  range: { from: Date; to: Date },
+): Promise<BirthdayOccurrence[]> {
+  const rows = await withUserContext(userId, (tx) =>
+    tx
+      .select({
+        id: people.id,
+        name: people.name,
+        day: people.birthDay,
+        month: people.birthMonth,
+        year: people.birthYear,
+      })
+      .from(people)
+      .where(and(isNotNull(people.birthDay), isNotNull(people.birthMonth))),
+  );
+
+  return birthdaysInRange(
+    rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      birthday: { day: row.day!, month: row.month!, year: row.year },
+    })),
+    range,
   );
 }
