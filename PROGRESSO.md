@@ -170,3 +170,23 @@
       ao contrário da recorrência, que expande em UTC.
   - Qualidade: **suíte 115 verdes** (era 93; +22 na grade do calendário), typecheck · lint ·
     format · build verdes. **Sem migration nesta fatia** — nada mudou no schema.
+- **2026-08-15 (cont.) — correção do formulário da Agenda (teste manual do dono):**
+  - 🐛 **Reportado:** o formulário não limpava depois de salvar, a escolha de data/hora
+    estava travada e reutilizava os horários do evento anterior, e o lembrete tinha atraso.
+  - **Duas causas, um sintoma.** (a) Eu havia semeado o próximo formulário com o dia e a
+    repetição recém-usados "para poupar digitação" — na prática, campo pré-preenchido é
+    campo para apagar. (b) Todos os campos eram **controlados**: cada tecla virava um
+    render e o React reescrevia o campo logo depois, o que num `datetime-local` faz o campo
+    brigar com quem digita. Registrado em `docs/ERROS.md`.
+  - **Ciclo TDD:** teste primeiro, medindo o custo por tecla em **commits do React**
+    (`Profiler`) — determinístico, ao contrário de milissegundos no CI. Linha de base
+    medida: **22 teclas = 22 commits**. Depois da correção: **0 commits**.
+  - **Correção:** formulário volta em branco (o container só troca a `key`); campos passaram
+    a **não controlados** (`defaultValue`), com as regras puras em `event-fields.ts` e o
+    estado guardando só o veredito "pode salvar / janela invertida" — quando ele não muda, o
+    *setter* devolve o objeto atual e o React aborta sem render. Lembrete ganhou `datalist`
+    com os valores comuns (5, 10, 15, 30, 60, 120).
+  - **Ganho medido:** mediana **15,22 ms → 4,44 ms** por preenchimento (30 rodadas com as
+    duas implementações alternadas no mesmo processo) — **−70,8%**, acima dos 40% pedidos.
+  - Primeiros **testes de componente** do repositório (jsdom + Testing Library, devDeps).
+    Suíte **139 verdes** (era 115); typecheck · lint · format · build verdes.

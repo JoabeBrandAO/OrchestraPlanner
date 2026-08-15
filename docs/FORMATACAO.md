@@ -75,6 +75,16 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **Trocar a `key` para resetar formulário** (`key={alvo.id}`) é o jeito de o estado inicial
   acompanhar o alvo: remonta o componente e o `useState(inicial)` roda de novo. Copiar prop
   para estado num efeito é barrado pelo lint e dessincroniza depois de salvar.
+- **Formulário grande é não controlado** (`defaultValue` + `name`), com um `onChange` no
+  `<form>` lendo o DOM e regras **puras** decidindo o veredito (`agenda/event-fields.ts`).
+  O estado guarda só o veredito, e o *setter* devolve o objeto atual quando nada mudou —
+  o React aborta sem render. Campo controlado põe o React no caminho de cada tecla: num
+  `datetime-local` ele reescreve o campo no meio da digitação (ver `docs/ERROS.md`
+  2026-08-15). Controlar só o que a tela precisa reagir tecla a tecla.
+- **Depois de salvar, formulário volta em branco.** Pré-preencher "para poupar digitação"
+  o que o usuário não pediu vira campo para apagar — e parece que a tela não limpou.
+- **Custo de interação tem teste**, medido em **commits do React** (`Profiler`), não em
+  milissegundos: é determinístico e não fica flaky no CI (`agenda/event-form.test.tsx`).
 - **Container/apresentação nas telas que crescem:** um container `"use client"` com as
   queries, mutações e estado de navegação, e componentes de visão que **só desenham** a
   partir de props (`agenda.tsx` → `agenda-week.tsx`/`agenda-month.tsx`).
@@ -110,3 +120,6 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **2026-08-15** — Iteração 5: formulário único para criar/editar, reset por `key`,
   separação container/apresentação, navegação por data-âncora e aritmética de calendário
   no fuso local com `setDate`/`setMonth`.
+- **2026-08-15 (cont.)** — correção do formulário: campos não controlados com regras puras,
+  formulário em branco depois de salvar e orçamento de commits testado (primeiros testes de
+  componente do repo — jsdom + Testing Library).

@@ -39,11 +39,13 @@ export function Agenda() {
   /** Retrato do evento em edição — sobrevive mesmo se ele sair da janela ao ser salvo. */
   const [editing, setEditing] = useState<EventRow | null>(null);
   /**
-   * Semente do formulário de criação. Trocar a `key` remonta (e limpa) o formulário depois
-   * de marcar; `values` devolve o dia e a repetição recém-usados, porque quem marca dois
-   * compromissos seguidos quase sempre os marca no mesmo dia.
+   * Conta quantos compromissos foram marcados: trocar a `key` remonta o formulário de
+   * criação, e é isso que o limpa **por inteiro** depois de salvar. A fatia anterior
+   * devolvia o dia e a repetição do compromisso recém-marcado, na ideia de poupar
+   * digitação; na prática o campo pré-preenchido é campo para apagar, e o formulário
+   * parecia não ter limpado. Campo em branco é o padrão.
    */
-  const [newSeed, setNewSeed] = useState<{ key: number; values?: EventFormValues }>({ key: 0 });
+  const [created, setCreated] = useState(0);
 
   const today = new Date();
   const range = mode === "week" ? weekRange(anchor) : monthRange(anchor);
@@ -185,7 +187,7 @@ export function Agenda() {
         />
       ) : (
         <EventForm
-          key={`novo-${newSeed.key}`}
+          key={`novo-${created}`}
           heading="Novo compromisso"
           submitLabel="Marcar"
           pendingLabel="Marcando…"
@@ -193,21 +195,9 @@ export function Agenda() {
           error={createEvent.error?.message}
           areas={areaOptions}
           priorities={priorityOptions}
-          initial={newSeed.values}
           onSubmit={(values: EventFormValues) =>
             createEvent.mutate(values, {
-              onSuccess: () =>
-                setNewSeed((seed) => ({
-                  key: seed.key + 1,
-                  values: {
-                    ...values,
-                    title: "",
-                    description: null,
-                    lifeAreaId: null,
-                    priorityId: null,
-                    reminderMinutesBefore: null,
-                  },
-                })),
+              onSuccess: () => setCreated((count) => count + 1),
             })
           }
         />
