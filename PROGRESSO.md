@@ -282,3 +282,25 @@
     contatos inline por pessoa.
   - Suíte **246 verdes** (era 209): +15 puros (aniversário), +12 de integração sob RLS,
     +10 de componente. typecheck · lint · format · build verdes.
+- **2026-08-15 (cont.) — correções do teste manual + Pessoas #42:**
+  - 🐛 **Botão duplicado** no estado vazio de Pessoas ("+ Nova pessoa" no topo e no card).
+    A barra de cima agora só existe quando há lista. **As Metas tinham o mesmo defeito**,
+    herdado do mesmo padrão, e foram corrigidas junto (PR #46).
+  - 🐛 **Data de nascimento**: de três campos para **um** `<input type="date">` com `max` no
+    dia de hoje — o calendário nativo não oferece data futura, sem precisar de mensagem. O
+    domínio confere de novo (`isValidBirthday` recusa futuro, com "hoje" injetável).
+    _Custo assumido:_ pela tela não dá mais para cadastrar aniversário **sem ano**; o modelo
+    continua aceitando. Se voltar a fazer falta, o caminho é máscara `dd/mm/aaaa`.
+  - **Aba de Pessoas validada pelo dono.**
+  - **#42 — círculos e vínculos:** tabelas `person_links`, `circles` e `circle_members`
+    (migrations `0020` + `0021`, **aplicadas no Neon**).
+    - **Vínculo é uma linha só**, nunca duas: duas linhas (A→B e B→A) divergem assim que
+      alguém edita um lado. O par é gravado em **ordem canônica** e a leitura do outro lado
+      é derivada pelo **inverso** (`relations.ts`, puro: pai↔filho, avô↔neto, mentor↔
+      mentorado; cônjuge, irmão e primo são o próprio inverso). Dois `CHECK` no banco
+      garantem: nada de vínculo consigo mesmo e nada fora da ordem canônica.
+    - Círculos com membros e papel, idempotentes na entrada; apagar círculo não apaga
+      pessoa, apagar pessoa não deixa membro fantasma.
+    - UI: painel de **vínculos** por pessoa (frase completa: "Bruno é filho(a) de Ana") e
+      seção de **círculos** na mesma tela.
+  - Suíte **272 verdes** (era 250): +10 puros, +12 de integração sob RLS.

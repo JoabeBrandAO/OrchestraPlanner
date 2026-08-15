@@ -1,3 +1,4 @@
+import { circlesRouter } from "./routers/circles";
 import { dashboardRouter } from "./routers/dashboard";
 import { eventsRouter } from "./routers/events";
 import { goalsRouter } from "./routers/goals";
@@ -14,6 +15,7 @@ import { router } from "./trpc";
 export const appRouter = router({
   health: healthRouter,
   dashboard: dashboardRouter,
+  circles: circlesRouter,
   lifeAreas: lifeAreasRouter,
   lifeWheel: lifeWheelRouter,
   goals: goalsRouter,

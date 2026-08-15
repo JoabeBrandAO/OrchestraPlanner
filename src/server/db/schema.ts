@@ -557,3 +557,116 @@ export const peopleContacts = pgTable(
 );
 
 export type PersonContactRow = typeof peopleContacts.$inferSelect;
+
+export const personRelation = pgEnum("person_relation", [
+  "conjuge",
+  "pai_mae",
+  "filho",
+  "irmao",
+  "avo",
+  "neto",
+  "tio",
+  "sobrinho",
+  "primo",
+  "sogro",
+  "genro_nora",
+  "cunhado",
+  "amigo",
+  "mentor",
+  "mentorado",
+  "colega",
+  "outro",
+]);
+
+/**
+ * Vínculo entre duas pessoas (#42). **Uma linha por par**, nunca duas: duas linhas (A→B e
+ * B→A) podem divergir, e aí a mesma relação passa a dizer duas coisas. A leitura do outro
+ * lado é derivada pelo inverso (`people/relations.ts`).
+ *
+ * O par é gravado em ordem canônica (`person_id <= related_person_id`), o que faz o índice
+ * único impedir o espelho sem precisar de gatilho. `relation` diz o que
+ * **`related_person` é para `person`**.
+ */
+export const personLinks = pgTable(
+  "person_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    relatedPersonId: uuid("related_person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    relation: personRelation("relation").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("person_links_pair_key").on(t.personId, t.relatedPersonId),
+    index("person_links_user_related_idx").on(t.userId, t.relatedPersonId),
+  ],
+);
+
+export type PersonLinkRow = typeof personLinks.$inferSelect;
+
+export const circleKind = pgEnum("circle_kind", [
+  "familia",
+  "celula",
+  "amigos",
+  "mentores",
+  "outro",
+]);
+
+/** Grupos de pessoas (#42): família, célula, amigos próximos, mentores. */
+export const circles = pgTable(
+  "circles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: circleKind("kind").notNull().default("outro"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [uniqueIndex("circles_user_lower_name_uq").on(t.userId, sql`lower(${t.name})`)],
+);
+
+export type CircleRow = typeof circles.$inferSelect;
+
+/** Quem está no círculo, e com que papel ("líder", "caçula"). Uma vez por círculo. */
+export const circleMembers = pgTable(
+  "circle_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    circleId: uuid("circle_id")
+      .notNull()
+      .references(() => circles.id, { onDelete: "cascade" }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    role: text("role"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("circle_members_circle_person_key").on(t.circleId, t.personId),
+    index("circle_members_user_person_idx").on(t.userId, t.personId),
+  ],
+);
+
+export type CircleMemberRow = typeof circleMembers.$inferSelect;
