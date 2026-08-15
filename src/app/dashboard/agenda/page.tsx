@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ensureUserRecord } from "@/server/users";
 
 import { Agenda } from "./agenda";
+import { NotificationsToggle } from "./notifications-toggle";
 
 // Área autenticada — sempre dinâmica (depende da sessão Clerk).
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function AgendaPage() {
           ← Dashboard
         </Link>
       </header>
+      <NotificationsToggle />
       <Agenda />
     </main>
   );

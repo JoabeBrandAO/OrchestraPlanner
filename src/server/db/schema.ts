@@ -392,3 +392,68 @@ export const eventExceptions = pgTable(
 );
 
 export type EventExceptionRow = typeof eventExceptions.$inferSelect;
+
+/**
+ * Inscrições de Web Push (#36) — o que o navegador devolve ao aceitar receber notificação:
+ * um `endpoint` (a caixa postal daquele navegador no serviço de push) e as duas chaves da
+ * criptografia ponta a ponta. Sem elas o servidor não consegue cifrar a mensagem.
+ *
+ * O único é `(user_id, endpoint)`, não `endpoint` sozinho: o mesmo navegador pode estar
+ * logado em duas contas, e cada uma tem direito aos próprios lembretes. Único global também
+ * vazaria a existência da inscrição alheia através do erro de conflito.
+ */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    /** Só para o usuário reconhecer o aparelho numa lista futura. */
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("push_subscriptions_user_endpoint_key").on(t.userId, t.endpoint),
+    index("push_subscriptions_user_idx").on(t.userId),
+  ],
+);
+
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+
+/**
+ * Lembretes já disparados (#36). É o que impede a mesma notificação de sair duas vezes: o
+ * disparo roda de tempos em tempos e, sem esta marca, cada passada reenviaria tudo que
+ * ainda estivesse dentro da janela.
+ *
+ * A chave é a mesma identidade usada nas exceções — evento + instante **original** da
+ * ocorrência —, então remarcar um dia não faz o lembrete dele ser reenviado.
+ */
+export const reminderSends = pgTable(
+  "reminder_sends",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    occurrenceStartsAt: timestamp("occurrence_starts_at", { withTimezone: true }).notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("reminder_sends_event_occurrence_key").on(t.eventId, t.occurrenceStartsAt),
+    index("reminder_sends_user_sent_idx").on(t.userId, t.sentAt),
+  ],
+);
