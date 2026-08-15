@@ -1,12 +1,17 @@
 import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
-import { people, peopleContacts, type PersonContactRow, type PersonRow } from "@/server/db/schema";
+import {
+  interactions,
+  people,
+  peopleContacts,
+  type PersonContactRow,
+  type PersonRow,
+} from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
 
 import { isValidBirthday, type Birthday } from "./birthday";
 import { birthdaysInRange, type BirthdayOccurrence } from "./birthday-agenda";
-import { lastContactByPerson } from "./interactions-service";
 import {
   MARRIED_STATUSES,
   type ContactKindValue,
@@ -93,29 +98,43 @@ export async function createPerson(userId: string, input: PersonInput): Promise<
   });
 }
 
-/** Pessoas do usuário com os contatos já embutidos — a tela mostra as duas coisas juntas. */
+/**
+ * Pessoas do usuário com contatos e último contato — **uma consulta só**, porque é uma tela
+ * só. Contra o Neon cada statement é uma viagem pela rede, e três viagens para montar uma
+ * lista é a diferença entre a tela abrir e a tela demorar (ver `query-budget.test.ts`).
+ *
+ * O join duplica a pessoa por contato e o agrupamento é feito aqui; a data do último
+ * contato vem de uma subconsulta correlacionada, servida pelo índice
+ * `interactions_user_person_date_idx`.
+ */
 export async function listPeople(userId: string): Promise<PersonWithContacts[]> {
   return withUserContext(userId, async (tx) => {
-    const rows = await tx.select().from(people).orderBy(asc(people.name));
-    if (rows.length === 0) return [];
+    const rows = await tx
+      .select({
+        person: people,
+        contact: peopleContacts,
+        lastInteractionAt: sql<string | null>`(
+          select max(${interactions.happenedAt})
+          from ${interactions}
+          where ${interactions.personId} = ${people.id}
+        )`,
+      })
+      .from(people)
+      .leftJoin(peopleContacts, eq(peopleContacts.personId, people.id))
+      .orderBy(asc(people.name), asc(peopleContacts.createdAt));
 
-    const contacts = await tx.select().from(peopleContacts).orderBy(asc(peopleContacts.createdAt));
-
-    const byPerson = new Map<string, PersonContactRow[]>();
-    for (const contact of contacts) {
-      const list = byPerson.get(contact.personId) ?? [];
-      list.push(contact);
-      byPerson.set(contact.personId, list);
+    const byId = new Map<string, PersonWithContacts>();
+    for (const row of rows) {
+      const current = byId.get(row.person.id) ?? {
+        ...row.person,
+        contacts: [],
+        lastInteractionAt: row.lastInteractionAt,
+      };
+      if (row.contact) current.contacts.push(row.contact);
+      byId.set(row.person.id, current);
     }
 
-    // Uma consulta agregada para todos, em vez de uma por linha da lista.
-    const lastContact = await lastContactByPerson(tx);
-
-    return rows.map((person) => ({
-      ...person,
-      contacts: byPerson.get(person.id) ?? [],
-      lastInteractionAt: lastContact.get(person.id) ?? null,
-    }));
+    return [...byId.values()];
   });
 }
 

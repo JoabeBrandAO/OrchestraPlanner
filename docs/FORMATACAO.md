@@ -116,6 +116,15 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   calculada no **fuso local** (`events/calendar.ts`), ao contrário da expansão da recorrência,
   que é em UTC — a diferença está documentada nos dois módulos.
 
+- **Uma tela, uma consulta.** Leitura que a tela mostra junta sai junta: contra um Postgres
+  na rede (Neon), cada statement é uma viagem, e é ela — não o tempo de CPU do banco — que
+  domina a resposta. O join duplica a linha-pai e o agrupamento é feito em memória.
+- **O custo de leitura tem teto testado**, contado em **statements** e não em milissegundos
+  (`services/query-budget.test.ts`): contar é determinístico e não fica frágil conforme a
+  máquina. Toda operação carrega 3 statements de moldura (`BEGIN`, `set_config` da RLS,
+  `COMMIT`), então o teto real é "quantos SELECTs". Há também um teste de que o número **não
+  cresce com o número de linhas** — é a rede de proteção contra N+1.
+
 ### Markdown
 - Títulos em sentence case; uma frase por linha em parágrafos longos quando ajudar o diff.
 - Tabelas alinhadas por pipe; blocos de código com linguagem declarada.
@@ -140,6 +149,7 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **2026-08-15** — Iteração 5: formulário único para criar/editar, reset por `key`,
   separação container/apresentação, navegação por data-âncora e aritmética de calendário
   no fuso local com `setDate`/`setMonth`.
+- **2026-08-15 (cont.)** — leitura de tela em uma consulta, com teto de statements testado.
 - **2026-08-15 (cont.)** — correção do formulário: campos não controlados com regras puras,
   formulário em branco depois de salvar e orçamento de commits testado (primeiros testes de
   componente do repo — jsdom + Testing Library).

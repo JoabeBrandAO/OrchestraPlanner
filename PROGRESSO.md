@@ -348,3 +348,21 @@
     Playwright o reusava (`reuseExistingServer`). Todo o "This page couldn't load" vinha de
     um build de antes do trabalho do dia.
   - **E2E: 2/2 verdes** — landing pública e login → painel.
+- **2026-08-15 (cont.) — ciclo de otimização: menos idas ao banco:**
+  - **Medido antes de mexer.** Instrumentei o driver para contar statements e escrevi um
+    teste de **teto por leitura** (`query-budget.test.ts`). Linha de base: lista de pessoas
+    **6** statements, agenda **5**, círculos **5** — sendo 3 deles moldura da transação
+    (`BEGIN`, `set_config` da RLS, `COMMIT`), presente em toda operação.
+  - **Causa:** cada tela fazia 2 ou 3 SELECTs sequenciais. Contra o Neon (banco na rede)
+    cada statement é uma viagem de ~130 ms; é ela que domina a resposta, não o Postgres.
+  - **Correção:** as três leituras viraram **uma consulta só** com join — pessoas + contatos
+    + último contato; eventos + rótulos + exceções; círculos + membros + nomes. O join
+    duplica a linha-pai e o agrupamento passou para memória.
+  - **Ganho medido** (12 rodadas alternadas contra o Neon, 10 pessoas com contato e
+    interação): mediana **909,3 ms → 649,7 ms**, **−28,6%**. Um teste extra garante que as
+    duas implementações devolviam o mesmo conteúdo — otimização que muda resultado é bug.
+  - **O próximo limite, já identificado:** sobrando 4 statements, **3 são a moldura da
+    transação** — ou seja, ~75% do que resta. Cortá-la exige ou montar SQL multi-statement
+    por concatenação (risco de injeção) ou fixar o contexto por conexão (quebra o pool).
+    Nenhum dos dois vale sem decisão consciente, então ficou registrado em vez de feito.
+  - Suíte **313 verdes** (era 309): +4 do orçamento de consultas.
