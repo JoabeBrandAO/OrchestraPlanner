@@ -69,6 +69,23 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   expansão vive num módulo puro (`events/recurrence.ts`). Filtro SQL largo + decisão fina
   em TypeScript, quando o passo não se expressa bem em SQL.
 
+- **Um formulário para criar e editar**, parametrizado por `initial`/`onSubmit`, em vez de
+  dois que divergem com o tempo (`agenda/event-form.tsx`). Quem edita passa o retrato do
+  registro; quem cria não passa nada.
+- **Trocar a `key` para resetar formulário** (`key={alvo.id}`) é o jeito de o estado inicial
+  acompanhar o alvo: remonta o componente e o `useState(inicial)` roda de novo. Copiar prop
+  para estado num efeito é barrado pelo lint e dessincroniza depois de salvar.
+- **Container/apresentação nas telas que crescem:** um container `"use client"` com as
+  queries, mutações e estado de navegação, e componentes de visão que **só desenham** a
+  partir de props (`agenda.tsx` → `agenda-week.tsx`/`agenda-month.tsx`).
+- **Navegação de calendário é uma data-âncora**, não um deslocamento em semanas/meses:
+  "abrir a semana deste dia" é direto, e o deslocamento vira `addDays`/`addMonths` sobre a
+  âncora.
+- **Data de calendário anda por `setDate`/`setMonth`**, nunca somando milissegundos: onde há
+  horário de verão o dia não tem 24 h e a grade escorregaria uma hora. A grade da tela é
+  calculada no **fuso local** (`events/calendar.ts`), ao contrário da expansão da recorrência,
+  que é em UTC — a diferença está documentada nos dois módulos.
+
 ### Markdown
 - Títulos em sentence case; uma frase por linha em parágrafos longos quando ajudar o diff.
 - Tabelas alinhadas por pipe; blocos de código com linguagem declarada.
@@ -90,3 +107,6 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **2026-08-13 (cont.)** — Iteração 4: idempotência concorrente pelo banco (índice único +
   `on conflict`), tradução do `23505` percorrendo `cause`, helpers de data do Drizzle em vez
   de `sql` cru, e recorrência guardada como regra com expansão pura.
+- **2026-08-15** — Iteração 5: formulário único para criar/editar, reset por `key`,
+  separação container/apresentação, navegação por data-âncora e aritmética de calendário
+  no fuso local com `setDate`/`setMonth`.

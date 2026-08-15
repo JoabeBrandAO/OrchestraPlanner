@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-08-13
+## Estado atual — atualizado em 2026-08-15
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -20,17 +20,23 @@
   1 (Áreas de Vida + Metas), 2 (Prioridades/Kanban + Tags) e 3 (Marcos + Dashboard + Roda da
   Vida). Tudo sob RLS por `user_id`, com serviço de domínio puro + tRPC + UI em português.
 
+- **Módulo Agenda (#18) — semana, mês e edição** (Iterações 4 e 5): recorrência guardada como
+  regra e expandida na leitura, lembrete, bloco de tempo para uma prioridade, visão semanal e
+  mensal na mesma rota e edição do compromisso pela tela. Faltam as exceções na série (#35) e
+  o disparo real dos lembretes (#36).
+
 ### 🔄 Fazendo
 - **Sessão de Visão** (`C:\projetos`): consolidou requisitos, fontes conceituais e este diário; dona dos docs de produto.
 - **Sessão Mão-na-massa** (`OrchestraPlanner`): infra + código. Divisão acordada: eu = `.claude/`, `docs/ERROS.md`, `docs/FORMATACAO.md`, código; Visão = `VISAO-DO-PRODUTO.md`, `SESSION-LOG-*.md`. `PROGRESSO.md` = terreno comum (append no Histórico).
 
 ### 📋 A fazer (próximo)
-- **Bloqueado no dono:** cadastrar o secret `MIGRATION_DATABASE_URL` no GitHub (senão o
-  workflow de migrations falha de propósito) · desligar a proteção anti-bot do Clerk, que
-  **segue ativa** e trava o E2E de login em `/sign-in/client-trust` (**#7**).
-- **Validação manual** das telas da Iteração 4 (agenda semanal).
-- **Agenda — fatias seguintes (#18):** visão de mês, editar compromisso pela tela, exceções
-  numa ocorrência da série, disparo real dos lembretes (hoje só o horário é calculado).
+- **Bloqueado no dono:** 🔴 rotacionar a senha de teste do Clerk (**#30**, segue válida no
+  repo público) · cadastrar o secret `MIGRATION_DATABASE_URL` no GitHub (senão o workflow de
+  migrations falha de propósito) · desligar a proteção anti-bot do Clerk, que **segue ativa**
+  e trava o E2E de login em `/sign-in/client-trust` (**#7**).
+- **Validação manual** das telas da Agenda (semana, mês e edição).
+- **Agenda — fatias restantes (#18):** exceções numa ocorrência da série (**#35**), disparo
+  real dos lembretes (**#36** — hoje só o horário é calculado).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
 
 ---
@@ -141,3 +147,26 @@
   - Qualidade: **suíte 93 verdes** (era 71), typecheck · lint · format · build verdes.
   - **E2E ainda travado (#7):** rodado nesta sessão, o login para em `/sign-in/client-trust`
     — a proteção anti-bot do Clerk continua ativa. A landing pública passa.
+- **2026-08-15 — Sessão Mão-na-massa (Iteração 5: visão de mês + edição pela tela):**
+  - **PR #32 mergeado** na `main` (`fcdc3e6`, squash). O épico **#18 foi reaberto**: a
+    1ª fatia da Agenda entrou, mas #33–#36 ainda pertencem a ele.
+  - Entregue na branch `feat/iteracao-5-agenda-mes` (Closes #33–#34):
+    - **Refatoração da tela** — `agenda-week.tsx` (322 linhas fazendo tudo) virou container
+      (`agenda.tsx`: modo, âncora, queries e mutações) + visões que **só desenham**
+      (`agenda-week.tsx`, `agenda-month.tsx`) + **um formulário só** (`event-form.tsx`)
+      para criar e editar. A navegação passou de "deslocamento em semanas" para uma
+      **data-âncora** — sem isso, "clicar num dia abre a semana dele" não se expressa.
+    - **#33 Visão de mês** — grade de semanas inteiras (4 a 6 linhas, calculadas: um
+      fevereiro que começa na segunda não ganha linha vazia), dias vizinhos esmaecidos,
+      hoje destacado, até 3 compromissos por dia + "＋N", clique abre a semana daquele dia.
+      Reusa `events.list`, que já expande a recorrência em qualquer janela.
+    - **#34 Editar pela tela** — clicar no compromisso abre o mesmo formulário preenchido e
+      salva por `events.update`. Numa série, o formulário mostra os horários **da regra**
+      (não os da ocorrência clicada) e avisa que a edição vale para toda a série — senão
+      salvar moveria a âncora da série em silêncio. A exceção numa ocorrência é a #35.
+      Ganhou também o campo **descrição**, que existia no schema e faltava na tela.
+    - `events/calendar.ts` — matemática pura da grade, **sem banco**: passo por
+      `setDate`/`setMonth` (com horário de verão o dia não tem 24 h) e no **fuso local**,
+      ao contrário da recorrência, que expande em UTC.
+  - Qualidade: **suíte 115 verdes** (era 93; +22 na grade do calendário), typecheck · lint ·
+    format · build verdes. **Sem migration nesta fatia** — nada mudou no schema.
