@@ -263,3 +263,22 @@
     troca por precisão de minuto é o Vercel Cron (plano Pro).
   - Suíte **209 verdes** (era 188): +12 puros (vencimento e teto de recuperação), +9 de
     integração sob RLS. typecheck · lint · format · build verdes.
+- **2026-08-15 (cont.) — Pessoas & Relacionamentos: cadastro e contatos (#41):**
+  - **PR #40 mergeado** (`0b775ed`); **épico da Agenda (#18) completo**. Épico #19 fatiado em
+    **#41** (cadastro e contatos), **#42** (círculos e vínculos), **#43** (interações e "há
+    quanto tempo não falo") e **#44** (aniversários na Agenda).
+  - **Decisão de modelo:** o aniversário é **dia, mês e ano opcional**, não uma `date`. Muita
+    gente sabe o dia e o mês de alguém e não sabe o ano; um `date` obrigaria a inventar um ano
+    e depois fingir que ele não existe — e alguém acabaria mostrando idade errada. Sem ano,
+    não há idade a mostrar.
+  - **29 de fevereiro comemora em 28/02** nos anos comuns: continua no mês em que a pessoa
+    nasceu, e é melhor que pular três aniversários em cada quatro.
+  - **Decisão #25 implementada dos dois lados:** a data de casamento só aparece para
+    casado/união estável **e** só é gravada nesses casos. Campo escondido que continua sendo
+    salvo vira dado fantasma, que reaparece quando o estado civil muda de novo. O **cônjuge**
+    não entra como texto — é um vínculo, e vem na #42.
+  - Tabelas `people` e `people_contacts` (migrations `0018` + `0019` RLS/GRANTs, **aplicadas
+    no Neon**); tela `/dashboard/pessoas` no padrão de janela flutuante, com painel de
+    contatos inline por pessoa.
+  - Suíte **246 verdes** (era 209): +15 puros (aniversário), +12 de integração sob RLS,
+    +10 de componente. typecheck · lint · format · build verdes.

@@ -41,6 +41,9 @@ export default async function DashboardPage() {
           <Link href="/dashboard/agenda" className={buttonVariants({ variant: "outline" })}>
             Agenda
           </Link>
+          <Link href="/dashboard/pessoas" className={buttonVariants({ variant: "outline" })}>
+            Pessoas
+          </Link>
           <Link href="/dashboard/areas" className={buttonVariants({ variant: "outline" })}>
             Áreas de Vida
           </Link>

@@ -457,3 +457,103 @@ export const reminderSends = pgTable(
     index("reminder_sends_user_sent_idx").on(t.userId, t.sentAt),
   ],
 );
+
+/* -------------------------------------------------------------------------- */
+/* Pessoas & Relacionamentos — CRM pessoal (épico #19)                         */
+/* -------------------------------------------------------------------------- */
+
+export const gender = pgEnum("gender", ["feminino", "masculino", "outro", "nao_informado"]);
+
+export const maritalStatus = pgEnum("marital_status", [
+  "solteiro",
+  "casado",
+  "uniao_estavel",
+  "divorciado",
+  "viuvo",
+  "nao_informado",
+]);
+
+export const relationType = pgEnum("relation_type", [
+  "familia",
+  "conjuge",
+  "amigo",
+  "mentor",
+  "colega",
+  "irmao_fe",
+  "outro",
+]);
+
+/**
+ * Pessoas (#41). O aniversário é guardado como **dia, mês e ano opcional**, não como uma
+ * `date`: muita gente sabe o dia e o mês de alguém e não sabe o ano. Um `date` obrigaria a
+ * inventar um ano e depois fingir que ele não existe — e alguém acabaria mostrando idade
+ * errada. A matemática fica em `people/birthday.ts`, pura.
+ *
+ * `married_at` só faz sentido para casado/união estável (decisão #25) e a regra é do
+ * serviço: o banco guarda nulo quando o estado civil não o comporta. O **cônjuge** não é
+ * texto solto aqui — ele é um vínculo entre pessoas, e vem na fatia #42; guardar o nome
+ * agora criaria uma segunda verdade sobre a mesma pessoa.
+ */
+export const people = pgTable(
+  "people",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lifeAreaId: uuid("life_area_id").references(() => lifeAreas.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    nickname: text("nickname"),
+    birthDay: integer("birth_day"),
+    birthMonth: integer("birth_month"),
+    /** NULL = ano desconhecido; sem ele não há idade a mostrar. */
+    birthYear: integer("birth_year"),
+    gender: gender("gender").notNull().default("nao_informado"),
+    maritalStatus: maritalStatus("marital_status").notNull().default("nao_informado"),
+    marriedAt: date("married_at"),
+    relationType: relationType("relation_type").notNull().default("outro"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    index("people_user_name_idx").on(t.userId, t.name),
+    // Aniversariantes do mês são a consulta quente do módulo (#44).
+    index("people_user_birthday_idx").on(t.userId, t.birthMonth, t.birthDay),
+  ],
+);
+
+export type PersonRow = typeof people.$inferSelect;
+
+export const contactKind = pgEnum("contact_kind", ["telefone", "email", "social", "endereco"]);
+
+/**
+ * Contatos de uma pessoa (#41) — vários por pessoa, cada um com o rótulo de quem o usa
+ * ("celular", "trabalho"). `user_id` próprio pelo mesmo motivo de `priority_tags`: a policy
+ * de RLS precisa decidir sozinha, sem join com a tabela pai.
+ */
+export const peopleContacts = pgTable(
+  "people_contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    kind: contactKind("kind").notNull(),
+    label: text("label"),
+    value: text("value").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [index("people_contacts_person_idx").on(t.userId, t.personId)],
+);
+
+export type PersonContactRow = typeof peopleContacts.$inferSelect;
