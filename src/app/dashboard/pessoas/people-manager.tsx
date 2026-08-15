@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { trpc } from "@/trpc/react";
 
+import { CirclesSection } from "./circles-section";
 import { ContactsPanel } from "./contacts-panel";
+import { LinksPanel } from "./links-panel";
 import { PersonForm } from "./person-form";
 import { type PersonFormValues } from "./person-input";
 
@@ -47,7 +49,14 @@ export function PeopleManager() {
   const areas = trpc.lifeAreas.list.useQuery();
 
   const [editing, setEditing] = useState<"new" | Person | null>(null);
-  const [openContacts, setOpenContacts] = useState<string | null>(null);
+  /** Qual painel está aberto e de quem — só um por vez mantém a lista legível. */
+  const [openPanel, setOpenPanel] = useState<{ id: string; kind: "contatos" | "vinculos" } | null>(
+    null,
+  );
+  const isOpen = (id: string, kind: "contatos" | "vinculos") =>
+    openPanel?.id === id && openPanel.kind === kind;
+  const toggle = (id: string, kind: "contatos" | "vinculos") =>
+    setOpenPanel((current) => (current?.id === id && current.kind === kind ? null : { id, kind }));
 
   const today = new Date();
   const invalidate = () => utils.people.list.invalidate();
@@ -101,14 +110,20 @@ export function PeopleManager() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    aria-expanded={openContacts === item.id}
-                    onClick={() =>
-                      setOpenContacts((current) => (current === item.id ? null : item.id))
-                    }
+                    aria-expanded={isOpen(item.id, "contatos")}
+                    onClick={() => toggle(item.id, "contatos")}
                   >
-                    {openContacts === item.id
+                    {isOpen(item.id, "contatos")
                       ? "Ocultar contatos"
                       : `Contatos (${item.contacts.length})`}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-expanded={isOpen(item.id, "vinculos")}
+                    onClick={() => toggle(item.id, "vinculos")}
+                  >
+                    {isOpen(item.id, "vinculos") ? "Ocultar vínculos" : "Vínculos"}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditing(item)}>
                     Editar
@@ -125,12 +140,22 @@ export function PeopleManager() {
                 </div>
               </div>
 
-              {openContacts === item.id && (
+              {isOpen(item.id, "contatos") && (
                 <ContactsPanel
                   contacts={item.contacts}
                   busy={busy}
                   onAdd={(contact) => addContact.mutate({ personId: item.id, ...contact })}
                   onRemove={(id) => deleteContact.mutate({ id })}
+                />
+              )}
+
+              {isOpen(item.id, "vinculos") && (
+                <LinksPanel
+                  personId={item.id}
+                  personName={item.name}
+                  candidates={(people.data ?? [])
+                    .filter((outra) => outra.id !== item.id)
+                    .map((outra) => ({ id: outra.id, name: outra.name }))}
                 />
               )}
             </li>
@@ -189,6 +214,10 @@ export function PeopleManager() {
           }
         />
       </FormDialog>
+
+      <CirclesSection
+        people={(people.data ?? []).map((item) => ({ id: item.id, name: item.name }))}
+      />
     </div>
   );
 }
