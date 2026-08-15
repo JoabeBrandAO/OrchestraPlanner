@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { RECURRENCE_FREQUENCIES, RECURRENCE_LABELS } from "@/server/services/events/recurrence";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,13 @@ type Props = {
   initial?: EventFormValues;
   /** Aviso do domínio acima dos botões (ex.: "editar altera toda a série"). */
   notice?: string;
+  /**
+   * `"occurrence"` esconde o que é **da série** — repetição, lembrete, área e prioridade.
+   * Editar um dia isolado não muda a regra nem reclassifica o compromisso inteiro (#35).
+   */
+  fields?: "full" | "occurrence";
+  /** Ações extras à direita dos botões (remover, desfazer). */
+  extraActions?: ReactNode;
   onSubmit: (values: EventFormValues) => void;
   onCancel?: () => void;
 };
@@ -78,6 +85,8 @@ export function EventForm({
   priorities,
   initial,
   notice,
+  fields: mode = "full",
+  extraActions,
   onSubmit,
   onCancel,
 }: Props) {
@@ -157,63 +166,69 @@ export function EventForm({
         </label>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-          Repetição
-          <select name="frequency" className={inputClass} defaultValue={fields.frequency}>
-            {RECURRENCE_FREQUENCIES.map((option) => (
-              <option key={option} value={option}>
-                {RECURRENCE_LABELS[option]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-          Lembrete (minutos antes)
-          <input
-            name="reminder"
-            type="number"
-            min={0}
-            step={5}
-            list="lembretes-comuns"
-            className={inputClass}
-            placeholder="sem lembrete"
-            defaultValue={fields.reminder}
-          />
-          <datalist id="lembretes-comuns">
-            {[5, 10, 15, 30, 60, 120].map((minutes) => (
-              <option key={minutes} value={minutes} />
-            ))}
-          </datalist>
-        </label>
-      </div>
+      {/* Só a série tem repetição, lembrete, área e prioridade — editar um dia isolado
+          não muda a regra nem reclassifica o compromisso inteiro (#35). */}
+      {mode === "full" && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              Repetição
+              <select name="frequency" className={inputClass} defaultValue={fields.frequency}>
+                {RECURRENCE_FREQUENCIES.map((option) => (
+                  <option key={option} value={option}>
+                    {RECURRENCE_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              Lembrete (minutos antes)
+              <input
+                name="reminder"
+                type="number"
+                min={0}
+                step={5}
+                list="lembretes-comuns"
+                className={inputClass}
+                placeholder="sem lembrete"
+                defaultValue={fields.reminder}
+              />
+              <datalist id="lembretes-comuns">
+                {[5, 10, 15, 30, 60, 120].map((minutes) => (
+                  <option key={minutes} value={minutes} />
+                ))}
+              </datalist>
+            </label>
+          </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-          Área de vida
-          <select name="lifeAreaId" className={inputClass} defaultValue={fields.lifeAreaId}>
-            <option value="">Sem área</option>
-            {areas.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-          Bloco para a prioridade
-          <select name="priorityId" className={inputClass} defaultValue={fields.priorityId}>
-            <option value="">
-              {priorities.length > 0 ? "Nenhuma prioridade" : "Nenhuma prioridade ainda"}
-            </option>
-            {priorities.map((priority) => (
-              <option key={priority.id} value={priority.id}>
-                {priority.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              Área de vida
+              <select name="lifeAreaId" className={inputClass} defaultValue={fields.lifeAreaId}>
+                <option value="">Sem área</option>
+                {areas.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              Bloco para a prioridade
+              <select name="priorityId" className={inputClass} defaultValue={fields.priorityId}>
+                <option value="">
+                  {priorities.length > 0 ? "Nenhuma prioridade" : "Nenhuma prioridade ainda"}
+                </option>
+                {priorities.map((priority) => (
+                  <option key={priority.id} value={priority.id}>
+                    {priority.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </>
+      )}
 
       {notice && <p className="text-muted-foreground text-xs">{notice}</p>}
 
@@ -226,6 +241,7 @@ export function EventForm({
             Cancelar
           </Button>
         )}
+        {extraActions}
         {status.invertedWindow && (
           <span className="text-muted-foreground text-sm">O fim precisa ser depois do início.</span>
         )}

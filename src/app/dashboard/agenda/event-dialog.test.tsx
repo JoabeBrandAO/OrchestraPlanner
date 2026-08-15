@@ -122,6 +122,88 @@ describe("EventDialog", () => {
     expect((screen.getByLabelText("Título") as HTMLInputElement).value).toBe("Dentista");
   });
 
+  it("sem série, não oferece escopo — não há 'só esta' num evento único", () => {
+    renderDialog({ target: { id: "evento-1" } });
+    expect(screen.queryByRole("group", { name: "Escopo da edição" })).toBeNull();
+  });
+
+  it("na série, o escopo aparece e a escolha volta para o container", () => {
+    let escolhido: string | null = null;
+    renderDialog({
+      target: { id: "evento-1" },
+      scope: { value: "occurrence", onChange: (s) => (escolhido = s) },
+    });
+
+    const soEsta = screen.getByRole("button", { name: "Só esta ocorrência" });
+    expect(soEsta.getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Toda a série" }));
+    expect(escolhido).toBe("series");
+  });
+
+  it("no escopo da ocorrência, some o que é da série", () => {
+    // Repetição, lembrete, área e prioridade pertencem à regra: editar um dia não os toca.
+    renderDialog({
+      target: { id: "evento-1" },
+      fields: "occurrence",
+      scope: { value: "occurrence", onChange: () => {} },
+    });
+
+    expect(screen.getByLabelText("Título")).toBeTruthy();
+    expect(screen.getByLabelText("Início")).toBeTruthy();
+    expect(screen.queryByLabelText("Repetição")).toBeNull();
+    expect(screen.queryByLabelText("Lembrete (minutos antes)")).toBeNull();
+    expect(screen.queryByLabelText("Área de vida")).toBeNull();
+    expect(screen.queryByLabelText("Bloco para a prioridade")).toBeNull();
+  });
+
+  it("o rótulo de remover diz o que vai acontecer", () => {
+    let removeu = false;
+    renderDialog({
+      target: { id: "evento-1" },
+      remove: { label: "Remover só este dia", onRemove: () => (removeu = true) },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remover só este dia" }));
+    expect(removeu).toBe(true);
+  });
+
+  it("desfazer só aparece quando a ocorrência tem exceção", () => {
+    renderDialog({ target: { id: "evento-1" } });
+    expect(screen.queryByRole("button", { name: "Voltar ao horário da série" })).toBeNull();
+
+    cleanup();
+
+    let restaurou = false;
+    renderDialog({
+      target: { id: "evento-1" },
+      restore: { onRestore: () => (restaurou = true) },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Voltar ao horário da série" }));
+    expect(restaurou).toBe(true);
+  });
+
+  it("enquanto remove, o formulário não aceita salvar em cima", () => {
+    renderDialog({
+      target: { id: "evento-1" },
+      busy: true,
+      initial: {
+        title: "Terapia",
+        description: null,
+        startsAt: new Date(2026, 7, 18, 9, 0),
+        endsAt: new Date(2026, 7, 18, 10, 0),
+        frequency: "none",
+        lifeAreaId: null,
+        priorityId: null,
+        reminderMinutesBefore: null,
+      },
+    });
+
+    expect((screen.getByRole("button", { name: "Marcando…" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
   it("salvar entrega os valores ao container", () => {
     const dialog = renderDialog({ target: "new" });
 

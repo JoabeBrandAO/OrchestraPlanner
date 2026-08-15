@@ -68,6 +68,13 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **Recorrência/derivação temporal** guarda a **regra**, não as linhas expandidas, e a
   expansão vive num módulo puro (`events/recurrence.ts`). Filtro SQL largo + decisão fina
   em TypeScript, quando o passo não se expressa bem em SQL.
+- **Exceção a um valor derivado é uma tabela à parte**, chaveada pelo valor que a regra
+  produz (`event_exceptions.occurrence_starts_at` — o `RECURRENCE-ID` do RFC 5545), nunca
+  materializando o resto. Duas obrigações vêm junto e valem para qualquer derivação assim:
+  quando a **base** se move, as exceções se movem na mesma transação; quando a **regra**
+  muda, as que não descrevem mais nada são descartadas em vez de virarem linhas órfãs. A
+  expansão ainda confere se o instante é mesmo um passo da regra (`isOccurrenceStart`), para
+  uma sobra nunca ressuscitar nada.
 
 - **Um formulário para criar e editar**, parametrizado por `initial`/`onSubmit`, em vez de
   dois que divergem com o tempo (`agenda/event-form.tsx`). Quem edita passa o retrato do

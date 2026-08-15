@@ -80,14 +80,14 @@ export function AgendaMonth({ monthAnchor, occurrences, loading, today, onOpenDa
 
               {items.slice(0, 3).map((occurrence) => (
                 <span
-                  key={`${occurrence.event.id}-${occurrence.startsAt.toISOString()}`}
+                  key={`${occurrence.event.id}-${occurrence.occurrenceStartsAt.toISOString()}`}
                   className="bg-muted truncate rounded px-1 py-0.5 text-[11px] leading-tight"
-                  title={occurrence.event.title}
+                  title={occurrence.title}
                 >
                   {!occurrence.event.allDay && (
                     <span className="tabular-nums">{timeLabel.format(occurrence.startsAt)} </span>
                   )}
-                  {occurrence.event.title}
+                  {occurrence.title}
                 </span>
               ))}
 

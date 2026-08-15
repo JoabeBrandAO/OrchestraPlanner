@@ -344,3 +344,51 @@ export const events = pgTable(
 
 export type EventRow = typeof events.$inferSelect;
 export type NewEventRow = typeof events.$inferInsert;
+
+/**
+ * Exceções de uma ocorrência da série (#35). Guardar a recorrência como **regra** custa
+ * isto: "esta terça não tem" não é uma linha para apagar, é uma exceção à parte.
+ *
+ * A chave é `occurrence_starts_at` — o instante **original** que a regra produziu, o mesmo
+ * papel do `RECURRENCE-ID` do RFC 5545. Quando a âncora da série se move, o serviço desloca
+ * as exceções pelo mesmo delta na mesma transação, senão elas deixariam de casar em
+ * silêncio (ver `events-service.ts`).
+ *
+ * Só o que é **daquela** ocorrência pode ser sobrescrito: horário, título e descrição.
+ * Repetição, lembrete, área e prioridade continuam sendo da série — uma ocorrência editada
+ * não é um evento paralelo, e duplicar esses campos criaria uma segunda verdade.
+ */
+export const eventExceptions = pgTable(
+  "event_exceptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    /** O instante original da ocorrência, calculado pela regra. */
+    occurrenceStartsAt: timestamp("occurrence_starts_at", { withTimezone: true }).notNull(),
+    /** Ocorrência cancelada: some da agenda sem tocar no resto da série. */
+    cancelled: boolean("cancelled").notNull().default(false),
+    /** Sobrescritas; NULL = herda a série. */
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    title: text("title"),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    // Uma exceção por ocorrência: cancelar e depois remarcar reescreve a mesma linha.
+    uniqueIndex("event_exceptions_event_occurrence_key").on(t.eventId, t.occurrenceStartsAt),
+    index("event_exceptions_user_event_idx").on(t.userId, t.eventId),
+  ],
+);
+
+export type EventExceptionRow = typeof eventExceptions.$inferSelect;

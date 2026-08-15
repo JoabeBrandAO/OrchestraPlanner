@@ -1,9 +1,12 @@
 import { z } from "zod";
 
 import {
+  cancelOccurrence,
   createEvent,
   deleteEvent,
   listEventsInRange,
+  overrideOccurrence,
+  restoreOccurrence,
   updateEvent,
 } from "@/server/services/events/events-service";
 import { RECURRENCE_FREQUENCIES } from "@/server/services/events/recurrence";
@@ -69,4 +72,38 @@ export const eventsRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: uuid }))
     .mutation(({ ctx, input }) => deleteEvent(ctx.userId, input.id)),
+
+  /* Exceções de uma ocorrência (#35). `occurrenceStartsAt` é sempre o instante que a
+     regra produziu — a identidade da ocorrência, não o horário remarcado. */
+
+  cancelOccurrence: protectedProcedure
+    .input(z.object({ eventId: uuid, occurrenceStartsAt: z.date() }))
+    .mutation(({ ctx, input }) =>
+      cancelOccurrence(ctx.userId, input.eventId, input.occurrenceStartsAt),
+    ),
+
+  overrideOccurrence: protectedProcedure
+    .input(
+      z.object({
+        eventId: uuid,
+        occurrenceStartsAt: z.date(),
+        startsAt: z.date().optional(),
+        endsAt: z.date().optional(),
+        title: title.optional(),
+        description: z.string().nullish(),
+      }),
+    )
+    .mutation(({ ctx, input }) => {
+      const { eventId, occurrenceStartsAt, ...patch } = input;
+      return overrideOccurrence(ctx.userId, eventId, occurrenceStartsAt, {
+        ...patch,
+        description: patch.description ?? null,
+      });
+    }),
+
+  restoreOccurrence: protectedProcedure
+    .input(z.object({ eventId: uuid, occurrenceStartsAt: z.date() }))
+    .mutation(({ ctx, input }) =>
+      restoreOccurrence(ctx.userId, input.eventId, input.occurrenceStartsAt),
+    ),
 });
