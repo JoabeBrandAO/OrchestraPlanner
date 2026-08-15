@@ -23,11 +23,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { inferRouterOutputs } from "@trpc/server";
-import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { FormDialog } from "@/components/ui/form-dialog";
 import {
   PRIORITY_STATUS_LABELS,
   PRIORITY_STATUSES,
@@ -35,6 +35,7 @@ import {
 } from "@/server/services/priorities/priority-status";
 import { trpc } from "@/trpc/react";
 
+import { LEVEL_LABELS, PriorityForm } from "./priority-form";
 import { TagEditor } from "./tag-editor";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
@@ -43,8 +44,6 @@ type Board = Record<PriorityStatusValue, PriorityItem[]>;
 
 const inputClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-const LEVEL_LABELS = ["Normal", "Média", "Alta", "Urgente"] as const;
 
 const emptyBoard = (): Board => ({ todo: [], in_progress: [], done: [] });
 
@@ -90,6 +89,7 @@ export function PrioritiesBoard() {
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const dragOrigin = useRef<{ status: PriorityStatusValue; index: number } | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const board = dragBoard ?? toBoard(priorities.data ?? []);
 
@@ -103,7 +103,12 @@ export function PrioritiesBoard() {
     onError: (error) => setMoveError(error.message),
     onSettled: invalidate,
   });
-  const createPriority = trpc.priorities.create.useMutation({ onSuccess: invalidate });
+  const createPriority = trpc.priorities.create.useMutation({
+    onSuccess: () => {
+      setCreating(false);
+      return invalidate();
+    },
+  });
   const deletePriority = trpc.priorities.delete.useMutation({ onSuccess: invalidate });
   const updatePriority = trpc.priorities.update.useMutation({ onSuccess: invalidate });
 
@@ -188,12 +193,15 @@ export function PrioritiesBoard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <NewPriorityForm
-        goals={goals.data ?? []}
-        pending={createPriority.isPending}
-        error={createPriority.error?.message ?? null}
-        onCreate={(input) => createPriority.mutate(input)}
-      />
+      <FormDialog open={creating} onOpenChange={setCreating} title="Nova prioridade">
+        <PriorityForm
+          goals={goals.data ?? []}
+          pending={createPriority.isPending}
+          error={createPriority.error?.message}
+          onCancel={() => setCreating(false)}
+          onSubmit={(values) => createPriority.mutate(values)}
+        />
+      </FormDialog>
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3">
@@ -237,6 +245,9 @@ export function PrioritiesBoard() {
             Limpar filtros
           </Button>
         )}
+        <Button size="sm" className="ml-auto" onClick={() => setCreating(true)}>
+          + Nova prioridade
+        </Button>
       </div>
 
       {moveError && <p className="text-sm text-red-500">{moveError}</p>}
@@ -489,111 +500,5 @@ function CardBody({
         />
       )}
     </div>
-  );
-}
-
-function NewPriorityForm({
-  goals,
-  pending,
-  error,
-  onCreate,
-}: {
-  goals: RouterOutputs["goals"]["list"];
-  pending: boolean;
-  error: string | null;
-  onCreate: (input: {
-    title: string;
-    description: string | null;
-    goalId: string | null;
-    dueDate: string | null;
-    priorityLevel: number;
-  }) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [goalId, setGoalId] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [level, setLevel] = useState(0);
-
-  const valid = title.trim().length > 0;
-
-  return (
-    <form
-      className="flex flex-col gap-3 rounded-lg border p-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!valid) return;
-        onCreate({
-          title,
-          description: null,
-          goalId: goalId || null,
-          dueDate: dueDate || null,
-          priorityLevel: level,
-        });
-        setTitle("");
-        setGoalId("");
-        setDueDate("");
-        setLevel(0);
-      }}
-    >
-      <h2 className="text-lg font-medium">Nova prioridade</h2>
-      <input
-        className={inputClass}
-        placeholder="O que precisa ser feito?"
-        value={title}
-        maxLength={120}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <div className="flex flex-wrap gap-3">
-        <div className="flex max-w-56 flex-col gap-1">
-          <select
-            className={inputClass}
-            value={goalId}
-            onChange={(e) => setGoalId(e.target.value)}
-            aria-label="Meta vinculada"
-          >
-            <option value="">Sem meta</option>
-            {goals.map((goal) => (
-              <option key={goal.id} value={goal.id}>
-                {goal.title}
-              </option>
-            ))}
-          </select>
-          {goals.length === 0 && (
-            <span className="text-muted-foreground text-xs">
-              Você ainda não tem metas —{" "}
-              <Link href="/dashboard/metas" className="underline">
-                crie uma
-              </Link>{" "}
-              para poder vincular. Prioridades soltas funcionam normalmente.
-            </span>
-          )}
-        </div>
-        <input
-          type="date"
-          className={`${inputClass} max-w-44`}
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          aria-label="Prazo"
-        />
-        <select
-          className={`${inputClass} max-w-40`}
-          value={level}
-          onChange={(e) => setLevel(Number(e.target.value))}
-          aria-label="Nível de prioridade"
-        >
-          {LEVEL_LABELS.map((label, value) => (
-            <option key={label} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={!valid || pending}>
-          {pending ? "Criando…" : "Criar prioridade"}
-        </Button>
-        {error && <span className="text-sm text-red-500">{error}</span>}
-      </div>
-    </form>
   );
 }

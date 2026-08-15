@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/ui/form-dialog";
 
 import { EventForm, type EventFormValues, type SelectOption } from "./event-form";
 
@@ -21,25 +21,18 @@ type Props = {
 };
 
 /**
- * O formulário de compromisso numa janela flutuante (#34). Marcar e editar deixaram de
- * ocupar a tela o tempo todo: a agenda fica inteira à vista e o formulário aparece quando
- * é chamado.
- *
- * Fechar **desmonta** o formulário, então nada do compromisso anterior sobrevive à próxima
- * abertura — é o mesmo mecanismo de limpeza da `key`, só que de graça.
+ * O formulário de compromisso na janela flutuante (#34) — marcar e editar deixaram de
+ * ocupar a tela o tempo todo.
  */
 export function EventDialog({ target, heading, onOpenChange, ...formProps }: Props) {
   return (
-    <Dialog open={target !== null} onOpenChange={onOpenChange}>
-      {target !== null && (
-        <DialogContent
-          // Trocar de alvo com a janela aberta (clicar noutro compromisso) precisa remontar.
-          key={target === "new" ? "novo" : target.id}
-        >
-          <DialogTitle>{heading}</DialogTitle>
-          <EventForm {...formProps} onCancel={() => onOpenChange(false)} />
-        </DialogContent>
-      )}
-    </Dialog>
+    <FormDialog open={target !== null} onOpenChange={onOpenChange} title={heading}>
+      <EventForm
+        // Trocar de alvo com a janela aberta (clicar noutro compromisso) precisa remontar.
+        key={target === null || target === "new" ? "novo" : target.id}
+        {...formProps}
+        onCancel={() => onOpenChange(false)}
+      />
+    </FormDialog>
   );
 }
