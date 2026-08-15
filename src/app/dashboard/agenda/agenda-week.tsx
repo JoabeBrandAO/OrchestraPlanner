@@ -5,7 +5,6 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { addDays, DAYS_IN_WEEK, isSameDay } from "@/server/services/events/calendar";
 import { RECURRENCE_LABELS } from "@/server/services/events/recurrence";
 import type { AppRouter } from "@/server/trpc/root";
-import { Button } from "@/components/ui/button";
 
 type Occurrence = inferRouterOutputs<AppRouter>["events"]["list"][number];
 
@@ -23,24 +22,14 @@ type Props = {
   occurrences: Occurrence[];
   loading: boolean;
   today: Date;
-  deletingId: string | null;
-  onEdit: (occurrence: Occurrence) => void;
-  onDelete: (id: string) => void;
+  onOpen: (occurrence: Occurrence) => void;
 };
 
 /**
  * Semana da Agenda (#18) — só desenha. O servidor devolve as ocorrências já expandidas da
  * recorrência, então a tela nunca precisa saber a regra.
  */
-export function AgendaWeek({
-  weekStart,
-  occurrences,
-  loading,
-  today,
-  deletingId,
-  onEdit,
-  onDelete,
-}: Props) {
+export function AgendaWeek({ weekStart, occurrences, loading, today, onOpen }: Props) {
   // Agrupa por dia da semana. Ocorrências que começaram antes da janela (mas a atravessam)
   // são ancoradas no primeiro dia visível, senão sumiriam da tela.
   const byDay: Record<number, Occurrence[]> = {};
@@ -79,15 +68,12 @@ export function AgendaWeek({
             ) : (
               <ul className="flex flex-col gap-2">
                 {items.map((occurrence) => (
-                  <li
-                    key={`${occurrence.event.id}-${occurrence.startsAt.toISOString()}`}
-                    className="flex items-start justify-between gap-3"
-                  >
+                  <li key={`${occurrence.event.id}-${occurrence.occurrenceStartsAt.toISOString()}`}>
                     <button
                       type="button"
-                      className="hover:bg-accent -mx-1 flex-1 rounded px-1 text-left"
-                      onClick={() => onEdit(occurrence)}
-                      aria-label={`Editar ${occurrence.event.title}`}
+                      className="hover:bg-accent -mx-1 w-full rounded px-1 text-left"
+                      onClick={() => onOpen(occurrence)}
+                      aria-label={`Abrir ${occurrence.title}`}
                     >
                       <p className="text-sm">
                         <span className="tabular-nums">
@@ -95,12 +81,15 @@ export function AgendaWeek({
                             ? "Dia inteiro"
                             : `${timeLabel.format(occurrence.startsAt)}–${timeLabel.format(occurrence.endsAt)}`}
                         </span>{" "}
-                        <span className="font-medium">{occurrence.event.title}</span>
+                        <span className="font-medium">{occurrence.title}</span>
                       </p>
                       <p className="text-muted-foreground text-xs">
                         {[
                           occurrence.event.frequency !== "none" &&
                             RECURRENCE_LABELS[occurrence.event.frequency],
+                          // Um dia que fugiu da regra precisa se anunciar, senão a série
+                          // parece inconsistente (#35).
+                          occurrence.isException && "alterado neste dia",
                           occurrence.lifeAreaName,
                           occurrence.priorityTitle && `↳ ${occurrence.priorityTitle}`,
                           occurrence.reminderAt &&
@@ -110,15 +99,6 @@ export function AgendaWeek({
                           .join(" · ")}
                       </p>
                     </button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={deletingId === occurrence.event.id}
-                      aria-label={`Remover ${occurrence.event.title}`}
-                      onClick={() => onDelete(occurrence.event.id)}
-                    >
-                      Remover
-                    </Button>
                   </li>
                 ))}
               </ul>

@@ -218,3 +218,24 @@
     lado é o ponto). Modal ali seria mais clique para menos.
   - Suíte **158 verdes** (era 146; +12 nos formulários); typecheck · lint · format · build
     verdes.
+- **2026-08-15 (cont.) — Agenda: exceções numa ocorrência da série (#35):**
+  - **PR #38 mergeado** (`2b94d29`). Fatia entregue na branch `feat/agenda-excecoes`.
+  - **Tabela `event_exceptions`** (migrations `0014` + `0015` RLS/GRANTs, **aplicadas no
+    Neon**), chaveada pelo instante **original** que a regra produz — o `RECURRENCE-ID` do
+    RFC 5545. Só o que é daquele dia pode ser sobrescrito (horário, título, descrição);
+    repetição, lembrete, área e prioridade seguem sendo da série.
+  - **As duas armadilhas, resolvidas e testadas:** mover a âncora da série desloca as
+    exceções pelo mesmo delta **na mesma transação** (senão elas deixariam de casar em
+    silêncio); trocar frequência/intervalo **descarta** as exceções da regra antiga. E a
+    expansão confere se o instante é mesmo um passo da regra (`isOccurrenceStart`), então
+    uma sobra nunca ressuscita compromisso nenhum.
+  - Expansão pura cobre remarcada **para fora** (some da janela) e **para dentro** (aparece,
+    mesmo vindo de um instante fora dela).
+  - **UI:** clicar num compromisso de série abre a janela com o seletor
+    **"Só esta ocorrência" | "Toda a série"** (padrão: só esta). No escopo da ocorrência,
+    os campos da série somem. A **remoção saiu da lista** e foi para dentro da janela, com
+    o rótulo dizendo a consequência ("Remover só este dia" / "Remover a série") — o botão
+    solto de antes apagava a série inteira sem perguntar. Dia alterado se anuncia na lista,
+    e há "Voltar ao horário da série" para desfazer.
+  - Suíte **188 verdes** (era 158): +13 puros, +11 de integração com RLS, +6 de componente.
+    typecheck · lint · format · build verdes.

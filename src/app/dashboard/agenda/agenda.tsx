@@ -17,11 +17,10 @@ import { trpc } from "@/trpc/react";
 
 import { AgendaMonth } from "./agenda-month";
 import { AgendaWeek } from "./agenda-week";
-import { EventDialog } from "./event-dialog";
+import { EventDialog, type EditScope } from "./event-dialog";
 import { type EventFormValues } from "./event-form";
 
 type Occurrence = inferRouterOutputs<AppRouter>["events"]["list"][number];
-type EventRow = Occurrence["event"];
 type ViewMode = "week" | "month";
 
 const rangeLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
@@ -45,8 +44,13 @@ export function Agenda() {
    * Fechar desmonta o formulário, e é isso que o limpa por inteiro entre uma marcação e a
    * seguinte: campo pré-preenchido é campo para apagar (ver `docs/ERROS.md` 2026-08-15).
    */
-  const [target, setTarget] = useState<"new" | EventRow | null>(null);
+  const [target, setTarget] = useState<"new" | Occurrence | null>(null);
   const editing = target === "new" ? null : target;
+  /**
+   * Escopo da edição (#35). Clicar num dia quer dizer, quase sempre, "mexer neste dia" —
+   * por isso o padrão é a ocorrência, e mudar a série é uma escolha deliberada.
+   */
+  const [scope, setScope] = useState<EditScope>("occurrence");
 
   const today = new Date();
   const range = mode === "week" ? weekRange(anchor) : monthRange(anchor);
@@ -63,7 +67,22 @@ export function Agenda() {
   };
   const createEvent = trpc.events.create.useMutation({ onSuccess: close });
   const updateEvent = trpc.events.update.useMutation({ onSuccess: close });
-  const deleteEvent = trpc.events.delete.useMutation({ onSuccess: invalidate });
+  const deleteEvent = trpc.events.delete.useMutation({ onSuccess: close });
+  const cancelOccurrence = trpc.events.cancelOccurrence.useMutation({ onSuccess: close });
+  const overrideOccurrence = trpc.events.overrideOccurrence.useMutation({ onSuccess: close });
+  const restoreOccurrence = trpc.events.restoreOccurrence.useMutation({ onSuccess: close });
+
+  /** Um evento sem repetição não tem "só esta": a única ocorrência dele é a série. */
+  const repeats = editing !== null && editing.event.frequency !== "none";
+  const effectiveScope: EditScope = repeats ? scope : "series";
+  const editingOccurrence = editing !== null && effectiveScope === "occurrence";
+
+  const busy = deleteEvent.isPending || cancelOccurrence.isPending || restoreOccurrence.isPending;
+
+  const openOccurrence = (occurrence: Occurrence) => {
+    setScope("occurrence");
+    setTarget(occurrence);
+  };
 
   const areaOptions = areas.data ?? [];
   const priorityOptions = (priorities.data ?? []).map((priority) => ({
@@ -145,9 +164,7 @@ export function Agenda() {
           occurrences={occurrences.data ?? []}
           loading={occurrences.isLoading}
           today={today}
-          deletingId={deleteEvent.isPending ? (deleteEvent.variables?.id ?? null) : null}
-          onEdit={(occurrence) => setTarget(occurrence.event)}
-          onDelete={(id) => deleteEvent.mutate({ id })}
+          onOpen={openOccurrence}
         />
       ) : (
         <AgendaMonth
@@ -160,39 +177,103 @@ export function Agenda() {
       )}
 
       <EventDialog
-        target={target}
+        target={editing ? { id: editing.event.id } : target === "new" ? "new" : null}
         heading={editing ? "Editar compromisso" : "Novo compromisso"}
         submitLabel={editing ? "Salvar" : "Marcar"}
         pendingLabel={editing ? "Salvando…" : "Marcando…"}
-        pending={editing ? updateEvent.isPending : createEvent.isPending}
-        error={editing ? updateEvent.error?.message : createEvent.error?.message}
+        pending={
+          editing ? updateEvent.isPending || overrideOccurrence.isPending : createEvent.isPending
+        }
+        error={
+          editing
+            ? (updateEvent.error?.message ??
+              overrideOccurrence.error?.message ??
+              cancelOccurrence.error?.message)
+            : createEvent.error?.message
+        }
         areas={areaOptions}
         priorities={priorityOptions}
+        fields={editingOccurrence ? "occurrence" : "full"}
+        scope={repeats ? { value: scope, onChange: setScope } : undefined}
         notice={
-          editing && editing.frequency !== "none"
-            ? "Este compromisso se repete: a edição vale para toda a série. Os horários abaixo são os da regra, não os da ocorrência clicada."
-            : undefined
+          !repeats
+            ? undefined
+            : editingOccurrence
+              ? "Vale só para este dia: a regra da série não muda."
+              : "Vale para toda a série. Os horários abaixo são os da regra, não os da ocorrência clicada."
         }
         initial={
           editing
+            ? editingOccurrence
+              ? {
+                  // Na ocorrência, o preenchimento é o do dia clicado — inclusive o que já
+                  // tiver sido remarcado nele.
+                  title: editing.title,
+                  description: editing.description,
+                  startsAt: editing.startsAt,
+                  endsAt: editing.endsAt,
+                  frequency: editing.event.frequency,
+                  lifeAreaId: editing.event.lifeAreaId,
+                  priorityId: editing.event.priorityId,
+                  reminderMinutesBefore: editing.event.reminderMinutesBefore,
+                }
+              : {
+                  // Na série, o preenchimento é o da **regra**, não o da ocorrência clicada:
+                  // salvar com o horário do dia moveria a âncora da série inteira.
+                  title: editing.event.title,
+                  description: editing.event.description,
+                  startsAt: editing.event.startsAt,
+                  endsAt: editing.event.endsAt,
+                  frequency: editing.event.frequency,
+                  lifeAreaId: editing.event.lifeAreaId,
+                  priorityId: editing.event.priorityId,
+                  reminderMinutesBefore: editing.event.reminderMinutesBefore,
+                }
+            : undefined
+        }
+        busy={busy}
+        remove={
+          editing
             ? {
-                title: editing.title,
-                description: editing.description,
-                startsAt: editing.startsAt,
-                endsAt: editing.endsAt,
-                frequency: editing.frequency,
-                lifeAreaId: editing.lifeAreaId,
-                priorityId: editing.priorityId,
-                reminderMinutesBefore: editing.reminderMinutesBefore,
+                label: editingOccurrence ? "Remover só este dia" : "Remover a série",
+                onRemove: () =>
+                  editingOccurrence
+                    ? cancelOccurrence.mutate({
+                        eventId: editing.event.id,
+                        occurrenceStartsAt: editing.occurrenceStartsAt,
+                      })
+                    : deleteEvent.mutate({ id: editing.event.id }),
+              }
+            : undefined
+        }
+        restore={
+          editing && editingOccurrence && editing.isException
+            ? {
+                onRestore: () =>
+                  restoreOccurrence.mutate({
+                    eventId: editing.event.id,
+                    occurrenceStartsAt: editing.occurrenceStartsAt,
+                  }),
               }
             : undefined
         }
         onOpenChange={(open) => {
           if (!open) setTarget(null);
         }}
-        onSubmit={(values: EventFormValues) =>
-          editing ? updateEvent.mutate({ id: editing.id, ...values }) : createEvent.mutate(values)
-        }
+        onSubmit={(values: EventFormValues) => {
+          if (!editing) return createEvent.mutate(values);
+          if (!editingOccurrence) return updateEvent.mutate({ id: editing.event.id, ...values });
+          // No escopo da ocorrência os campos da série nem aparecem no formulário — só o
+          // que é daquele dia é enviado.
+          return overrideOccurrence.mutate({
+            eventId: editing.event.id,
+            occurrenceStartsAt: editing.occurrenceStartsAt,
+            startsAt: values.startsAt,
+            endsAt: values.endsAt,
+            title: values.title,
+            description: values.description,
+          });
+        }}
       />
     </div>
   );

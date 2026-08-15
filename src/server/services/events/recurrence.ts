@@ -33,7 +33,29 @@ export type RecurrenceRule = {
   until: Date | null;
 };
 
-export type Occurrence = { startsAt: Date; endsAt: Date };
+/**
+ * Uma ocorrência concreta. `occurrenceStartsAt` é o instante **original** produzido pela
+ * regra — a identidade da ocorrência, que não muda quando ela é remarcada. É por ele que
+ * uma exceção é encontrada (o `RECURRENCE-ID` do RFC 5545).
+ */
+export type Occurrence = {
+  startsAt: Date;
+  endsAt: Date;
+  occurrenceStartsAt: Date;
+  /** Sobrescritas desta ocorrência; `null` = segue a série. */
+  title: string | null;
+  description: string | null;
+};
+
+/** Exceção a uma ocorrência (#35): cancelada, ou com horário/texto próprios. */
+export type OccurrenceException = {
+  occurrenceStartsAt: Date;
+  cancelled: boolean;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  title: string | null;
+  description: string | null;
+};
 
 export type ExpandInput = {
   startsAt: Date;
@@ -88,8 +110,45 @@ function occurrenceStart(base: Date, rule: RecurrenceRule, step: number): Date |
   }
 }
 
+/**
+ * O instante é de fato um passo desta regra? Serve para não ressuscitar uma exceção órfã —
+ * a que sobrou de uma regra antiga e não corresponde a ocorrência nenhuma da atual.
+ */
+export function isOccurrenceStart(base: Date, rule: RecurrenceRule, instant: Date): boolean {
+  if (instant < base) return false;
+  if (rule.until !== null && instant > rule.until) return false;
+
+  switch (rule.frequency) {
+    case "none":
+      return instant.getTime() === base.getTime();
+    case "daily":
+    case "weekly": {
+      // Em UTC o dia tem sempre 24 h, então o passo em milissegundos é exato.
+      const days = rule.frequency === "daily" ? 1 : 7;
+      const stride = days * rule.interval * 24 * 60 * 60 * 1000;
+      return (instant.getTime() - base.getTime()) % stride === 0;
+    }
+    case "monthly":
+    case "yearly": {
+      const sameClock =
+        instant.getUTCDate() === base.getUTCDate() &&
+        instant.getUTCHours() === base.getUTCHours() &&
+        instant.getUTCMinutes() === base.getUTCMinutes() &&
+        instant.getUTCSeconds() === base.getUTCSeconds() &&
+        instant.getUTCMilliseconds() === base.getUTCMilliseconds();
+      if (!sameClock) return false;
+
+      const months =
+        (instant.getUTCFullYear() - base.getUTCFullYear()) * 12 +
+        (instant.getUTCMonth() - base.getUTCMonth());
+      const stride = rule.interval * (rule.frequency === "yearly" ? 12 : 1);
+      return months % stride === 0;
+    }
+  }
+}
+
 /** Duas faixas de tempo se tocam? Fim exclusivo: um evento que acaba às 9h não está nas 9h. */
-function overlaps(occurrence: Occurrence, range: Range): boolean {
+function overlaps(occurrence: { startsAt: Date; endsAt: Date }, range: Range): boolean {
   return occurrence.startsAt < range.to && occurrence.endsAt > range.from;
 }
 
@@ -100,7 +159,11 @@ function overlaps(occurrence: Occurrence, range: Range): boolean {
  * ocorrências que apenas **atravessam** a janela entram: quem abre a semana precisa ver o
  * compromisso que começou no domingo e termina na segunda.
  */
-export function expandOccurrences(input: ExpandInput, range: Range): Occurrence[] {
+export function expandOccurrences(
+  input: ExpandInput,
+  range: Range,
+  exceptions: readonly OccurrenceException[] = [],
+): Occurrence[] {
   const { startsAt, endsAt, rule } = input;
   const duration = endsAt.getTime() - startsAt.getTime();
   const occurrences: Occurrence[] = [];
@@ -109,6 +172,25 @@ export function expandOccurrences(input: ExpandInput, range: Range): Occurrence[
   // girar para sempre no mesmo instante.
   const safeRule: RecurrenceRule =
     rule.interval >= 1 ? rule : { ...rule, frequency: "none", interval: 1 };
+
+  const byOriginal = new Map(exceptions.map((e) => [e.occurrenceStartsAt.getTime(), e]));
+  /** Exceções já encontradas pela regra — o resto é candidato a ter sido puxado de fora. */
+  const matched = new Set<number>();
+
+  /** Aplica a exceção (se houver) ao instante que a regra produziu. */
+  const materialize = (start: Date): Occurrence | null => {
+    const exception = byOriginal.get(start.getTime());
+    if (exception) matched.add(start.getTime());
+    if (exception?.cancelled) return null;
+
+    return {
+      occurrenceStartsAt: start,
+      startsAt: exception?.startsAt ?? start,
+      endsAt: exception?.endsAt ?? new Date(start.getTime() + duration),
+      title: exception?.title ?? null,
+      description: exception?.description ?? null,
+    };
+  };
 
   for (let step = 0; step < MAX_OCCURRENCES; step += 1) {
     const start = occurrenceStart(startsAt, safeRule, step);
@@ -123,20 +205,47 @@ export function expandOccurrences(input: ExpandInput, range: Range): Occurrence[
     if (safeRule.until !== null && start > safeRule.until) break;
     if (start >= range.to) break;
 
-    const occurrence = { startsAt: start, endsAt: new Date(start.getTime() + duration) };
-    if (overlaps(occurrence, range)) occurrences.push(occurrence);
+    const occurrence = materialize(start);
+    if (occurrence !== null && overlaps(occurrence, range)) occurrences.push(occurrence);
 
     if (safeRule.frequency === "none") break;
   }
 
-  return occurrences;
+  // Ocorrência **puxada de fora para dentro** da janela: o laço acima parou antes de
+  // chegar ao instante original dela, então ela precisa ser recolhida aqui. Só entra o que
+  // a regra de fato produziria — antes do início ou depois do fim da série, nada
+  // ressuscita, e um evento sem repetição não ganha ocorrências que nunca teve.
+  if (safeRule.frequency !== "none") {
+    for (const exception of exceptions) {
+      const original = exception.occurrenceStartsAt;
+      if (matched.has(original.getTime())) continue;
+      if (exception.cancelled || exception.startsAt === null || exception.endsAt === null) continue;
+      // Antes de `range.to` o laço já passou por ali: não ter casado significa órfã.
+      if (original < range.to) continue;
+      if (!isOccurrenceStart(startsAt, safeRule, original)) continue;
+      if (!overlaps({ startsAt: exception.startsAt, endsAt: exception.endsAt }, range)) continue;
+
+      occurrences.push({
+        occurrenceStartsAt: original,
+        startsAt: exception.startsAt,
+        endsAt: exception.endsAt,
+        title: exception.title,
+        description: exception.description,
+      });
+    }
+  }
+
+  return occurrences.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 }
 
 /**
  * Instante em que o lembrete de uma ocorrência deve disparar, ou `null` se o evento não
  * tem lembrete. Separado da expansão porque quem lista a agenda não precisa disso.
  */
-export function reminderAt(occurrence: Occurrence, minutesBefore: number | null): Date | null {
+export function reminderAt(
+  occurrence: { startsAt: Date },
+  minutesBefore: number | null,
+): Date | null {
   if (minutesBefore === null) return null;
   return new Date(occurrence.startsAt.getTime() - minutesBefore * 60_000);
 }
