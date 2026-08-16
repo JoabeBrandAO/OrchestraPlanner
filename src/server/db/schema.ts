@@ -714,3 +714,117 @@ export const interactions = pgTable(
 );
 
 export type InteractionRow = typeof interactions.$inferSelect;
+
+/* -------------------------------------------------------------------------- */
+/* Financeiro (épico #20)                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const accountKind = pgEnum("account_kind", [
+  "corrente",
+  "poupanca",
+  "carteira",
+  "cartao",
+  "investimento",
+]);
+
+/**
+ * Contas (#52). `initial_balance_cents` é o ponto de partida — o que havia antes do
+ * primeiro lançamento registrado aqui.
+ *
+ * **Não existe coluna de saldo.** O saldo é derivado dos lançamentos a cada leitura, pela
+ * mesma regra do progresso das metas e do último contato das pessoas: guardar o número
+ * pronto cria uma segunda verdade que desanda no primeiro lançamento corrigido.
+ *
+ * Dinheiro em **centavos inteiros**, nunca ponto flutuante (ver `finance/money.ts`).
+ */
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: accountKind("kind").notNull().default("corrente"),
+    initialBalanceCents: integer("initial_balance_cents").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [uniqueIndex("accounts_user_lower_name_uq").on(t.userId, sql`lower(${t.name})`)],
+);
+
+export type AccountRow = typeof accounts.$inferSelect;
+
+export const transactionDirection = pgEnum("transaction_direction", ["entrada", "saida"]);
+
+/** Categorias de lançamento (#52) — semeadas na primeira conta, editáveis depois. */
+export const transactionCategories = pgTable(
+  "transaction_categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    direction: transactionDirection("direction").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    // Único por nome **e sentido**: "Bônus" pode existir como entrada e "Bonificação" como
+    // saída sem se atrapalharem.
+    uniqueIndex("transaction_categories_user_name_direction_uq").on(
+      t.userId,
+      sql`lower(${t.name})`,
+      t.direction,
+    ),
+  ],
+);
+
+export type TransactionCategoryRow = typeof transactionCategories.$inferSelect;
+
+/**
+ * Lançamentos (#52). O **sinal vem do `direction`**, não do número: `amount_cents` é sempre
+ * positivo (garantido por CHECK na migration). Aceitar valor negativo criaria duas formas
+ * de dizer a mesma coisa, e uma delas some quando alguém troca o tipo e esquece o sinal.
+ *
+ * `happened_at` é data, não instante: extrato é por dia, e ninguém lembra a hora da compra.
+ */
+export const transactions = pgTable(
+  "transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id").references(() => transactionCategories.id, {
+      onDelete: "set null",
+    }),
+    lifeAreaId: uuid("life_area_id").references(() => lifeAreas.id, { onDelete: "set null" }),
+    happenedAt: date("happened_at").notNull(),
+    direction: transactionDirection("direction").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    // As consultas quentes: o extrato de uma conta e o mês inteiro.
+    index("transactions_user_account_date_idx").on(t.userId, t.accountId, t.happenedAt),
+    index("transactions_user_date_idx").on(t.userId, t.happenedAt),
+  ],
+);
+
+export type TransactionRow = typeof transactions.$inferSelect;
