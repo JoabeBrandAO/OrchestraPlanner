@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-08-15
+## Estado atual — atualizado em 2026-08-16
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -20,20 +20,37 @@
   1 (Áreas de Vida + Metas), 2 (Prioridades/Kanban + Tags) e 3 (Marcos + Dashboard + Roda da
   Vida). Tudo sob RLS por `user_id`, com serviço de domínio puro + tRPC + UI em português.
 
-- **Módulo Agenda (#18) — semana, mês e edição** (Iterações 4 e 5): recorrência guardada como
-  regra e expandida na leitura, lembrete, bloco de tempo para uma prioridade, visão semanal e
-  mensal na mesma rota e edição do compromisso pela tela. Faltam as exceções na série (#35) e
-  o disparo real dos lembretes (#36).
+- **Módulo Agenda (#18) — COMPLETO:** recorrência guardada como regra e expandida na leitura,
+  visão de semana e de mês, edição pela tela, **exceções numa ocorrência da série** (cancelar,
+  remarcar, reescrever um dia) e **lembretes de verdade por Web Push**, disparados por
+  workflow a cada 5 minutos.
+
+- **Módulo Pessoas & Relacionamentos (#19) — COMPLETO:** cadastro e contatos, círculos e
+  vínculos (uma linha por par, com o inverso derivado), interações com "há quanto tempo não
+  falo com X", e aniversários na Agenda derivados da data em `people`.
+
+- **Módulo Financeiro (#20) — começado:** contas e lançamentos (#52), com dinheiro em centavos
+  inteiros e saldo derivado. Faltam orçamento (#53), relatórios (#54) e OFX/CSV (#55).
+
+- **Infra e qualidade:** E2E de login passando ponta a ponta (#7), secrets do CI cadastrados
+  (#6), senha exposta rotacionada (#30), padrão de "novo registro" em janela flutuante em
+  todas as telas de cadastro, e **teto testado** para custo de interação (commits do React) e
+  de leitura (statements no banco).
 
 ### 🔄 Fazendo
-- **Sessão de Visão** (`C:\projetos`): consolidou requisitos, fontes conceituais e este diário; dona dos docs de produto.
-- **Sessão Mão-na-massa** (`OrchestraPlanner`): infra + código. Divisão acordada: eu = `.claude/`, `docs/ERROS.md`, `docs/FORMATACAO.md`, código; Visão = `VISAO-DO-PRODUTO.md`, `SESSION-LOG-*.md`. `PROGRESSO.md` = terreno comum (append no Histórico).
+- **Módulo Financeiro (#20)**, última peça da Fase 1: entregue #52; a seguir #53 → #54 → #55.
+- _Nota:_ a divisão "sessão de Visão × sessão Mão-na-massa" das primeiras iterações não vale
+  mais — desde 2026-08-15 uma sessão só cuida de docs e código. `PROGRESSO.md` segue sendo o
+  terreno comum, com **append** no Histórico.
 
 ### 📋 A fazer (próximo)
 - **Nada bloqueado no dono.** O dono rotacionou a senha (#30) e desligou a proteção anti-bot;
   o E2E de login **passa** (#7 fechada). Os secrets do GitHub já estavam cadastrados (#6).
-- **Validação manual** da Agenda: semana, mês, edição, exceções e o "Ativar lembretes".
-- **Épico Agenda (#18) fechado** com a #36; sobram melhorias, não fatias.
+- **Validação manual pendente:** Financeiro (contas, lançamento, saldo) e as fatias novas de
+  Pessoas (vínculos, convívio) e da Agenda (exceções, "Ativar lembretes").
+- **Financeiro:** #53 orçamento → #54 relatórios → #55 importação OFX/CSV.
+- **Dívidas técnicas registradas:** rodar o E2E no CI (**#57**) e cortar a moldura da
+  transação, que hoje é 3 dos 4 statements de toda leitura (**#58**).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
 
 ---
