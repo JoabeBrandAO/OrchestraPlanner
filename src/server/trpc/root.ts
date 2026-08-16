@@ -1,6 +1,7 @@
 import { circlesRouter } from "./routers/circles";
 import { dashboardRouter } from "./routers/dashboard";
 import { eventsRouter } from "./routers/events";
+import { financeRouter } from "./routers/finance";
 import { goalsRouter } from "./routers/goals";
 import { healthRouter } from "./routers/health";
 import { lifeAreasRouter } from "./routers/life-areas";
@@ -20,6 +21,7 @@ export const appRouter = router({
   lifeWheel: lifeWheelRouter,
   goals: goalsRouter,
   events: eventsRouter,
+  finance: financeRouter,
   milestones: milestonesRouter,
   people: peopleRouter,
   priorities: prioritiesRouter,

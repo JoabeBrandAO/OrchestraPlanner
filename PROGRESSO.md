@@ -366,3 +366,24 @@
     por concatenação (risco de injeção) ou fixar o contexto por conexão (quebra o pool).
     Nenhum dos dois vale sem decisão consciente, então ficou registrado em vez de feito.
   - Suíte **313 verdes** (era 309): +4 do orçamento de consultas.
+- **2026-08-15 (cont.) — Financeiro: contas e lançamentos (#52):**
+  - Épico #20 fatiado em **#52** (contas e lançamentos), **#53** (orçamento por categoria),
+    **#54** (relatórios) e **#55** (importação OFX/CSV, por último — decisão da Visão §3).
+  - **Decisão travada: dinheiro em centavos inteiros.** `0.1 + 0.2` não dá `0.3` e
+    `19.99 * 100` não dá `1999`; num extrato isso é centavo sumido. O teste que demonstra a
+    armadilha ficou no repositório para ninguém "simplificar" depois — e ele **pegou a
+    armadilha na minha primeira implementação**: `Math.round(Number("1.005") * 100)` devolve
+    100, não 101. A conversão passou a ser feita em cima do texto, sem float nenhuma vez.
+  - **O sinal vem do tipo do lançamento, nunca do número:** valor é sempre positivo, com
+    `CHECK` no banco. Aceitar "-50" criaria duas formas de dizer a mesma coisa, e uma delas
+    some quando alguém troca o tipo e esquece o sinal.
+  - **Saldo é derivado** dos lançamentos, sem coluna espelho — mesma regra do progresso das
+    metas e do último contato das pessoas.
+  - 🐛 **Erro registrado:** a subconsulta correlacionada do saldo, escrita à mão no template
+    `sql`, devolvia **zero em silêncio**. Trocada por agregação sobre `left join`. Detalhes e
+    lição em `docs/ERROS.md`.
+  - Tabelas `accounts`, `transaction_categories` e `transactions` (migrations `0026` + `0027`
+    RLS/GRANTs/CHECK, **aplicadas no Neon**); tela `/dashboard/financeiro` com contas, extrato
+    do mês e navegação mês a mês.
+  - Suíte **347 verdes** (era 313): +14 puros de dinheiro, +14 de integração sob RLS,
+    +6 de componente.
