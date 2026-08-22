@@ -8,6 +8,7 @@ import { FormDialog } from "@/components/ui/form-dialog";
 import { trpc } from "@/trpc/react";
 
 import { ACCOUNT_KINDS, AccountForm } from "./account-form";
+import { BudgetPanel } from "./budget-panel";
 import { TransactionForm } from "./transaction-form";
 
 const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
@@ -34,6 +35,8 @@ export function FinanceManager() {
   const [dialog, setDialog] = useState<"conta" | "lancamento" | null>(null);
 
   const range = monthRange(anchor);
+  /** O mesmo mês do extrato, em `AAAA-MM` — extrato e orçamento andam juntos. */
+  const month = range.from.slice(0, 7);
   const accounts = trpc.finance.accounts.useQuery();
   const categories = trpc.finance.categories.useQuery();
   const areas = trpc.lifeAreas.list.useQuery();
@@ -42,6 +45,8 @@ export function FinanceManager() {
   const invalidate = () => {
     utils.finance.accounts.invalidate();
     utils.finance.transactions.invalidate();
+    // O realizado do orçamento é derivado dos lançamentos: mexeu num, o outro está velho.
+    utils.finance.budget.invalidate();
     return utils.finance.categories.invalidate();
   };
   const close = () => {
@@ -227,6 +232,8 @@ export function FinanceManager() {
           </p>
         )}
       </section>
+
+      <BudgetPanel month={month} monthLabel={monthLabel.format(anchor)} />
 
       <FormDialog
         open={dialog === "conta"}

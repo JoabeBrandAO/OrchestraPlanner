@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-08-16
+## Estado atual — atualizado em 2026-08-22
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -29,8 +29,9 @@
   vínculos (uma linha por par, com o inverso derivado), interações com "há quanto tempo não
   falo com X", e aniversários na Agenda derivados da data em `people`.
 
-- **Módulo Financeiro (#20) — começado:** contas e lançamentos (#52), com dinheiro em centavos
-  inteiros e saldo derivado. Faltam orçamento (#53), relatórios (#54) e OFX/CSV (#55).
+- **Módulo Financeiro (#20) — em andamento:** contas e lançamentos (#52) e **orçamento por
+  categoria (#53)**, com dinheiro em centavos inteiros, saldo e realizado derivados. Faltam
+  relatórios (#54) e OFX/CSV (#55).
 
 - **Infra e qualidade:** E2E de login passando ponta a ponta (#7), secrets do CI cadastrados
   (#6), senha exposta rotacionada (#30), padrão de "novo registro" em janela flutuante em
@@ -38,17 +39,24 @@
   de leitura (statements no banco).
 
 ### 🔄 Fazendo
-- **Módulo Financeiro (#20)**, última peça da Fase 1: entregue #52; a seguir #53 → #54 → #55.
+- **Módulo Financeiro (#20)**, última peça da Fase 1: entregues #52 e #53; a seguir #54 → #55.
 - _Nota:_ a divisão "sessão de Visão × sessão Mão-na-massa" das primeiras iterações não vale
   mais — desde 2026-08-15 uma sessão só cuida de docs e código. `PROGRESSO.md` segue sendo o
   terreno comum, com **append** no Histórico.
 
 ### 📋 A fazer (próximo)
-- **Nada bloqueado no dono.** O dono rotacionou a senha (#30) e desligou a proteção anti-bot;
-  o E2E de login **passa** (#7 fechada). Os secrets do GitHub já estavam cadastrados (#6).
-- **Validação manual pendente:** Financeiro (contas, lançamento, saldo) e as fatias novas de
-  Pessoas (vínculos, convívio) e da Agenda (exceções, "Ativar lembretes").
-- **Financeiro:** #53 orçamento → #54 relatórios → #55 importação OFX/CSV.
+- **Na mão do dono (2026-08-22):**
+  1. **Segredos do Clerk no GitHub** — `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`,
+     `E2E_CLERK_EMAIL`, `E2E_CLERK_PASSWORD`. Hoje o repo só tem `DATABASE_URL`,
+     `MIGRATION_DATABASE_URL` e `VAPID_PRIVATE_KEY`; sem eles o **#57** não sai do lugar — e
+     com merge autônomo, o E2E de login é a única rede que pega regressão de autenticação.
+  2. **Validação manual** do Financeiro (#52/#53), dos vínculos e convívio de Pessoas e das
+     exceções e lembretes da Agenda. Cada fatia nova se empilha na anterior.
+  3. **Deploy na Vercel** — o produto só existe na máquina do dono, e **Web Push não funciona
+     no celular sem HTTPS**: toda a Agenda com lembretes está pronta e inutilizada fora dali.
+- **Autonomia acordada (2026-08-22):** trabalho em branch, abro PR e **mergeio sozinho com o CI
+  verde**; CI vermelho deixa o PR aberto esperando o dono.
+- **Financeiro:** #54 relatórios → #55 importação OFX/CSV.
 - **Dívidas técnicas registradas:** rodar o E2E no CI (**#57**) e cortar a moldura da
   transação, que hoje é 3 dos 4 statements de toda leitura (**#58**).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
@@ -404,3 +412,31 @@
     do mês e navegação mês a mês.
   - Suíte **347 verdes** (era 313): +14 puros de dinheiro, +14 de integração sob RLS,
     +6 de componente.
+- **2026-08-22 — Financeiro: orçamento por categoria (#53):**
+  - **Decisões do dono nesta sessão:** mês é o do **calendário e começa zerado** (nada copiado
+    do mês anterior — orçamento herdado em silêncio é orçamento que ninguém decidiu); ordem de
+    trabalho #53 → #54 → #55; e **merge autônomo com o CI verde**.
+  - **Correção de rota:** cheguei a supor que faltaria ligar categoria → área de vida para o
+    "gasto por área". Não falta: `transactions.life_area_id` já existe desde o #52, com select
+    no formulário. A #54 agrega direto dos lançamentos.
+  - Tabela `budgets` (categoria + mês `AAAA-MM` em texto + planejado em centavos), migrations
+    `0028` + `0029` (RLS ENABLE+FORCE+policy, GRANTs ao `app_rls`, `CHECK` de valor positivo e
+    de formato do mês), **aplicadas no Neon**.
+  - **Repetir corrige em vez de duplicar:** índice único (usuário + categoria + mês) com
+    `on conflict do update`. Um `select` antes do `insert` teria a mesma cara e uma corrida no
+    meio. Na tela, "editar" não existe como operação separada — orçar de novo *é* editar.
+  - **"Sem orçamento" ≠ "orçamento zero":** planejado nulo é um estado próprio, e zero é
+    recusado no formulário, no serviço e por `CHECK` no banco. As duas formas de dizer a mesma
+    coisa sempre se desencontram numa comparação.
+  - **A conta é pura** (`budget.ts`): planejado × realizado, sobra e estouro fora do banco, para
+    ser a mesma no painel e nos relatórios (#54) e para o teste rodar em milissegundos. Estouro
+    é sobra negativa, não um campo à parte.
+  - **Leitura em uma consulta só** (teto de 4 statements testado): o `full join` com os
+    lançamentos do mês traz, pela esquerda, as categorias sem movimento e, pela direita, o que
+    foi lançado **sem categoria** — que numa lista de categorias não teria onde aparecer, e é
+    justamente o que estoura o mês. O filtro do mês fica na subconsulta: num `full join`,
+    condição no `where` descartaria as linhas não-pareadas e devolveria o mês inteiro errado.
+  - Painel em `/dashboard/financeiro`, sob o extrato e **no mesmo mês dele**; lançar ou apagar
+    invalida o orçamento junto, porque o realizado é derivado.
+  - Suíte **377 verdes** (era 347): +13 puros do orçamento, +11 de integração sob RLS,
+    +6 de componente. typecheck · lint · format · build verdes.
