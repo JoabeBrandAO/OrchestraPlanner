@@ -6,9 +6,12 @@ import {
   createTransaction,
   deleteAccount,
   deleteTransaction,
+  getBudgetOverview,
   listAccounts,
   listCategories,
   listTransactions,
+  removeBudget,
+  setBudget,
 } from "@/server/services/finance/finance-service";
 import { TITLE_MAX_LENGTH } from "@/server/services/shared/validate-title";
 
@@ -25,6 +28,9 @@ const ACCOUNT_KINDS = ["corrente", "poupanca", "carteira", "cartao", "investimen
  * lançamento vem do `direction`, não do número.
  */
 const amountCents = z.number().int().positive();
+
+/** Mês do calendário, `AAAA-MM` (ver `finance/budget.ts`). */
+const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Mês inválido (use AAAA-MM).");
 
 /** Financeiro (#52). Router fino: valida a entrada e delega ao serviço. */
 export const financeRouter = router({
@@ -72,4 +78,17 @@ export const financeRouter = router({
   deleteTransaction: protectedProcedure
     .input(z.object({ id: uuid }))
     .mutation(({ ctx, input }) => deleteTransaction(ctx.userId, input.id)),
+
+  /** Orçamento (#53): planejado × realizado do mês. */
+  budget: protectedProcedure
+    .input(z.object({ month }))
+    .query(({ ctx, input }) => getBudgetOverview(ctx.userId, input.month)),
+
+  setBudget: protectedProcedure
+    .input(z.object({ categoryId: uuid, month, plannedCents: amountCents }))
+    .mutation(({ ctx, input }) => setBudget(ctx.userId, input)),
+
+  removeBudget: protectedProcedure
+    .input(z.object({ categoryId: uuid, month }))
+    .mutation(({ ctx, input }) => removeBudget(ctx.userId, input)),
 });

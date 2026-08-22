@@ -3,14 +3,26 @@ import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { withUserContext } from "@/server/db/rls";
 import {
   accounts,
+  budgets,
   transactionCategories,
   transactions,
   type AccountRow,
+  type BudgetRow,
   type TransactionCategoryRow,
   type TransactionRow,
 } from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
 
+import {
+  compareBudget,
+  isMonth,
+  monthRange,
+  type BudgetActual,
+  type BudgetCategory,
+  type BudgetComparison,
+  type BudgetPlan,
+  type Month,
+} from "./budget";
 import { type Cents } from "./money";
 
 /**
@@ -247,5 +259,139 @@ export async function listTransactions(
       accountName: row.accountName,
       categoryName: row.categoryName,
     }));
+  });
+}
+
+/**
+ * Orçamento do mês (#53) — grava o planejado de uma categoria.
+ *
+ * **Repetir corrige em vez de duplicar:** o `on conflict do update` sobre o índice único
+ * (usuário + categoria + mês) faz o segundo "orçar Alimentação em agosto" virar edição.
+ * Um `select` antes do `insert` teria a mesma cara e uma corrida no meio.
+ */
+export async function setBudget(
+  userId: string,
+  input: { categoryId: string; month: Month; plannedCents: Cents },
+): Promise<BudgetRow> {
+  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+  // Reusa a regra dos lançamentos: zero ou negativo não é valor. Orçar zero seria uma
+  // segunda forma de dizer "sem orçamento", e as duas se desencontram na comparação.
+  validateAmount(input.plannedCents);
+
+  return withUserContext(userId, async (tx) => {
+    const [category] = await tx
+      .select({ id: transactionCategories.id })
+      .from(transactionCategories)
+      .where(eq(transactionCategories.id, input.categoryId));
+    if (!category) throw new Error("Categoria não encontrada.");
+
+    const [row] = await tx
+      .insert(budgets)
+      .values({
+        userId,
+        categoryId: input.categoryId,
+        month: input.month,
+        plannedCents: input.plannedCents,
+      })
+      .onConflictDoUpdate({
+        target: [budgets.userId, budgets.categoryId, budgets.month],
+        set: { plannedCents: input.plannedCents, updatedAt: sql`now()` },
+      })
+      .returning();
+    return row!;
+  });
+}
+
+/** Tirar o orçamento devolve a categoria para "sem orçamento" — não para "orçamento zero". */
+export async function removeBudget(
+  userId: string,
+  input: { categoryId: string; month: Month },
+): Promise<void> {
+  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+
+  await withUserContext(userId, (tx) =>
+    tx
+      .delete(budgets)
+      .where(and(eq(budgets.categoryId, input.categoryId), eq(budgets.month, input.month))),
+  );
+}
+
+/**
+ * Planejado × realizado do mês — **uma consulta só** (ver `query-budget.test.ts`).
+ *
+ * O `full join` com os lançamentos do mês é o que faz caber numa consulta: pela esquerda
+ * vêm as categorias sem movimento (realizado zero), e pela direita vem o que foi lançado
+ * **sem categoria**, que numa lista de categorias não teria onde aparecer — e o que some do
+ * orçamento é justamente o que estoura a conta no fim do mês.
+ *
+ * O filtro do mês fica na subconsulta, e não no `where`: num `full join`, condição no
+ * `where` descartaria as linhas não-pareadas e devolveria o mês inteiro errado.
+ *
+ * A comparação em si não é feita aqui — ela é pura (`budget.ts`), testada sem banco e
+ * compartilhada com os relatórios.
+ */
+export async function getBudgetOverview(userId: string, month: Month): Promise<BudgetComparison> {
+  if (!isMonth(month)) throw new Error("Mês inválido (use AAAA-MM).");
+  const range = monthRange(month);
+
+  return withUserContext(userId, async (tx) => {
+    const doMes = tx
+      .select({
+        categoryId: transactions.categoryId,
+        amountCents: transactions.amountCents,
+      })
+      .from(transactions)
+      .where(and(gte(transactions.happenedAt, range.from), lte(transactions.happenedAt, range.to)))
+      .as("do_mes");
+
+    const rows = await tx
+      .select({
+        categoryId: transactionCategories.id,
+        name: transactionCategories.name,
+        direction: transactionCategories.direction,
+        plannedCents: budgets.plannedCents,
+        // `sum` volta como string (o Postgres promove a bigint); somar sem converter
+        // concatenaria texto.
+        realized: sql<string>`coalesce(sum(${doMes.amountCents}), 0)`,
+      })
+      .from(transactionCategories)
+      .fullJoin(doMes, eq(doMes.categoryId, transactionCategories.id))
+      .leftJoin(
+        budgets,
+        and(eq(budgets.categoryId, transactionCategories.id), eq(budgets.month, month)),
+      )
+      .groupBy(
+        transactionCategories.id,
+        transactionCategories.name,
+        transactionCategories.direction,
+        budgets.plannedCents,
+      )
+      .orderBy(asc(transactionCategories.direction), asc(transactionCategories.name));
+
+    const categories: BudgetCategory[] = [];
+    const plans: BudgetPlan[] = [];
+    const actuals: BudgetActual[] = [];
+
+    for (const row of rows) {
+      const realized = Number(row.realized);
+
+      // Sem `categoryId` é o grupo que não pareou com categoria nenhuma: o lançamento solto.
+      if (row.categoryId === null) {
+        if (realized > 0) actuals.push({ categoryId: null, amountCents: realized });
+        continue;
+      }
+
+      categories.push({
+        id: row.categoryId,
+        name: row.name!,
+        direction: row.direction!,
+      });
+      if (row.plannedCents !== null) {
+        plans.push({ categoryId: row.categoryId, plannedCents: row.plannedCents });
+      }
+      if (realized > 0) actuals.push({ categoryId: row.categoryId, amountCents: realized });
+    }
+
+    return compareBudget({ month, categories, plans, actuals });
   });
 }

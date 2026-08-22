@@ -828,3 +828,39 @@ export const transactions = pgTable(
 );
 
 export type TransactionRow = typeof transactions.$inferSelect;
+
+/**
+ * Orçamento por categoria (#53). Um por categoria **e mês** — repetir corrige em vez de
+ * duplicar, garantido pelo índice único e por um `on conflict do update` no serviço.
+ *
+ * O mês é `AAAA-MM` em texto, não uma data: orçamento não acontece num dia, e guardar
+ * "primeiro dia do mês" convidaria alguém a comparar com `happened_at` e errar de fuso.
+ * O `CHECK` do formato está na migration — o banco é quem garante, não a boa vontade.
+ */
+export const budgets = pgTable(
+  "budgets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => transactionCategories.id, { onDelete: "cascade" }),
+    month: text("month").notNull(),
+    plannedCents: integer("planned_cents").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("budgets_user_category_month_uq").on(t.userId, t.categoryId, t.month),
+    // A consulta quente é sempre "o orçamento deste mês".
+    index("budgets_user_month_idx").on(t.userId, t.month),
+  ],
+);
+
+export type BudgetRow = typeof budgets.$inferSelect;
