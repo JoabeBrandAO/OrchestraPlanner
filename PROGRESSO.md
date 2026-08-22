@@ -52,8 +52,9 @@
      com merge autônomo, o E2E de login é a única rede que pega regressão de autenticação.
   2. **Validação manual** do Financeiro (#52/#53), dos vínculos e convívio de Pessoas e das
      exceções e lembretes da Agenda. Cada fatia nova se empilha na anterior.
-  3. **Deploy na Vercel** — o produto só existe na máquina do dono, e **Web Push não funciona
-     no celular sem HTTPS**: toda a Agenda com lembretes está pronta e inutilizada fora dali.
+  3. ~~Deploy na Vercel~~ — **já feito**: a produção roda desde 2026-08-15 e o PR #59 gerou
+     preview automático. O registro de "deploy pendente" aqui no diário era história velha
+     lida como estado atual; corrigido.
 - **Autonomia acordada (2026-08-22):** trabalho em branch, abro PR e **mergeio sozinho com o CI
   verde**; CI vermelho deixa o PR aberto esperando o dono.
 - **Financeiro:** #54 relatórios → #55 importação OFX/CSV.
@@ -440,3 +441,9 @@
     invalida o orçamento junto, porque o realizado é derivado.
   - Suíte **377 verdes** (era 347): +13 puros do orçamento, +11 de integração sob RLS,
     +6 de componente. typecheck · lint · format · build verdes.
+  - **PR #59 mergeado na `main` (`45f5386`), #53 fechada** — primeiro merge autônomo, com CI
+    verde (incluindo o preview da Vercel).
+  - **Achado ao ler o CI:** a Vercel **já está conectada** e a produção roda desde 2026-08-15.
+    O diário ainda carregava "deploy pendente" das iterações antigas e eu li isso como estado
+    atual. Lição: no `PROGRESSO.md`, pendência antiga no Histórico não é pendência de hoje —
+    confirmar no CI/no GitHub antes de pedir algo ao dono.
