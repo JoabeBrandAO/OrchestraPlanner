@@ -61,7 +61,13 @@
      lida como estado atual; corrigido.
 - **Autonomia acordada (2026-08-22):** trabalho em branch, abro PR e **mergeio sozinho com o CI
   verde**; CI vermelho deixa o PR aberto esperando o dono.
-- **Próximo passo é escolha do dono:** #57/#58 (dívida técnica) ou #21 (Fase 2 — SaaS + app).
+- **Validação manual da Fase 1 (#64)** — roteiro completo na issue; é o principal ponto de
+  controle humano agora que o merge é autônomo.
+- **Achados do checkpoint:** **#62** (editar lançamento — hoje só dá para criar e apagar, e
+  apagar um lançamento importado perde o `external_id`) e **#63** (gerenciar categorias na
+  tela — o serviço cria, a tela não).
+- **Próximo passo é escolha do dono:** dívida técnica (#57/#58), os achados (#62/#63) ou a
+  **Fase 2** (#21 — SaaS + app mobile).
 - **Dívidas técnicas registradas:** rodar o E2E no CI (**#57**) e cortar a moldura da
   transação, que hoje é 3 dos 4 statements de toda leitura (**#58**).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
@@ -506,3 +512,9 @@
     caso que vira 1º de março sem ninguém notar.
   - Suíte **446 verdes** (era 398): +29 puros do parser, +10 de integração sob RLS, +4 de
     dinheiro com sinal, +5 de componente. typecheck · lint · format · build verdes.
+  - **Checkpoint da sessão** (log completo em
+    [docs/sessions/2026-08-22-financeiro-completo.md](docs/sessions/2026-08-22-financeiro-completo.md)):
+    épico **#20 fechado** e **Fase 1 completa**; três PRs (#59, #60, #61) mergeados por mim com
+    o CI verde, estreando a autonomia acordada. Abertas **#62** (editar lançamento), **#63**
+    (gerenciar categorias) e **#64** (validação manual da Fase 1), e comentado em **#57** o que
+    exatamente falta do dono para destravá-la.
