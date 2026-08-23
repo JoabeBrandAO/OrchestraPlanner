@@ -4,6 +4,7 @@ import { withUserContext } from "@/server/db/rls";
 import {
   accounts,
   budgets,
+  lifeAreas,
   transactionCategories,
   transactions,
   type AccountRow,
@@ -24,6 +25,7 @@ import {
   type Month,
 } from "./budget";
 import { type Cents } from "./money";
+import { buildReport, recentMonths, type FinanceReport } from "./reports";
 
 /**
  * Financeiro (#52) — contas, categorias e lançamentos. Recebe `userId` e roda sob
@@ -393,5 +395,70 @@ export async function getBudgetOverview(userId: string, month: Month): Promise<B
     }
 
     return compareBudget({ month, categories, plans, actuals });
+  });
+}
+
+/**
+ * Relatório do mês (#54) — panorama, para onde foi o dinheiro e a evolução.
+ *
+ * **Duas consultas** (ver `query-budget.test.ts`): as contas com saldo, que dão o
+ * consolidado, e a janela de lançamentos com os rótulos. A agregação em si é pura
+ * (`reports.ts`) e roda em memória sobre a janela — separar por mês, por categoria e por
+ * área no banco seriam três `group by` e três viagens pela rede, contra algumas centenas de
+ * linhas que o JavaScript soma sem suar.
+ *
+ * O consolidado sai da **mesma consulta** que a tela de contas usa: o número do panorama não
+ * pode discordar do número que está logo acima dele.
+ */
+export async function getFinanceReport(
+  userId: string,
+  input: { month: Month; months?: number },
+): Promise<FinanceReport> {
+  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+  const months = input.months ?? 6;
+
+  const janela = recentMonths(input.month, months);
+  const from = `${janela[0]}-01`;
+  const to = monthRange(input.month).to;
+
+  return withUserContext(userId, async (tx) => {
+    const contas = await tx
+      .select({
+        initialBalanceCents: accounts.initialBalanceCents,
+        movimento: sql<string>`coalesce(sum(
+          case when ${transactions.direction} = 'entrada'
+            then ${transactions.amountCents}
+            else -${transactions.amountCents}
+          end
+        ), 0)`,
+      })
+      .from(accounts)
+      .leftJoin(transactions, eq(transactions.accountId, accounts.id))
+      .groupBy(accounts.id);
+
+    const rows = await tx
+      .select({
+        happenedAt: transactions.happenedAt,
+        direction: transactions.direction,
+        amountCents: transactions.amountCents,
+        categoryName: transactionCategories.name,
+        lifeAreaName: lifeAreas.name,
+      })
+      .from(transactions)
+      .leftJoin(transactionCategories, eq(transactionCategories.id, transactions.categoryId))
+      .leftJoin(lifeAreas, eq(lifeAreas.id, transactions.lifeAreaId))
+      .where(and(gte(transactions.happenedAt, from), lte(transactions.happenedAt, to)));
+
+    const consolidatedCents = contas.reduce(
+      (total, conta) => total + conta.initialBalanceCents + Number(conta.movimento),
+      0,
+    );
+
+    return buildReport({
+      month: input.month,
+      transactions: rows,
+      consolidatedCents,
+      months,
+    });
   });
 }

@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-08-22
+## Estado atual — atualizado em 2026-08-22 (2ª sessão)
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -29,9 +29,9 @@
   vínculos (uma linha por par, com o inverso derivado), interações com "há quanto tempo não
   falo com X", e aniversários na Agenda derivados da data em `people`.
 
-- **Módulo Financeiro (#20) — em andamento:** contas e lançamentos (#52) e **orçamento por
-  categoria (#53)**, com dinheiro em centavos inteiros, saldo e realizado derivados. Faltam
-  relatórios (#54) e OFX/CSV (#55).
+- **Módulo Financeiro (#20) — em andamento:** contas e lançamentos (#52), **orçamento por
+  categoria (#53)** e **relatórios/panorama (#54)**, com dinheiro em centavos inteiros e
+  saldo, realizado e agregações todos derivados. Falta só a importação OFX/CSV (#55).
 
 - **Infra e qualidade:** E2E de login passando ponta a ponta (#7), secrets do CI cadastrados
   (#6), senha exposta rotacionada (#30), padrão de "novo registro" em janela flutuante em
@@ -39,7 +39,8 @@
   de leitura (statements no banco).
 
 ### 🔄 Fazendo
-- **Módulo Financeiro (#20)**, última peça da Fase 1: entregues #52 e #53; a seguir #54 → #55.
+- **Módulo Financeiro (#20)**, última peça da Fase 1: entregues #52, #53 e #54; falta **#55**
+  (importação OFX/CSV), que fecha o épico e a Fase 1.
 - _Nota:_ a divisão "sessão de Visão × sessão Mão-na-massa" das primeiras iterações não vale
   mais — desde 2026-08-15 uma sessão só cuida de docs e código. `PROGRESSO.md` segue sendo o
   terreno comum, com **append** no Histórico.
@@ -57,7 +58,7 @@
      lida como estado atual; corrigido.
 - **Autonomia acordada (2026-08-22):** trabalho em branch, abro PR e **mergeio sozinho com o CI
   verde**; CI vermelho deixa o PR aberto esperando o dono.
-- **Financeiro:** #54 relatórios → #55 importação OFX/CSV.
+- **Financeiro:** #55 importação OFX/CSV — a última fatia do épico #20.
 - **Dívidas técnicas registradas:** rodar o E2E no CI (**#57**) e cortar a moldura da
   transação, que hoje é 3 dos 4 statements de toda leitura (**#58**).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
@@ -447,3 +448,29 @@
     O diário ainda carregava "deploy pendente" das iterações antigas e eu li isso como estado
     atual. Lição: no `PROGRESSO.md`, pendência antiga no Histórico não é pendência de hoje —
     confirmar no CI/no GitHub antes de pedir algo ao dono.
+- **2026-08-22 (cont.) — Financeiro: relatórios e panorama (#54):**
+  - **Nada no relatório lê o relógio.** O mês de referência entra por parâmetro em toda a
+    cadeia (tela → tRPC → serviço → agregação pura). Relatório que chama `new Date()` por
+    dentro é relatório cujo teste passa hoje e vira na virada do mês — e cuja evolução mudaria
+    debaixo de quem está navegando pelos meses.
+  - **Agregação pura** (`reports.ts`): panorama do mês, gastos por categoria e por área de
+    vida, e evolução mês a mês. O que não tem rótulo vira fatia "Sem categoria"/"Sem área" em
+    vez de sumir — o que some do relatório é o que ninguém consegue explicar no fim do mês.
+    Empate de valor é desempatado pelo nome, senão a lista dança a cada leitura.
+  - **Mês vazio entra zerado na evolução**, e não some da linha do tempo: buraco no meio mente
+    sobre o que aconteceu.
+  - **Duas consultas, e o número não cresce com a janela:** uma para as contas com saldo (a
+    mesma da tela de Contas — o consolidado não pode discordar do que está logo acima) e uma
+    para a janela de lançamentos com os rótulos. Separar por mês, por categoria e por área
+    viraria três `group by` e três viagens pela rede; em memória são algumas centenas de
+    linhas. Teto de **5 statements** testado.
+  - **Uma verdade por número na tela:** os cartões de entradas/saídas que o extrato calculava
+    no cliente saíram; agora vêm do panorama, do servidor. Um teste de integração prova que o
+    panorama bate com a soma do extrato e que o consolidado bate com a tela de contas.
+  - **Tela reorganizada:** um seletor de mês só, no topo, governando panorama, orçamento e
+    extrato — antes o seletor morava dentro do extrato.
+  - **Dashboard principal:** cartão "Panorama do dinheiro" (entradas, saídas, saldo das contas
+    e os 3 maiores gastos do mês). De quebra, o texto que ainda dizia "Financeiro e Pessoas
+    chegam nas próximas iterações" foi corrigido — os dois existem desde julho/agosto.
+  - Suíte **398 verdes** (era 377): +14 puros, +7 de integração sob RLS. typecheck · lint ·
+    format · build verdes.
