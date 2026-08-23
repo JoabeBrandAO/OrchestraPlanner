@@ -9,6 +9,7 @@ import { trpc } from "@/trpc/react";
 
 import { ACCOUNT_KINDS, AccountForm } from "./account-form";
 import { BudgetPanel } from "./budget-panel";
+import { ImportForm } from "./import-form";
 import { ReportPanel } from "./report-panel";
 import { TransactionForm } from "./transaction-form";
 
@@ -34,7 +35,7 @@ function monthRange(anchor: Date) {
 export function FinanceManager() {
   const utils = trpc.useUtils();
   const [anchor, setAnchor] = useState(() => new Date());
-  const [dialog, setDialog] = useState<"conta" | "lancamento" | null>(null);
+  const [dialog, setDialog] = useState<"conta" | "lancamento" | "importar" | null>(null);
 
   const range = monthRange(anchor);
   /** `AAAA-MM` da âncora — panorama, orçamento e extrato leem sempre o mesmo mês. */
@@ -56,6 +57,10 @@ export function FinanceManager() {
     setDialog(null);
     return invalidate();
   };
+
+  // A importação não fecha a janela sozinha: o resultado (e as linhas que ficaram de fora)
+  // precisa ser lido antes, senão o relato de problema não serve para nada.
+  const importStatement = trpc.finance.importStatement.useMutation({ onSuccess: invalidate });
 
   const createAccount = trpc.finance.createAccount.useMutation({ onSuccess: close });
   const createTransaction = trpc.finance.createTransaction.useMutation({ onSuccess: close });
@@ -159,9 +164,14 @@ export function FinanceManager() {
         </div>
 
         {temConta && (
-          <Button size="sm" onClick={() => setDialog("lancamento")}>
-            + Novo lançamento
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setDialog("importar")}>
+              Importar extrato
+            </Button>
+            <Button size="sm" onClick={() => setDialog("lancamento")}>
+              + Novo lançamento
+            </Button>
+          </div>
         )}
       </div>
 
@@ -235,6 +245,29 @@ export function FinanceManager() {
           error={createAccount.error?.message}
           onCancel={() => setDialog(null)}
           onSubmit={(values) => createAccount.mutate(values)}
+        />
+      </FormDialog>
+
+      <FormDialog
+        open={dialog === "importar"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialog(null);
+            importStatement.reset();
+          }
+        }}
+        title="Importar extrato"
+      >
+        <ImportForm
+          accounts={contas.map((account) => ({ id: account.id, name: account.name }))}
+          pending={importStatement.isPending}
+          error={importStatement.error?.message}
+          result={importStatement.data ?? null}
+          onClose={() => {
+            setDialog(null);
+            importStatement.reset();
+          }}
+          onSubmit={(values) => importStatement.mutate(values)}
         />
       </FormDialog>
 

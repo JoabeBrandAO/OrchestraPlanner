@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCents, parseAmount, sumCents } from "./money";
+import { formatCents, parseAmount, parseSignedAmount, sumCents } from "./money";
 
 /**
  * Dinheiro (#52) — regra pura. O teste mais importante deste arquivo é o que demonstra
@@ -89,5 +89,29 @@ describe("sumCents", () => {
 
   it("lista vazia soma zero", () => {
     expect(sumCents([])).toBe(0);
+  });
+});
+
+describe("valor com sinal (extrato)", () => {
+  it("traduz o sinal do banco para o sentido do app", () => {
+    expect(parseSignedAmount("-120.00")).toEqual({ direction: "saida", amountCents: 12000 });
+    expect(parseSignedAmount("120.00")).toEqual({ direction: "entrada", amountCents: 12000 });
+    expect(parseSignedAmount("+120,00")).toEqual({ direction: "entrada", amountCents: 12000 });
+  });
+
+  it("aceita as duas notações decimais que os bancos usam", () => {
+    expect(parseSignedAmount("-1.234,56")).toEqual({ direction: "saida", amountCents: 123456 });
+    expect(parseSignedAmount("-1234.56")).toEqual({ direction: "saida", amountCents: 123456 });
+  });
+
+  it("o número que sai é sempre positivo — o menos virou sentido", () => {
+    expect(parseSignedAmount("-0,01")!.amountCents).toBe(1);
+  });
+
+  it("zero e lixo devolvem null, para virarem linha reportada", () => {
+    expect(parseSignedAmount("0.00")).toBeNull();
+    expect(parseSignedAmount("-0,00")).toBeNull();
+    expect(parseSignedAmount("")).toBeNull();
+    expect(parseSignedAmount("abc")).toBeNull();
   });
 });

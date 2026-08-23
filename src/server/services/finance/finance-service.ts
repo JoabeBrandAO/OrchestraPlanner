@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import {
@@ -26,6 +26,12 @@ import {
 } from "./budget";
 import { type Cents } from "./money";
 import { buildReport, recentMonths, type FinanceReport } from "./reports";
+import {
+  parseStatement,
+  suggestCategories,
+  type LineProblem,
+  type StatementFormat,
+} from "./statement-import";
 
 /**
  * Financeiro (#52) — contas, categorias e lançamentos. Recebe `userId` e roda sob
@@ -460,5 +466,112 @@ export async function getFinanceReport(
       consolidatedCents,
       months,
     });
+  });
+}
+
+export type ImportResult = {
+  format: StatementFormat;
+  /** Lançamentos criados agora. */
+  imported: number;
+  /** Já existiam de uma importação anterior — a conciliação em números. */
+  duplicated: number;
+  /** Quantos dos criados ganharam categoria pelo histórico. */
+  categorized: number;
+  /** Linhas que não deu para interpretar. Nunca engolidas em silêncio. */
+  problems: LineProblem[];
+};
+
+/** Quantas linhas por `insert`. Um arquivo grande viraria um comando com parâmetros demais. */
+const IMPORT_CHUNK = 500;
+
+/** Até onde olhar para trás ao sugerir categoria: histórico velho não descreve o hábito de hoje. */
+const HISTORY_LIMIT = 500;
+
+/**
+ * Importa um extrato OFX ou CSV para uma conta (#55).
+ *
+ * **A conciliação é do banco, não do código:** cada lançamento carrega a identidade que veio
+ * do arquivo (`external_id`) e o índice único parcial (usuário + conta + origem) faz a
+ * segunda importação do mesmo arquivo esbarrar. Um `select` antes de cada `insert` faria o
+ * mesmo com N viagens e uma corrida no meio.
+ *
+ * O que não deu para interpretar volta em `problems`, com número de linha e o texto cru:
+ * extrato importado pela metade em silêncio é pior do que importação nenhuma, porque o saldo
+ * fecha errado e ninguém sabe por quê.
+ */
+export async function importStatement(
+  userId: string,
+  input: { accountId: string; content: string },
+): Promise<ImportResult> {
+  const extrato = parseStatement(input.content);
+  if (!extrato) throw new Error("Não reconheci o arquivo como OFX nem como CSV.");
+
+  return withUserContext(userId, async (tx) => {
+    const [account] = await tx
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(eq(accounts.id, input.accountId));
+    if (!account) throw new Error("Conta não encontrada.");
+
+    if (extrato.entries.length === 0) {
+      return {
+        format: extrato.format,
+        imported: 0,
+        duplicated: 0,
+        categorized: 0,
+        problems: extrato.problems,
+      };
+    }
+
+    // Histórico do mais recente para o mais antigo: é assim que `suggestCategories` desempata.
+    const historico = await tx
+      .select({
+        description: transactions.description,
+        direction: transactions.direction,
+        categoryId: transactions.categoryId,
+      })
+      .from(transactions)
+      .where(isNotNull(transactions.categoryId))
+      .orderBy(desc(transactions.happenedAt), desc(transactions.createdAt))
+      .limit(HISTORY_LIMIT);
+
+    const sugestoes = suggestCategories(
+      extrato.entries,
+      historico.map((linha) => ({ ...linha, categoryId: linha.categoryId! })),
+    );
+
+    const criados: string[] = [];
+    for (let i = 0; i < extrato.entries.length; i += IMPORT_CHUNK) {
+      const lote = extrato.entries.slice(i, i + IMPORT_CHUNK);
+
+      const inseridos = await tx
+        .insert(transactions)
+        .values(
+          lote.map((entry) => ({
+            userId,
+            accountId: input.accountId,
+            categoryId: sugestoes.get(entry.externalId) ?? null,
+            happenedAt: entry.happenedAt,
+            direction: entry.direction,
+            amountCents: entry.amountCents,
+            description: entry.description || null,
+            externalId: entry.externalId,
+          })),
+        )
+        // Sem alvo de propósito: qualquer colisão aqui é "isto já está importado", e é isso
+        // que a conciliação precisa saber.
+        .onConflictDoNothing()
+        .returning({ externalId: transactions.externalId });
+
+      for (const linha of inseridos) if (linha.externalId) criados.push(linha.externalId);
+    }
+
+    return {
+      format: extrato.format,
+      imported: criados.length,
+      duplicated: extrato.entries.length - criados.length,
+      categorized: criados.filter((externalId) => sugestoes.has(externalId)).length,
+      problems: extrato.problems,
+    };
   });
 }

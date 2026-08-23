@@ -66,3 +66,27 @@ export function formatCents(cents: Cents): string {
 export function sumCents(values: readonly Cents[]): Cents {
   return values.reduce((total, value) => total + value, 0);
 }
+
+/** Valor com sinal, como vem num extrato: o sinal vira `direction`, o número fica positivo. */
+export type SignedAmount = { direction: "entrada" | "saida"; amountCents: Cents };
+
+/**
+ * Lê um valor **com sinal** (importação de extrato, #55) e o traduz para o modelo do app:
+ * número sempre positivo, sentido no `direction`.
+ *
+ * O extrato do banco fala em negativo; o app não. A tradução acontece **aqui, na fronteira**,
+ * e não vazando um `amount_cents` negativo para dentro — lá dentro existiria uma segunda
+ * forma de dizer "saída", e uma delas some quando alguém troca o tipo e esquece o sinal.
+ *
+ * Zero devolve `null`: extrato com valor zero não é lançamento, é linha para reportar.
+ */
+export function parseSignedAmount(input: string): SignedAmount | null {
+  const texto = input.trim();
+  const negativo = texto.startsWith("-");
+  const semSinal = texto.replace(/^[+-]/, "");
+
+  const amountCents = parseAmount(semSinal);
+  if (amountCents === null) return null;
+
+  return { direction: negativo ? "saida" : "entrada", amountCents };
+}
