@@ -29,9 +29,11 @@
   vínculos (uma linha por par, com o inverso derivado), interações com "há quanto tempo não
   falo com X", e aniversários na Agenda derivados da data em `people`.
 
-- **Módulo Financeiro (#20) — em andamento:** contas e lançamentos (#52), **orçamento por
-  categoria (#53)** e **relatórios/panorama (#54)**, com dinheiro em centavos inteiros e
-  saldo, realizado e agregações todos derivados. Falta só a importação OFX/CSV (#55).
+- **Módulo Financeiro (#20) — COMPLETO:** contas e lançamentos (#52), orçamento por categoria
+  (#53), relatórios e panorama (#54) e **importação OFX/CSV com conciliação (#55)**. Dinheiro
+  em centavos inteiros; saldo, realizado e agregações todos derivados.
+- **🏁 Fase 1 (uso pessoal) fechada:** Prioridades & Metas, Agenda, Pessoas & Relacionamentos e
+  Financeiro entregues, no ar na Vercel, sob RLS por `user_id`.
 
 - **Infra e qualidade:** E2E de login passando ponta a ponta (#7), secrets do CI cadastrados
   (#6), senha exposta rotacionada (#30), padrão de "novo registro" em janela flutuante em
@@ -39,8 +41,9 @@
   de leitura (statements no banco).
 
 ### 🔄 Fazendo
-- **Módulo Financeiro (#20)**, última peça da Fase 1: entregues #52, #53 e #54; falta **#55**
-  (importação OFX/CSV), que fecha o épico e a Fase 1.
+- **Nada em andamento.** A Fase 1 fechou com o #55. O que vem depois é decisão do dono:
+  dívida técnica (#57 E2E no CI, #58 moldura da transação) ou começar a **Fase 2** (#21 —
+  SaaS multiusuário + app mobile).
 - _Nota:_ a divisão "sessão de Visão × sessão Mão-na-massa" das primeiras iterações não vale
   mais — desde 2026-08-15 uma sessão só cuida de docs e código. `PROGRESSO.md` segue sendo o
   terreno comum, com **append** no Histórico.
@@ -58,7 +61,7 @@
      lida como estado atual; corrigido.
 - **Autonomia acordada (2026-08-22):** trabalho em branch, abro PR e **mergeio sozinho com o CI
   verde**; CI vermelho deixa o PR aberto esperando o dono.
-- **Financeiro:** #55 importação OFX/CSV — a última fatia do épico #20.
+- **Próximo passo é escolha do dono:** #57/#58 (dívida técnica) ou #21 (Fase 2 — SaaS + app).
 - **Dívidas técnicas registradas:** rodar o E2E no CI (**#57**) e cortar a moldura da
   transação, que hoje é 3 dos 4 statements de toda leitura (**#58**).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
@@ -474,3 +477,32 @@
     chegam nas próximas iterações" foi corrigido — os dois existem desde julho/agosto.
   - Suíte **398 verdes** (era 377): +14 puros, +7 de integração sob RLS. typecheck · lint ·
     format · build verdes.
+- **2026-08-22 (cont.) — Financeiro: importação OFX/CSV (#55) — épico #20 e Fase 1 fechados:**
+  - **Identidade vem do arquivo, não de palpite.** No OFX é o `FITID`, que o banco promete
+    único. Lançamento **sem** FITID é reportado, não importado: sem identidade, a segunda
+    importação duplicaria — e inventar id num arquivo que deveria ter um é mentir para si
+    mesmo. No CSV não existe FITID, então a identidade é uma **impressão digital** da linha
+    (data + valor + descrição + a posição entre linhas idênticas). É honestamente inferior e
+    está escrito no código: dois cafés de R$ 5 no mesmo dia continuam sendo dois lançamentos,
+    e a impressão **não** usa o número da linha, senão um extrato reexportado com uma linha em
+    branco a mais duplicaria tudo.
+  - **A conciliação é do banco:** coluna `external_id` + **índice único parcial** (usuário +
+    conta + origem, só onde `external_id` não é nulo) e `on conflict do nothing`. Um `select`
+    antes de cada `insert` faria o mesmo com N viagens e uma corrida no meio. Migration `0030`,
+    **aplicada no Neon**. A identidade é **por conta**: dois bancos podem repetir FITID, e um
+    cancelar o lançamento do outro seria sumiço silencioso.
+  - **Nada é engolido em silêncio:** linha ruim volta com número, motivo e o texto cru, e a
+    janela da importação só fecha depois que a pessoa lê. Extrato importado pela metade sem
+    aviso é pior que importação nenhuma — o saldo fecha errado e ninguém sabe por quê.
+  - **O sinal do banco vira sentido do app na fronteira** (`parseSignedAmount`): o extrato fala
+    em negativo, o app não. Valor zero não é lançamento, é linha para reportar.
+  - **Codificação:** os bytes viram texto no navegador, tentando UTF-8 em modo `fatal` e caindo
+    para windows-1252 — que é como boa parte dos bancos brasileiros ainda exporta. Sem o
+    `fatal`, o decodificador engole o byte inválido, devolve o caractere de substituição e a descrição chega torta.
+  - **Sugestão de categoria deliberadamente burra:** descrição igual (normalizada) e mesmo
+    sentido, com a mais usada vencendo e o mais recente desempatando. Nada de semelhança
+    aproximada — categorizar errado em silêncio é pior do que não categorizar.
+  - **Data que casa com o formato mas não existe no calendário é recusada** (`30/02/2026`), o
+    caso que vira 1º de março sem ninguém notar.
+  - Suíte **446 verdes** (era 398): +29 puros do parser, +10 de integração sob RLS, +4 de
+    dinheiro com sinal, +5 de componente. typecheck · lint · format · build verdes.

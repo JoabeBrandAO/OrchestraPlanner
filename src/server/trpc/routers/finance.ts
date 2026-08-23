@@ -8,6 +8,7 @@ import {
   deleteTransaction,
   getBudgetOverview,
   getFinanceReport,
+  importStatement,
   listAccounts,
   listCategories,
   listTransactions,
@@ -100,4 +101,18 @@ export const financeRouter = router({
   report: protectedProcedure
     .input(z.object({ month, months: z.number().int().min(1).max(24).optional() }))
     .query(({ ctx, input }) => getFinanceReport(ctx.userId, input)),
+
+  /**
+   * Importação de extrato (#55). O arquivo chega como texto já decodificado pelo navegador
+   * (ver `decodeStatement`): o servidor não recebe bytes, e o teto de tamanho existe para
+   * um arquivo enorme não virar uma requisição que ninguém consegue cancelar.
+   */
+  importStatement: protectedProcedure
+    .input(
+      z.object({
+        accountId: uuid,
+        content: z.string().min(1, "Arquivo vazio.").max(4_000_000, "Arquivo grande demais."),
+      }),
+    )
+    .mutation(({ ctx, input }) => importStatement(ctx.userId, input)),
 });

@@ -813,6 +813,11 @@ export const transactions = pgTable(
     direction: transactionDirection("direction").notNull(),
     amountCents: integer("amount_cents").notNull(),
     description: text("description"),
+    /**
+     * Identidade do lançamento **no arquivo de origem** (#55): `ofx:<FITID>` ou a impressão
+     * digital da linha do CSV. Nulo no que foi digitado à mão — a maioria.
+     */
+    externalId: text("external_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .default(sql`now()`),
@@ -824,6 +829,15 @@ export const transactions = pgTable(
     // As consultas quentes: o extrato de uma conta e o mês inteiro.
     index("transactions_user_account_date_idx").on(t.userId, t.accountId, t.happenedAt),
     index("transactions_user_date_idx").on(t.userId, t.happenedAt),
+    /**
+     * A conciliação da importação: o mesmo arquivo importado duas vezes esbarra aqui. É
+     * **parcial** porque lançamento digitado à mão não tem origem, e no Postgres vários
+     * `null` não colidem entre si — mas deixar o índice total ainda assim o faria varrer
+     * milhares de linhas nulas sem necessidade.
+     */
+    uniqueIndex("transactions_user_account_external_uq")
+      .on(t.userId, t.accountId, t.externalId)
+      .where(sql`${t.externalId} is not null`),
   ],
 );
 
