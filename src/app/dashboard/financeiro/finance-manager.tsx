@@ -9,6 +9,7 @@ import { trpc } from "@/trpc/react";
 
 import { ACCOUNT_KINDS, AccountForm } from "./account-form";
 import { BudgetPanel } from "./budget-panel";
+import { ReportPanel } from "./report-panel";
 import { TransactionForm } from "./transaction-form";
 
 const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
@@ -26,8 +27,9 @@ function monthRange(anchor: Date) {
 }
 
 /**
- * Financeiro (#52): contas com saldo e o extrato do mês. Segue o padrão de "novo registro"
- * das demais telas — botão, janela flutuante, formulário não controlado.
+ * Financeiro: contas com saldo (#52), e — governados por **um seletor de mês só** —
+ * panorama (#54), orçamento (#53) e extrato. Segue o padrão de "novo registro" das demais
+ * telas: botão, janela flutuante, formulário não controlado.
  */
 export function FinanceManager() {
   const utils = trpc.useUtils();
@@ -35,7 +37,7 @@ export function FinanceManager() {
   const [dialog, setDialog] = useState<"conta" | "lancamento" | null>(null);
 
   const range = monthRange(anchor);
-  /** O mesmo mês do extrato, em `AAAA-MM` — extrato e orçamento andam juntos. */
+  /** `AAAA-MM` da âncora — panorama, orçamento e extrato leem sempre o mesmo mês. */
   const month = range.from.slice(0, 7);
   const accounts = trpc.finance.accounts.useQuery();
   const categories = trpc.finance.categories.useQuery();
@@ -45,8 +47,9 @@ export function FinanceManager() {
   const invalidate = () => {
     utils.finance.accounts.invalidate();
     utils.finance.transactions.invalidate();
-    // O realizado do orçamento é derivado dos lançamentos: mexeu num, o outro está velho.
+    // Orçamento e panorama são derivados dos lançamentos: mexeu num, os outros estão velhos.
     utils.finance.budget.invalidate();
+    utils.finance.report.invalidate();
     return utils.finance.categories.invalidate();
   };
   const close = () => {
@@ -63,13 +66,8 @@ export function FinanceManager() {
   const lancamentos = transactions.data ?? [];
   const temConta = contas.length > 0;
 
-  // Somas do mês, em centavos: aritmética de inteiro, nunca de reais.
-  const entradas = sumCents(
-    lancamentos.filter((t) => t.direction === "entrada").map((t) => t.amountCents),
-  );
-  const saidas = sumCents(
-    lancamentos.filter((t) => t.direction === "saida").map((t) => t.amountCents),
-  );
+  // Soma em centavos: aritmética de inteiro, nunca de reais. Entradas e saídas do mês não
+  // são recalculadas aqui — vêm do panorama (#54), para a tela ter um número só.
   const consolidado = sumCents(contas.map((account) => account.balanceCents));
 
   return (
@@ -138,48 +136,42 @@ export function FinanceManager() {
         )}
       </section>
 
+      {/* O mês manda em tudo o que vem abaixo: panorama, orçamento e extrato. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label="Mês anterior"
+            onClick={() => setAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+          >
+            ←
+          </Button>
+          <span className="text-sm font-medium capitalize">{monthLabel.format(anchor)}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label="Próximo mês"
+            onClick={() => setAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+          >
+            →
+          </Button>
+        </div>
+
+        {temConta && (
+          <Button size="sm" onClick={() => setDialog("lancamento")}>
+            + Novo lançamento
+          </Button>
+        )}
+      </div>
+
+      <ReportPanel month={month} />
+
+      <BudgetPanel month={month} monthLabel={monthLabel.format(anchor)} />
+
       {/* Extrato do mês */}
       <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              aria-label="Mês anterior"
-              onClick={() => setAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-            >
-              ←
-            </Button>
-            <span className="text-sm font-medium capitalize">{monthLabel.format(anchor)}</span>
-            <Button
-              size="sm"
-              variant="outline"
-              aria-label="Próximo mês"
-              onClick={() => setAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-            >
-              →
-            </Button>
-          </div>
-
-          {temConta && (
-            <Button size="sm" onClick={() => setDialog("lancamento")}>
-              + Novo lançamento
-            </Button>
-          )}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { rotulo: "Entradas", valor: entradas, classe: "text-emerald-600" },
-            { rotulo: "Saídas", valor: saidas, classe: "text-red-500" },
-            { rotulo: "Resultado", valor: entradas - saidas, classe: "" },
-          ].map((cartao) => (
-            <div key={cartao.rotulo} className="rounded-lg border p-3">
-              <p className="text-muted-foreground text-xs">{cartao.rotulo}</p>
-              <p className={`tabular-nums ${cartao.classe}`}>R$ {formatCents(cartao.valor)}</p>
-            </div>
-          ))}
-        </div>
+        <h2 className="text-lg font-medium">Extrato</h2>
 
         {transactions.isLoading ? (
           <p className="text-muted-foreground text-sm">Carregando lançamentos…</p>
@@ -232,8 +224,6 @@ export function FinanceManager() {
           </p>
         )}
       </section>
-
-      <BudgetPanel month={month} monthLabel={monthLabel.format(anchor)} />
 
       <FormDialog
         open={dialog === "conta"}

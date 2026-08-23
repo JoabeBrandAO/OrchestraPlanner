@@ -5,6 +5,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { ensureUserRecord } from "@/server/users";
 
+import { FinanceOverview } from "./finance-overview";
 import { GoalsOverview } from "./goals-overview";
 import { HealthStatus } from "./health-status";
 import { LifeWheelCallout } from "./life-wheel-callout";
@@ -28,8 +29,9 @@ export default async function DashboardPage() {
       <section className="rounded-lg border p-6">
         <h2 className="mb-2 text-lg font-medium">OrchestraPlanner</h2>
         <p className="text-muted-foreground text-sm">
-          Organize suas Metas por Áreas de Vida, leve o dia a dia no quadro de Prioridades e marque
-          os compromissos na Agenda. Financeiro e Pessoas chegam nas próximas iterações.
+          Organize suas Metas por Áreas de Vida, leve o dia a dia no quadro de Prioridades, marque
+          os compromissos na Agenda, cuide de quem importa em Pessoas e acompanhe o dinheiro no
+          Financeiro.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/dashboard/metas" className={buttonVariants({ variant: "default" })}>
@@ -65,6 +67,12 @@ export default async function DashboardPage() {
       <section className="rounded-lg border p-6">
         <h2 className="mb-4 text-lg font-medium">Panorama das metas</h2>
         <GoalsOverview />
+      </section>
+
+      {/* Panorama do dinheiro (#54) — o mês corrente, sem precisar abrir o Financeiro. */}
+      <section className="rounded-lg border p-6">
+        <h2 className="mb-4 text-lg font-medium">Panorama do dinheiro</h2>
+        <FinanceOverview />
       </section>
     </main>
   );

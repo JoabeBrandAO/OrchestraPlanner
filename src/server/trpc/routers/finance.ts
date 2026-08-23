@@ -7,6 +7,7 @@ import {
   deleteAccount,
   deleteTransaction,
   getBudgetOverview,
+  getFinanceReport,
   listAccounts,
   listCategories,
   listTransactions,
@@ -91,4 +92,12 @@ export const financeRouter = router({
   removeBudget: protectedProcedure
     .input(z.object({ categoryId: uuid, month }))
     .mutation(({ ctx, input }) => removeBudget(ctx.userId, input)),
+
+  /**
+   * Relatório do mês (#54). O mês vem da tela — o servidor não decide qual é "hoje", senão
+   * a evolução muda debaixo de quem está navegando pelos meses.
+   */
+  report: protectedProcedure
+    .input(z.object({ month, months: z.number().int().min(1).max(24).optional() }))
+    .query(({ ctx, input }) => getFinanceReport(ctx.userId, input)),
 });
