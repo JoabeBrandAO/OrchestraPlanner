@@ -16,6 +16,29 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+
+    # Postgres de verdade no job (#68). Sem ele, tudo que é `describe.skipIf(!hasDb)`
+    # era pulado — 158 dos 463 casos, incluindo **toda** a suíte de isolamento por
+    # usuário e o fail-safe do BYPASSRLS. Uma policy de RLS apagada por engano passava
+    # pelo CI verde e só apareceria em produção, com um usuário vendo dado de outro.
+    #
+    # Serviço, e não banco remoto, por três razões: não exige segredo (funciona em PR de
+    # fork), não suja dado de produção e não depende da rede para ser rápido.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orchestraplanner
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d orchestraplanner"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v5
 
@@ -27,14 +50,35 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # A arquitetura de dois roles (docs/SETUP.md) reproduzida aqui: a app conecta como
+      # `app_rls`, **sem BYPASSRLS**, senão a RLS passaria furada em silêncio e o teste
+      # provaria o contrário do que promete (docs/ERROS.md 2026-06-20).
+      - name: Criar o role restrito da app
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d orchestraplanner -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE app_rls WITH LOGIN PASSWORD 'app_rls' NOBYPASSRLS;"
+
+      # Uma vez, como dono — em vez de deixar cada arquivo de teste correr para aplicar
+      # as mesmas migrations em paralelo.
+      - name: Aplicar migrations
+        env:
+          MIGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/orchestraplanner
+        run: npm run db:migrate
+
       - name: Typecheck
         run: npm run typecheck
 
       - name: Lint
         run: npm run lint
 
-      - name: Unit tests (Vitest)
-        # Sem DATABASE_URL, a suíte de RLS é pulada; o restante roda normal.
+      - name: Testes (Vitest — unitários e de integração sob RLS)
+        env:
+          # Restrito: é com este que a suíte prova o isolamento.
+          DATABASE_URL: postgres://app_rls:app_rls@localhost:5432/orchestraplanner
+          # Dono: DDL e o journal das migrations.
+          MIGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/orchestraplanner
         run: npm run test
 
       - name: Build
