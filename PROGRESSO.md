@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-09-03
+## Estado atual — atualizado em 2026-09-04
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -58,6 +58,8 @@
      `E2E_CLERK_EMAIL`, `E2E_CLERK_PASSWORD`. Hoje o repo só tem `DATABASE_URL`,
      `MIGRATION_DATABASE_URL` e `VAPID_PRIVATE_KEY`; sem eles o **#57** não sai do lugar — e
      com merge autônomo, o E2E de login é a única rede que pega regressão de autenticação.
+     **O workflow já existe** (`.github/workflows/e2e.yml`, 2026-09-04) e falha dizendo qual
+     segredo falta: só o cadastro depende do dono.
   2. **Validação manual** do Financeiro (#52/#53), dos vínculos e convívio de Pessoas e das
      exceções e lembretes da Agenda. Cada fatia nova se empilha na anterior.
   3. ~~Deploy na Vercel~~ — **já feito**: a produção roda desde 2026-08-15 e o PR #59 gerou
@@ -542,3 +544,25 @@
     `shared/unique-violation.ts`, agora usada por Áreas de Vida e Financeiro.
   - Suíte **461 verdes** (era 446): +9 de integração sob RLS, +6 de componente.
     typecheck · lint · format · build verdes.
+- **2026-09-04 — E2E no CI (#57) e a medição da moldura da RLS (#58):**
+  - **Workflow de E2E próprio** (`.github/workflows/e2e.yml`), fora do CI que gateia PR: uma
+    intermitência de navegador não pode segurar merge de código que não é de autenticação.
+    Roda **no merge para `main`** e sob demanda (`workflow_dispatch`), **não em todo PR** — a
+    instância de desenvolvimento do Clerk tem limite de requisição e a verificação de
+    dispositivo novo já mudou de comportamento uma vez nesta base. Segredo faltando **falha**
+    em vez de pular: verde sem ter aberto navegador é a armadilha que já mordeu aqui.
+    Validado localmente com `CI=1 npx playwright test` — 2 verdes (landing e login → painel).
+    Falta só o dono cadastrar os 4 segredos do Clerk.
+  - **#58 medido, e a premissa não se sustenta em produção.** `scripts/bench-rls-framing.ts`
+    mede a moldura contra o banco real, com as variantes alternadas. Da máquina do dono
+    (Brasil → Neon `us-east-1`): 1 viagem = **145 ms**; a leitura de hoje = **683 ms**;
+    conexão reservada com GUC de sessão = **579 ms** (−15%, e reintroduz o vazamento entre
+    requisições). **Pipelining não existe neste caminho:** mandar o `set_config` junto com a
+    consulta, inclusive pelo pipelining documentado do postgres.js (array de queries), deu
+    **721 ms** contra 723 ms sequencial — o driver e/ou o proxy do Neon serializam mesmo.
+  - **O número de 130 ms/statement é da máquina de desenvolvimento, não da produção.** O Neon
+    está em `us-east-1` e a Vercel serve de `iad1` (a mesma região): lá a viagem é de poucos
+    milissegundos, e a moldura inteira custa ~10–20 ms, não meio segundo. Os caminhos que
+    cortariam de verdade (função SQL por consulta, ou conexão por usuário com o GUC no pacote
+    de conexão) trocam o construtor de consultas ou a segurança da RLS por isso.
+    **Recomendação: não implementar agora** — decisão do dono registrada na #58.

@@ -1,0 +1,78 @@
+name: E2E
+
+# Workflow **próprio**, e não um job dentro do CI (#57): navegador é a parte instável do
+# pipeline, e uma intermitência do Clerk não pode segurar o merge de código que não é de
+# autenticação. O CI (typecheck · lint · test · build) segue sendo o que gateia PR.
+#
+# **Roda no merge para `main`, não em todo PR.** A instância de desenvolvimento do Clerk tem
+# limite de requisição, e a verificação de dispositivo novo já mudou de comportamento uma vez
+# nesta base — E2E em todo PR gastaria cota e traria vermelho que não é do código. Para rodar
+# antes de mergear, use "Run workflow" (workflow_dispatch) na branch.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  login:
+    name: Login ponta a ponta (Playwright)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Role restrito (`app_rls`): o painel que o teste abre depois do login lê sob RLS.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      # Usado pelo `clerkSetup` para emitir o testing token (ver e2e/global-setup.ts).
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      E2E_CLERK_EMAIL: ${{ secrets.E2E_CLERK_EMAIL }}
+      E2E_CLERK_PASSWORD: ${{ secrets.E2E_CLERK_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # Falta de segredo **falha**, não pula: sem as chaves os specs se auto-pulam e o
+      # workflow ficaria verde sem ter aberto navegador nenhum — que é exatamente a armadilha
+      # já registrada em `playwright.config.ts`. Verde aqui tem de significar "o login passou".
+      - name: Conferir segredos
+        run: |
+          faltando=0
+          for secret in DATABASE_URL NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY CLERK_SECRET_KEY E2E_CLERK_EMAIL E2E_CLERK_PASSWORD; do
+            if [ -z "${!secret}" ]; then
+              echo "::error::Secret $secret ausente — configure em Settings → Secrets → Actions."
+              faltando=1
+            fi
+          done
+          exit $faltando
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Instalar o navegador
+        run: npx playwright install --with-deps chromium
+
+      # O `webServer` do Playwright sobe `npm run start`, que precisa do build pronto.
+      - name: Build
+        run: npm run build
+
+      - name: E2E (login → painel)
+        run: npm run test:e2e
+
+      # O relatório só interessa quando quebrou — e aí é o que diz se foi o login ou a
+      # verificação de dispositivo novo.
+      - name: Guardar o relatório da falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
