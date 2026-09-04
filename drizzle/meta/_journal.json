@@ -218,6 +218,13 @@
       "when": 1787450156888,
       "tag": "0030_exotic_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1787450157888,
+      "tag": "9999_sabotagem_temporaria",
+      "breakpoints": true
     }
   ]
 }
