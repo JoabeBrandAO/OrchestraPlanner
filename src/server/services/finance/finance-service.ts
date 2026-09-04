@@ -12,6 +12,7 @@ import {
   type TransactionCategoryRow,
   type TransactionRow,
 } from "@/server/db/schema";
+import { isUniqueViolation } from "@/server/services/shared/unique-violation";
 import { validateTitle } from "@/server/services/shared/validate-title";
 
 import {
@@ -200,6 +201,55 @@ export async function createCategory(
   });
 }
 
+const CATEGORY_DUPLICATE = "Você já tem uma categoria com esse nome nesse sentido.";
+
+/**
+ * Renomear categoria (#63). O nome não está copiado em lugar nenhum — extrato, orçamento e
+ * relatório leem por `join` —, então trocá-lo aqui já muda as três telas.
+ *
+ * O **sentido** não se renomeia junto: virar "entrada" uma categoria com saídas lançadas
+ * deixaria os lançamentos num sentido que a categoria não descreve mais, e nenhuma tela
+ * saberia dizer qual dos dois está certo. Para isso existe criar outra e reclassificar.
+ */
+export async function renameCategory(
+  userId: string,
+  id: string,
+  input: { name: string },
+): Promise<TransactionCategoryRow | null> {
+  const name = validateTitle(input.name);
+  if (!name.ok) throw new Error(name.error);
+
+  try {
+    return await withUserContext(userId, async (tx) => {
+      const [row] = await tx
+        .update(transactionCategories)
+        .set({ name: name.value })
+        .where(eq(transactionCategories.id, id))
+        .returning();
+      return row ?? null;
+    });
+  } catch (error) {
+    // Sem isto o índice único vazaria "duplicate key value violates..." para a tela.
+    if (isUniqueViolation(error)) throw new Error(CATEGORY_DUPLICATE);
+    throw error;
+  }
+}
+
+/**
+ * Remover categoria (#63). **Não apaga lançamento**: a chave estrangeira é
+ * `on delete set null`, e o que estava classificado ali passa a contar como "Sem categoria"
+ * no extrato e no relatório. Apagar o histórico junto com a etiqueta seria perder dinheiro
+ * de vista por causa de uma decisão de organização.
+ *
+ * O orçamento da categoria, esse vai junto (`on delete cascade`): planejado para uma
+ * categoria que não existe mais não é comparável com nada.
+ */
+export async function deleteCategory(userId: string, id: string): Promise<void> {
+  await withUserContext(userId, (tx) =>
+    tx.delete(transactionCategories).where(eq(transactionCategories.id, id)),
+  );
+}
+
 export async function createTransaction(
   userId: string,
   input: TransactionInput,
@@ -228,6 +278,52 @@ export async function createTransaction(
       })
       .returning();
     return row!;
+  });
+}
+
+/**
+ * Editar lançamento (#62). Mesmas validações da criação — o valor continua positivo e o
+ * sinal continua vindo do `direction`, então trocar entrada por saída é trocar **um campo**,
+ * não o número.
+ *
+ * **O `external_id` não entra no `set`, de propósito:** ele é a identidade do lançamento no
+ * arquivo de origem (#55), e corrigir a categoria de algo importado não muda de onde aquilo
+ * veio. Perdê-lo faria a próxima importação do mesmo extrato recriar a linha como se fosse
+ * nova — era exatamente esse o caminho para duplicata quando só existia apagar e relançar.
+ *
+ * Devolve `null` quando não existe: sob RLS, o lançamento de outra pessoa simplesmente não
+ * é alcançado pelo `update`.
+ */
+export async function updateTransaction(
+  userId: string,
+  id: string,
+  input: TransactionInput,
+): Promise<TransactionRow | null> {
+  if (!ISO_DATE.test(input.happenedAt)) throw new Error("Data do lançamento inválida.");
+  validateAmount(input.amountCents);
+
+  return withUserContext(userId, async (tx) => {
+    const [account] = await tx
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(eq(accounts.id, input.accountId));
+    if (!account) throw new Error("Conta não encontrada.");
+
+    const [row] = await tx
+      .update(transactions)
+      .set({
+        accountId: input.accountId,
+        categoryId: input.categoryId ?? null,
+        lifeAreaId: input.lifeAreaId ?? null,
+        happenedAt: input.happenedAt,
+        direction: input.direction,
+        amountCents: input.amountCents,
+        description: input.description?.trim() || null,
+        updatedAt: sql`now()`,
+      })
+      .where(eq(transactions.id, id))
+      .returning();
+    return row ?? null;
   });
 }
 

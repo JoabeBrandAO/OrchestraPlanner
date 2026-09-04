@@ -1,7 +1,9 @@
 "use client";
 
+import type { inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 
+import type { AppRouter } from "@/server/trpc/root";
 import { formatCents, sumCents } from "@/server/services/finance/money";
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
@@ -9,9 +11,12 @@ import { trpc } from "@/trpc/react";
 
 import { ACCOUNT_KINDS, AccountForm } from "./account-form";
 import { BudgetPanel } from "./budget-panel";
+import { CategoriesPanel } from "./categories-panel";
 import { ImportForm } from "./import-form";
 import { ReportPanel } from "./report-panel";
 import { TransactionForm } from "./transaction-form";
+
+type Lancamento = inferRouterOutputs<AppRouter>["finance"]["transactions"][number];
 
 const dateLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
 const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
@@ -36,6 +41,8 @@ export function FinanceManager() {
   const utils = trpc.useUtils();
   const [anchor, setAnchor] = useState(() => new Date());
   const [dialog, setDialog] = useState<"conta" | "lancamento" | "importar" | null>(null);
+  /** Lançamento aberto para edição (#62). Abrir um fecha o "novo", e vice-versa. */
+  const [editando, setEditando] = useState<Lancamento | null>(null);
 
   const range = monthRange(anchor);
   /** `AAAA-MM` da âncora — panorama, orçamento e extrato leem sempre o mesmo mês. */
@@ -55,6 +62,7 @@ export function FinanceManager() {
   };
   const close = () => {
     setDialog(null);
+    setEditando(null);
     return invalidate();
   };
 
@@ -64,6 +72,7 @@ export function FinanceManager() {
 
   const createAccount = trpc.finance.createAccount.useMutation({ onSuccess: close });
   const createTransaction = trpc.finance.createTransaction.useMutation({ onSuccess: close });
+  const updateTransaction = trpc.finance.updateTransaction.useMutation({ onSuccess: close });
   const deleteTransaction = trpc.finance.deleteTransaction.useMutation({ onSuccess: invalidate });
   const deleteAccount = trpc.finance.deleteAccount.useMutation({ onSuccess: invalidate });
 
@@ -179,6 +188,8 @@ export function FinanceManager() {
 
       <BudgetPanel month={month} monthLabel={monthLabel.format(anchor)} />
 
+      <CategoriesPanel />
+
       {/* Extrato do mês */}
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Extrato</h2>
@@ -215,6 +226,17 @@ export function FinanceManager() {
                   >
                     {item.direction === "entrada" ? "+" : "−"} R$ {formatCents(item.amountCents)}
                   </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Editar lançamento de ${dateLabel.format(new Date(`${item.happenedAt}T12:00:00`))}`}
+                    onClick={() => {
+                      setDialog(null);
+                      setEditando(item);
+                    }}
+                  >
+                    Editar
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -272,11 +294,19 @@ export function FinanceManager() {
       </FormDialog>
 
       <FormDialog
-        open={dialog === "lancamento"}
-        onOpenChange={(open) => !open && setDialog(null)}
-        title="Novo lançamento"
+        open={dialog === "lancamento" || editando !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialog(null);
+            setEditando(null);
+          }
+        }}
+        title={editando ? "Editar lançamento" : "Novo lançamento"}
       >
         <TransactionForm
+          // Remontar ao trocar de alvo é o que faz o preenchimento acompanhar o lançamento
+          // — e o que devolve o formulário em branco depois de salvar.
+          key={editando?.id ?? "novo"}
           accounts={contas.map((account) => ({ id: account.id, name: account.name }))}
           categories={(categories.data ?? []).map((category) => ({
             id: category.id,
@@ -285,10 +315,30 @@ export function FinanceManager() {
           }))}
           areas={areas.data ?? []}
           today={iso(new Date())}
-          pending={createTransaction.isPending}
-          error={createTransaction.error?.message}
-          onCancel={() => setDialog(null)}
-          onSubmit={(values) => createTransaction.mutate(values)}
+          initial={
+            editando
+              ? {
+                  accountId: editando.accountId,
+                  happenedAt: editando.happenedAt,
+                  direction: editando.direction,
+                  amountCents: editando.amountCents,
+                  categoryId: editando.categoryId,
+                  lifeAreaId: editando.lifeAreaId,
+                  description: editando.description,
+                }
+              : undefined
+          }
+          pending={editando ? updateTransaction.isPending : createTransaction.isPending}
+          error={editando ? updateTransaction.error?.message : createTransaction.error?.message}
+          onCancel={() => {
+            setDialog(null);
+            setEditando(null);
+          }}
+          onSubmit={(values) =>
+            editando
+              ? updateTransaction.mutate({ id: editando.id, ...values })
+              : createTransaction.mutate(values)
+          }
         />
       </FormDialog>
     </div>

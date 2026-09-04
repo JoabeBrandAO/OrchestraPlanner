@@ -5,6 +5,7 @@ import {
   createCategory,
   createTransaction,
   deleteAccount,
+  deleteCategory,
   deleteTransaction,
   getBudgetOverview,
   getFinanceReport,
@@ -13,7 +14,9 @@ import {
   listCategories,
   listTransactions,
   removeBudget,
+  renameCategory,
   setBudget,
+  updateTransaction,
 } from "@/server/services/finance/finance-service";
 import { TITLE_MAX_LENGTH } from "@/server/services/shared/validate-title";
 
@@ -59,6 +62,15 @@ export const financeRouter = router({
     .input(z.object({ name, direction }))
     .mutation(({ ctx, input }) => createCategory(ctx.userId, input)),
 
+  /** Renomear e remover categoria (#63). O sentido não se edita — ver o serviço. */
+  renameCategory: protectedProcedure
+    .input(z.object({ id: uuid, name }))
+    .mutation(({ ctx, input }) => renameCategory(ctx.userId, input.id, { name: input.name })),
+
+  deleteCategory: protectedProcedure
+    .input(z.object({ id: uuid }))
+    .mutation(({ ctx, input }) => deleteCategory(ctx.userId, input.id)),
+
   transactions: protectedProcedure
     .input(z.object({ from: isoDate, to: isoDate }))
     .query(({ ctx, input }) => listTransactions(ctx.userId, input)),
@@ -76,6 +88,22 @@ export const financeRouter = router({
       }),
     )
     .mutation(({ ctx, input }) => createTransaction(ctx.userId, input)),
+
+  /** Editar lançamento (#62) — mesma entrada da criação; a origem (`external_id`) não muda. */
+  updateTransaction: protectedProcedure
+    .input(
+      z.object({
+        id: uuid,
+        accountId: uuid,
+        happenedAt: isoDate,
+        direction,
+        amountCents,
+        categoryId: uuid.nullish(),
+        lifeAreaId: uuid.nullish(),
+        description: z.string().max(300).nullish(),
+      }),
+    )
+    .mutation(({ ctx, input: { id, ...patch } }) => updateTransaction(ctx.userId, id, patch)),
 
   deleteTransaction: protectedProcedure
     .input(z.object({ id: uuid }))

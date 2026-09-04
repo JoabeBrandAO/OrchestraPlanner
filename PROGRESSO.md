@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-08-22 (2ª sessão)
+## Estado atual — atualizado em 2026-09-03
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -32,6 +32,10 @@
 - **Módulo Financeiro (#20) — COMPLETO:** contas e lançamentos (#52), orçamento por categoria
   (#53), relatórios e panorama (#54) e **importação OFX/CSV com conciliação (#55)**. Dinheiro
   em centavos inteiros; saldo, realizado e agregações todos derivados.
+- **Financeiro — buracos do checkpoint fechados (2026-09-03):** **editar lançamento (#62)**,
+  preservando o `external_id` (reimportar o mesmo extrato continua conciliando em vez de
+  duplicar), e **gerenciar categorias na tela (#63)** — criar, renomear e remover, com o
+  lançamento da categoria removida passando a contar como "Sem categoria".
 - **🏁 Fase 1 (uso pessoal) fechada:** Prioridades & Metas, Agenda, Pessoas & Relacionamentos e
   Financeiro entregues, no ar na Vercel, sob RLS por `user_id`.
 
@@ -41,9 +45,9 @@
   de leitura (statements no banco).
 
 ### 🔄 Fazendo
-- **Nada em andamento.** A Fase 1 fechou com o #55. O que vem depois é decisão do dono:
-  dívida técnica (#57 E2E no CI, #58 moldura da transação) ou começar a **Fase 2** (#21 —
-  SaaS multiusuário + app mobile).
+- **Nada em andamento.** Fase 1 fechada (#55) e os dois achados do checkpoint entregues
+  (#62/#63). O que vem depois é decisão do dono: dívida técnica (#57 E2E no CI, #58 moldura
+  da transação) ou começar a **Fase 2** (#21 — SaaS multiusuário + app mobile).
 - _Nota:_ a divisão "sessão de Visão × sessão Mão-na-massa" das primeiras iterações não vale
   mais — desde 2026-08-15 uma sessão só cuida de docs e código. `PROGRESSO.md` segue sendo o
   terreno comum, com **append** no Histórico.
@@ -63,11 +67,10 @@
   verde**; CI vermelho deixa o PR aberto esperando o dono.
 - **Validação manual da Fase 1 (#64)** — roteiro completo na issue; é o principal ponto de
   controle humano agora que o merge é autônomo.
-- **Achados do checkpoint:** **#62** (editar lançamento — hoje só dá para criar e apagar, e
-  apagar um lançamento importado perde o `external_id`) e **#63** (gerenciar categorias na
-  tela — o serviço cria, a tela não).
-- **Próximo passo é escolha do dono:** dívida técnica (#57/#58), os achados (#62/#63) ou a
-  **Fase 2** (#21 — SaaS + app mobile).
+- ~~**Achados do checkpoint** (#62 editar lançamento, #63 gerenciar categorias)~~ —
+  **entregues em 2026-09-03**.
+- **Próximo passo é escolha do dono:** dívida técnica (#57/#58) ou a **Fase 2** (#21 — SaaS +
+  app mobile). O **#57** segue travado nos segredos do Clerk no GitHub.
 - **Dívidas técnicas registradas:** rodar o E2E no CI (**#57**) e cortar a moldura da
   transação, que hoje é 3 dos 4 statements de toda leitura (**#58**).
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
@@ -518,3 +521,24 @@
     o CI verde, estreando a autonomia acordada. Abertas **#62** (editar lançamento), **#63**
     (gerenciar categorias) e **#64** (validação manual da Fase 1), e comentado em **#57** o que
     exatamente falta do dono para destravá-la.
+- **2026-09-03 — Financeiro: editar lançamento (#62) e gerenciar categorias (#63):**
+  - **A edição existe para não abrir porta para duplicata.** `updateTransaction` deixa o
+    `external_id` **fora do `set`**: a origem do lançamento não muda porque alguém corrigiu a
+    categoria. Antes, o único conserto era apagar e relançar — e o relançado perdia a origem,
+    de modo que a importação seguinte do mesmo extrato o recriava. O teste importa, edita e
+    reimporta: continua dizendo "já existia".
+  - **Mesmas validações da criação**, inclusive o valor positivo: trocar entrada por saída é
+    trocar **um campo**, não o sinal do número. Saldo da conta e realizado do orçamento
+    acompanham a edição porque são derivados — não há coluna espelho para desandar.
+  - **Um formulário só para criar e editar** (`transaction-form.tsx`), com `initial` e reset
+    por `key`, como já era na Agenda. O extrato ganhou "Editar" ao lado de "Remover".
+  - **Categorias na tela** (`categories-panel.tsx` + `category-form.tsx`): criar, renomear e
+    remover. **Renomear não mexe no sentido** — virar "entrada" uma categoria com saídas
+    lançadas deixaria os lançamentos num sentido que ela não descreve mais. Remover não apaga
+    lançamento (`on delete set null`); o orçamento dela, esse vai junto (`on delete cascade`).
+    Nome repetido no mesmo sentido devolve frase do domínio, não o erro do driver; criar o que
+    já existe avisa "já existia" em vez de fingir que nasceu algo.
+  - **Sem migration:** o schema já comportava as duas fatias. A detecção de `23505` virou
+    `shared/unique-violation.ts`, agora usada por Áreas de Vida e Financeiro.
+  - Suíte **461 verdes** (era 446): +9 de integração sob RLS, +6 de componente.
+    typecheck · lint · format · build verdes.
