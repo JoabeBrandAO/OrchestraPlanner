@@ -54,12 +54,9 @@
 
 ### 📋 A fazer (próximo)
 - **Na mão do dono (2026-08-22):**
-  1. **Segredos do Clerk no GitHub** — `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`,
-     `E2E_CLERK_EMAIL`, `E2E_CLERK_PASSWORD`. Hoje o repo só tem `DATABASE_URL`,
-     `MIGRATION_DATABASE_URL` e `VAPID_PRIVATE_KEY`; sem eles o **#57** não sai do lugar — e
-     com merge autônomo, o E2E de login é a única rede que pega regressão de autenticação.
-     **O workflow já existe** (`.github/workflows/e2e.yml`, 2026-09-04) e falha dizendo qual
-     segredo falta: só o cadastro depende do dono.
+  1. ~~**Segredos do Clerk no GitHub**~~ — **feito em 2026-09-04**, com autorização do dono:
+     os 4 valores saíram do `.env` local para Settings → Secrets → Actions, e o **#57 fechou**
+     com o E2E rodando verde no CI. O repo agora tem 7 segredos.
   2. **Validação manual** do Financeiro (#52/#53), dos vínculos e convívio de Pessoas e das
      exceções e lembretes da Agenda. Cada fatia nova se empilha na anterior.
   3. ~~Deploy na Vercel~~ — **já feito**: a produção roda desde 2026-08-15 e o PR #59 gerou
@@ -71,10 +68,11 @@
   controle humano agora que o merge é autônomo.
 - ~~**Achados do checkpoint** (#62 editar lançamento, #63 gerenciar categorias)~~ —
   **entregues em 2026-09-03**.
-- **Próximo passo é escolha do dono:** dívida técnica (#57/#58) ou a **Fase 2** (#21 — SaaS +
-  app mobile). O **#57** segue travado nos segredos do Clerk no GitHub.
-- **Dívidas técnicas registradas:** rodar o E2E no CI (**#57**) e cortar a moldura da
-  transação, que hoje é 3 dos 4 statements de toda leitura (**#58**).
+- **Próximo passo é escolha do dono:** a **validação manual (#64)** e depois a **Fase 2**
+  (#21 — SaaS + app mobile). De dívida técnica sobra só a #58, deixada aberta com número.
+- **Dívidas técnicas:** ~~rodar o E2E no CI (#57)~~ **feito**; cortar a moldura da transação
+  (**#58**) segue aberta **de propósito**, com a medição anexada — o ganho real em produção é
+  de ~10–20 ms, e os caminhos restantes custam manutenção ou segurança demais.
 - Épicos seguintes: Pessoas & Relacionamentos (#19), Financeiro (#20), Fase 2/3 (#21/#22).
 
 ---
@@ -566,3 +564,11 @@
     cortariam de verdade (função SQL por consulta, ou conexão por usuário com o GUC no pacote
     de conexão) trocam o construtor de consultas ou a segurança da RLS por isso.
     **Recomendação: não implementar agora** — decisão do dono registrada na #58.
+  - **#57 fechada no mesmo dia:** com autorização do dono, os 4 segredos do Clerk foram
+    cadastrados a partir do `.env` local (`gh secret set`, valores por stdin — nunca em linha
+    de comando nem em log) e o workflow rodou **verde de verdade** no CI:
+    [run 33866451603](https://github.com/JoabeBrandAO/OrchestraPlanner/actions/runs/33866451603),
+    `2 passed (11.4s)`. A execução anterior, sem segredos, havia falhado em 9 s nomeando os
+    que faltavam — a prova de que verde aqui significa "o login passou".
+  - **Sobra da Fase 1:** só a **validação manual (#64)**, que é do dono por definição, e a
+    **#58**, aberta com a medição.
