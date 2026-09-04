@@ -60,6 +60,13 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **Idempotência de escrita concorrente é do banco**, não de um `if`. Ler "já existe?" e
   só então inserir é *check-then-act*: em READ COMMITTED duas transações passam as duas
   pela checagem. Use índice único + `on conflict do nothing` (ver `docs/ERROS.md` 2026-08-13).
+- **Editar não reescreve a identidade de origem.** O campo que diz de onde o registro veio
+  (`transactions.external_id`, #55) fica **fora do `set`** do update: corrigir a categoria de
+  algo importado não muda a origem, e perdê-la faz a importação seguinte recriar a linha como
+  nova. Onde só existe criar e apagar, "corrigir" vira apagar-e-relançar — que é justamente
+  como se perde a identidade e se abre caminho para duplicata (#62).
+- **Detectar `23505` é uma implementação só** (`shared/unique-violation.ts`): a tradução para
+  a frase do domínio é de quem chama, porque só quem chama sabe qual índice único falou.
 - **Erro do driver não vaza para a tela:** traduza o `23505` para uma frase do domínio,
   percorrendo a cadeia de `cause` — o Drizzle embrulha o erro e o `code` não está no topo.
 - **Comparação de data em query** usa os helpers do Drizzle (`gt`/`gte`/`lt`), nunca o
@@ -153,3 +160,5 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - **2026-08-15 (cont.)** — correção do formulário: campos não controlados com regras puras,
   formulário em branco depois de salvar e orçamento de commits testado (primeiros testes de
   componente do repo — jsdom + Testing Library).
+- **2026-09-03** — edição de lançamento e de categoria: identidade de origem preservada no
+  update e detecção de unicidade compartilhada entre os serviços.

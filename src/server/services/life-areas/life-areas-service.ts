@@ -2,6 +2,7 @@ import { asc, eq, sql } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import { lifeAreas, type LifeArea } from "@/server/db/schema";
+import { isUniqueViolation } from "@/server/services/shared/unique-violation";
 
 import { DEFAULT_LIFE_AREAS, type LifeDimension } from "./default-areas";
 
@@ -47,19 +48,6 @@ export type CreateLifeAreaInput = {
   position?: number;
 };
 
-/**
- * Violação de unicidade do Postgres (23505) — aqui só pode ser o nome de área repetido.
- * Percorre a cadeia de `cause` porque o Drizzle embrulha o erro do driver num
- * `DrizzleQueryError`: o `code` do Postgres não está no topo.
- */
-function isDuplicateName(error: unknown): boolean {
-  for (let current = error; current != null; current = (current as { cause?: unknown }).cause) {
-    if (typeof current !== "object") return false;
-    if ("code" in current && (current as { code?: string }).code === "23505") return true;
-  }
-  return false;
-}
-
 const DUPLICATE_MESSAGE = "Você já tem uma área de vida com esse nome.";
 
 export async function createLifeArea(
@@ -76,7 +64,7 @@ export async function createLifeArea(
     });
   } catch (error) {
     // Sem isto o índice único vazaria "duplicate key value violates..." para a tela.
-    if (isDuplicateName(error)) throw new Error(DUPLICATE_MESSAGE);
+    if (isUniqueViolation(error)) throw new Error(DUPLICATE_MESSAGE);
     throw error;
   }
 }
@@ -99,7 +87,7 @@ export async function updateLifeArea(
       return row ?? null;
     });
   } catch (error) {
-    if (isDuplicateName(error)) throw new Error(DUPLICATE_MESSAGE);
+    if (isUniqueViolation(error)) throw new Error(DUPLICATE_MESSAGE);
     throw error;
   }
 }

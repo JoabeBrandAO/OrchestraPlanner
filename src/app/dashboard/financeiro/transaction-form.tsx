@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { parseAmount } from "@/server/services/finance/money";
+import { formatCents, parseAmount } from "@/server/services/finance/money";
 import { Button } from "@/components/ui/button";
 import { fieldValue } from "@/lib/form";
 
@@ -29,6 +29,8 @@ type Props = {
   categories: CategoryOption[];
   areas: Option[];
   today: string;
+  /** Retrato do lançamento quando se está **editando**. Quem cria não passa nada. */
+  initial?: TransactionFormValues;
   pending: boolean;
   error?: string | null;
   onSubmit: (values: TransactionFormValues) => void;
@@ -36,7 +38,9 @@ type Props = {
 };
 
 /**
- * Novo lançamento (#52).
+ * Lançamento (#52) — o **mesmo** formulário para criar e para editar (#62). O que muda entre
+ * os dois é o preenchimento inicial e o que o container faz no `onSubmit`; o container troca
+ * a `key` ao trocar de alvo, e remontar é o que devolve o formulário em branco.
  *
  * O **tipo decide o sinal** e decide as categorias que fazem sentido, então ele é a única
  * coisa que precisa de estado aqui: trocar de "saída" para "entrada" tem que trocar a lista
@@ -50,13 +54,15 @@ export function TransactionForm({
   categories,
   areas,
   today,
+  initial,
   pending,
   error,
   onSubmit,
   onCancel,
 }: Props) {
-  const [direction, setDirection] = useState<Direction>("saida");
-  const [canSubmit, setCanSubmit] = useState(false);
+  const [direction, setDirection] = useState<Direction>(initial?.direction ?? "saida");
+  // Editando, o que veio do servidor já é válido — o botão não começa desligado.
+  const [canSubmit, setCanSubmit] = useState(initial !== undefined);
 
   const doTipo = categories.filter((category) => category.direction === direction);
 
@@ -113,6 +119,7 @@ export function TransactionForm({
             placeholder="0,00"
             aria-label="Valor"
             inputMode="decimal"
+            defaultValue={initial ? formatCents(initial.amountCents) : ""}
           />
         </label>
         <label className="text-muted-foreground flex flex-col gap-1 text-xs">
@@ -122,7 +129,7 @@ export function TransactionForm({
             type="date"
             className={inputClass}
             aria-label="Data do lançamento"
-            defaultValue={today}
+            defaultValue={initial?.happenedAt ?? today}
           />
         </label>
       </div>
@@ -130,7 +137,12 @@ export function TransactionForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-muted-foreground flex flex-col gap-1 text-xs">
           Conta
-          <select name="accountId" className={inputClass} aria-label="Conta">
+          <select
+            name="accountId"
+            className={inputClass}
+            aria-label="Conta"
+            defaultValue={initial?.accountId}
+          >
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name}
@@ -140,7 +152,7 @@ export function TransactionForm({
         </label>
         <label className="text-muted-foreground flex flex-col gap-1 text-xs">
           Categoria
-          <select name="categoryId" className={inputClass} defaultValue="">
+          <select name="categoryId" className={inputClass} defaultValue={initial?.categoryId ?? ""}>
             <option value="">{doTipo.length > 0 ? "Sem categoria" : "Nenhuma ainda"}</option>
             {doTipo.map((category) => (
               <option key={category.id} value={category.id}>
@@ -154,7 +166,7 @@ export function TransactionForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-muted-foreground flex flex-col gap-1 text-xs">
           Área de vida
-          <select name="lifeAreaId" className={inputClass} defaultValue="">
+          <select name="lifeAreaId" className={inputClass} defaultValue={initial?.lifeAreaId ?? ""}>
             <option value="">Sem área</option>
             {areas.map((area) => (
               <option key={area.id} value={area.id}>
@@ -171,13 +183,22 @@ export function TransactionForm({
             placeholder="opcional"
             aria-label="Descrição"
             maxLength={300}
+            defaultValue={initial?.description ?? ""}
           />
         </label>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={!canSubmit || pending}>
-          {pending ? "Lançando…" : direction === "saida" ? "Lançar saída" : "Lançar entrada"}
+          {initial
+            ? pending
+              ? "Salvando…"
+              : "Salvar"
+            : pending
+              ? "Lançando…"
+              : direction === "saida"
+                ? "Lançar saída"
+                : "Lançar entrada"}
         </Button>
         <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
           Cancelar

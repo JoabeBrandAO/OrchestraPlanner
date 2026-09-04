@@ -15,7 +15,7 @@ const categories = [
 ];
 const areas = [{ id: "area-1", name: "Finanças" }];
 
-function renderForm() {
+function renderForm(initial?: TransactionFormValues) {
   const submetidos: TransactionFormValues[] = [];
 
   render(
@@ -24,6 +24,7 @@ function renderForm() {
       categories={categories}
       areas={areas}
       today="2026-08-15"
+      initial={initial}
       pending={false}
       onSubmit={(values) => submetidos.push(values)}
       onCancel={() => {}}
@@ -32,6 +33,17 @@ function renderForm() {
 
   return { submetidos };
 }
+
+/** Lançamento importado que ficou sem categoria — o caso que motivou o #62. */
+const importado: TransactionFormValues = {
+  accountId: "acc-1",
+  happenedAt: "2026-08-05",
+  direction: "saida",
+  amountCents: 123456,
+  categoryId: null,
+  lifeAreaId: null,
+  description: "SUPERMERCADO SAO JOAO",
+};
 
 const campo = {
   valor: () => screen.getByLabelText("Valor") as HTMLInputElement,
@@ -109,5 +121,37 @@ describe("TransactionForm", () => {
     expect(form.submetidos[0]!.categoryId).toBeNull();
     expect(form.submetidos[0]!.lifeAreaId).toBeNull();
     expect(form.submetidos[0]!.description).toBeNull();
+  });
+
+  describe("editando (#62)", () => {
+    const salvar = () => screen.getByRole("button", { name: "Salvar" }) as HTMLButtonElement;
+
+    it("preenche os campos com o lançamento e já pode salvar", () => {
+      renderForm(importado);
+
+      expect(campo.valor().value).toBe("1.234,56");
+      expect(campo.data().value).toBe("2026-08-05");
+      expect(screen.getByRole("button", { name: "Saída" }).getAttribute("aria-pressed")).toBe(
+        "true",
+      );
+      expect((screen.getByLabelText("Descrição") as HTMLInputElement).value).toBe(
+        "SUPERMERCADO SAO JOAO",
+      );
+      // Nada a corrigir ainda: o que veio do servidor já é válido.
+      expect(salvar().disabled).toBe(false);
+    });
+
+    it("classificar o importado devolve o resto intacto", () => {
+      // É o conserto que faltava: sem ele, só dava para apagar e relançar — perdendo a origem.
+      const form = renderForm(importado);
+
+      fireEvent.change(campo.categoria(), { target: { value: "cat-2" } });
+      fireEvent.click(salvar());
+
+      expect(form.submetidos[0]).toEqual({
+        ...importado,
+        categoryId: "cat-2",
+      });
+    });
   });
 });
