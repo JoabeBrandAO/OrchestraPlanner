@@ -602,3 +602,10 @@
     valia para quem administra — o push direto de teste **passou** e deixou dois commits vazios
     no histórico. Com `enforce_admins: true`, a segunda tentativa foi recusada
     (`GH006 ... Changes must be made through a pull request`). Registrado em `docs/ERROS.md`.
+  - **Checkpoint da sessão** (log completo em
+    [docs/sessions/2026-09-04-auditoria-e-consertos.md](docs/sessions/2026-09-04-auditoria-e-consertos.md)):
+    7 PRs mergeados (#65, #66, #67, #78, #80, #81, #89), 7 issues fechadas (#62, #63, #57, #68,
+    #69, #70, #71) e 12 abertas (#68–#77 da auditoria, #91 e #92 de seguimento). A **auditoria
+    completa** — 24 achados com evidência — está em
+    <https://claude.ai/code/artifact/db9061d5-904c-48a3-a4a8-65e18412d5d4>.
+
