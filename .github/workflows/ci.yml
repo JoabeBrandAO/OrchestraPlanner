@@ -50,6 +50,17 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # Falha alta em dependência de produção para o pipeline (#69). Sem este passo, a
+      # única forma de uma correção de segurança chegar aqui era alguém lembrar de rodar
+      # `npm audit` — e a auditoria de 2026-09-04 achou 10 falhas altas acumuladas.
+      #
+      # Dev-only fica de fora: `esbuild`/`drizzle-kit` não vão para produção, e barrar por
+      # elas treinaria todo mundo a ignorar o passo. Se um dia aparecer uma alta **sem
+      # correção disponível**, a saída é uma decisão explícita (issue + exceção com prazo),
+      # nunca baixar o nível em silêncio.
+      - name: Auditar dependências de produção
+        run: npm audit --omit=dev --audit-level=high
+
       # A arquitetura de dois roles (docs/SETUP.md) reproduzida aqui: a app conecta como
       # `app_rls`, **sem BYPASSRLS**, senão a RLS passaria furada em silêncio e o teste
       # provaria o contrário do que promete (docs/ERROS.md 2026-06-20).
