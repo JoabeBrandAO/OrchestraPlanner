@@ -5,7 +5,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-09-04
+## Estado atual — atualizado em 2026-09-04 (2ª sessão)
 
 ### ✅ Feito
 - Brief do produto completo (o quê/porquê, para quem, onde, prazos 60/60/60, métrica de sucesso) — [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md).
@@ -70,6 +70,11 @@
   **entregues em 2026-09-03**.
 - **Próximo passo é escolha do dono:** a **validação manual (#64)** e depois a **Fase 2**
   (#21 — SaaS + app mobile). De dívida técnica sobra só a #58, deixada aberta com número.
+- **Auditoria de 2026-09-04:** 24 achados, 10 issues abertas (**#68–#77**). Fechados no mesmo
+  dia: **#68** (testes de banco no CI), **#69** (dependências e Dependabot), **#70** (proteção
+  da `main`) e **#71** (TLS e cabeçalhos). Abertos: #72 fuso horário, #73 webhooks do Clerk,
+  #74 exportar/apagar conta (LGPD), #75 rate limiting, #76 erros e observabilidade,
+  #77 higiene.
 - **Dívidas técnicas:** ~~rodar o E2E no CI (#57)~~ **feito**; cortar a moldura da transação
   (**#58**) segue aberta **de propósito**, com a medição anexada — o ganho real em produção é
   de ~10–20 ms, e os caminhos restantes custam manutenção ou segurança demais.
@@ -572,3 +577,28 @@
     que faltavam — a prova de que verde aqui significa "o login passou".
   - **Sobra da Fase 1:** só a **validação manual (#64)**, que é do dono por definição, e a
     **#58**, aberta com a medição.
+- **2026-09-04 (cont.) — Auditoria e os quatro primeiros consertos (#68, #69, #70, #71):**
+  - **O CI não provava nada do que mais importa.** 158 dos 461 casos eram pulados por falta de
+    `DATABASE_URL` — inclusive **toda** a suíte de isolamento por usuário. Agora o job sobe um
+    Postgres de serviço, cria o `app_rls` **sem BYPASSRLS** (como em produção) e aplica as
+    migrations: **461 verdes, zero pulados, em 10 s** (contra 158 s indo até o Neon).
+    O critério de aceite foi verificado sabotando de propósito: uma migration desligando a RLS
+    de `users` deixou o CI **vermelho** em `rls.test.ts` ("usuário A só enxerga a própria
+    linha: expected 1, got 2"), e a branch foi descartada sem merge.
+  - **Dependências: 13 falhas (10 altas) → 0 em produção.** O `npm audit fix` não corrigia nada
+    porque o `next` fixado em 16.2.9 segurava a árvore inteira; subir para 16.3.4 destravou o
+    resto. Sobram 4 moderadas só de desenvolvimento. Dependabot semanal agrupando patch e
+    minor, alertas e correções automáticas ligados, e `npm audit --omit=dev --audit-level=high`
+    barrando no CI.
+  - **`sslmode=require` não verifica certificado** — protege contra escuta passiva, não contra
+    quem se apresente como o banco. Trocado por `verify-full`, com a suíte de RLS contra o Neon
+    verde sem mais nenhuma mudança. `channel_binding` ficou de fora de propósito (o postgres.js
+    o repassaria no pacote de conexão e o servidor recusaria). **Falta o dono trocar isso nas
+    variáveis da Vercel.**
+  - **Cabeçalhos de segurança** onde não havia nenhum: HSTS, `nosniff`, `Referrer-Policy`,
+    `X-Frame-Options`, `Permissions-Policy`, sem `X-Powered-By`, e **CSP em Report-Only** —
+    obrigatória às cegas quebraria o login, porque o Clerk carrega script de terceiro.
+  - **`main` protegida**, e a lição que veio junto: com `enforce_admins: false` a proteção não
+    valia para quem administra — o push direto de teste **passou** e deixou dois commits vazios
+    no histórico. Com `enforce_admins: true`, a segunda tentativa foi recusada
+    (`GH006 ... Changes must be made through a pull request`). Registrado em `docs/ERROS.md`.
