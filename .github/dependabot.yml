@@ -1,0 +1,35 @@
+version: 2
+
+# Atualização de dependências (#69). Antes disto, a única forma de uma correção de
+# segurança chegar aqui era alguém lembrar de rodar `npm audit` — e ninguém lembrava:
+# a auditoria de 2026-09-04 encontrou 13 falhas em dependências de produção, 10 delas altas.
+#
+# Com merge autônomo e CI verde exigido, um PR de patch entra sozinho; o que exigir decisão
+# (major, ou minor que quebre a suíte) fica aberto esperando o dono.
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    labels: ["ci", "security"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Patch e minor num PR só: dez PRs por semana viram ruído, e ruído não se lê.
+      # Major vem separado, porque cada um é uma decisão.
+      rotina:
+        patterns: ["*"]
+        update-types: ["patch", "minor"]
+
+  # As actions dos workflows também são dependência — e rodam com acesso aos segredos.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels: ["ci"]
+    commit-message:
+      prefix: "chore(ci)"
