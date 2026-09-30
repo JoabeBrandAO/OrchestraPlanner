@@ -34,7 +34,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    // `dynamic`: o Clerk lê o nonce da CSP (#92) a cada requisição e o aplica nos próprios
+    // scripts. O custo é não haver página estática — num app autenticado, quase não havia.
+    <ClerkProvider dynamic>
       <html
         lang="pt-BR"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
