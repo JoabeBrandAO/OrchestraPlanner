@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import { users } from "@/server/db/schema";
+import { DomainError } from "@/server/services/shared/domain-error";
 
 import { deleteUserData } from "./provisioning";
 
@@ -64,7 +65,7 @@ export async function deleteAccount(
   deleteIdentity: (userId: string) => Promise<void>,
 ): Promise<void> {
   if (confirmation.trim() !== DELETE_CONFIRMATION) {
-    throw new Error(`Para apagar a conta, digite ${DELETE_CONFIRMATION}.`);
+    throw new DomainError(`Para apagar a conta, digite ${DELETE_CONFIRMATION}.`);
   }
   await deleteUserData(userId);
   await deleteIdentity(userId);

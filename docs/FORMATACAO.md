@@ -137,6 +137,14 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
 - Tabelas alinhadas por pipe; blocos de código com linguagem declarada.
 - Links relativos entre docs do repo (ex.: `[VISAO](VISAO-DO-PRODUTO.md)`).
 
+### Erros e logs (#76)
+- Serviço **nunca** lança `Error` puro: entrada inválida é `DomainError` (vira 400), registro
+  inexistente é `NotFoundError` (vira 404), ambos de `shared/domain-error.ts`. `Error` puro que
+  chega à borda é tratado como falha do sistema (500) e gera linha `trpc_error`.
+- Log é JSON numa linha, pela borda do tRPC (`trpc/observe.ts`): rota, `userId`, duração, código.
+  **Nunca** entrada da chamada, descrição, valor ou dado de pessoa — nem a mensagem de erro
+  inesperado, que pode citar valor de coluna.
+
 ### Commits
 - **Conventional Commits**: `tipo(escopo): assunto` no imperativo, ≤72 caracteres.
 - Corpo explica **o quê e o porquê**; rodapé referencia issues e id de sessão.
@@ -162,3 +170,4 @@ Tailwind v4 + shadcn/ui (base-ui). O hook `PostToolUse` formata os arquivos edit
   componente do repo — jsdom + Testing Library).
 - **2026-09-03** — edição de lançamento e de categoria: identidade de origem preservada no
   update e detecção de unicidade compartilhada entre os serviços.
+- **2026-09-30** — erros de domínio tipados (400/404 na borda) e log estruturado sem dado pessoal (#76).

@@ -8,14 +8,35 @@ import {
 } from "@/server/services/rate-limit/rate-limit";
 
 import type { TRPCContext } from "./context";
+import { logEvent, translate } from "./observe";
 
 const t = initTRPC.context<TRPCContext>().create({ transformer: superjson });
 
 export const router = t.router;
 export const createCallerFactory = t.createCallerFactory;
 
+/**
+ * Borda de toda chamada (#76): traduz erro de domínio para 400/404 e deixa rastro — uma linha
+ * por mutação (quem, qual rota, quanto tempo) e uma por erro. Consultas bem-sucedidas não são
+ * registradas: são a maior parte do tráfego e não contam história.
+ */
+const observe = t.middleware(async ({ ctx, path, type, next }) => {
+  const started = performance.now();
+  const result = await next();
+  const call = { path, type, userId: ctx.userId, ms: Math.round(performance.now() - started) };
+
+  if (result.ok) {
+    if (type === "mutation") logEvent("info", { event: "trpc", ...call, ok: true });
+    return result;
+  }
+
+  const translated = translate(result.error, call);
+  if (translated) throw translated;
+  return result;
+});
+
 /** Procedure pública (sem exigir autenticação). */
-export const publicProcedure = t.procedure;
+export const publicProcedure = t.procedure.use(observe);
 
 /** Garante que há `userId`; caso contrário, 401. Estreita o tipo para `string`. */
 const enforceAuth = t.middleware(({ ctx, next }) => {
@@ -26,7 +47,7 @@ const enforceAuth = t.middleware(({ ctx, next }) => {
 });
 
 /** Procedure autenticada: `ctx.userId` é garantidamente `string`. */
-export const protectedProcedure = t.procedure.use(enforceAuth);
+export const protectedProcedure = publicProcedure.use(enforceAuth);
 
 /**
  * Procedure autenticada **com teto de chamadas** por usuário (#75). A chamada acima do teto é

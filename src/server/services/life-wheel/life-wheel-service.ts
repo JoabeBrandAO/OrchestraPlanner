@@ -2,6 +2,7 @@ import { asc, desc, eq } from "drizzle-orm";
 
 import { withUserContext, type Tx } from "@/server/db/rls";
 import { lifeAreas, lifeAssessments } from "@/server/db/schema";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import { suggestFocusAreas, validateScore, wheelAverage, type WheelScore } from "./wheel";
 
@@ -75,11 +76,11 @@ async function readRound(tx: Tx, assessedAt: Date): Promise<Wheel | null> {
  * existem sob RLS: o insert falharia na FK, então a checagem explícita dá o erro legível.
  */
 export async function saveAssessment(userId: string, input: SaveAssessmentInput): Promise<Wheel> {
-  if (input.scores.length === 0) throw new Error("Avalie ao menos uma área.");
+  if (input.scores.length === 0) throw new DomainError("Avalie ao menos uma área.");
 
   for (const entry of input.scores) {
     const score = validateScore(entry.score);
-    if (!score.ok) throw new Error(score.error);
+    if (!score.ok) throw new DomainError(score.error);
   }
 
   const assessedAt = input.assessedAt ?? new Date();
@@ -88,7 +89,7 @@ export async function saveAssessment(userId: string, input: SaveAssessmentInput)
     const owned = await tx.select({ id: lifeAreas.id }).from(lifeAreas);
     const ownedIds = new Set(owned.map((area) => area.id));
     for (const entry of input.scores) {
-      if (!ownedIds.has(entry.lifeAreaId)) throw new Error("Área de vida não encontrada.");
+      if (!ownedIds.has(entry.lifeAreaId)) throw new NotFoundError("Área de vida não encontrada.");
     }
 
     await tx.insert(lifeAssessments).values(

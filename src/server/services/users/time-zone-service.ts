@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { withUserContext } from "@/server/db/rls";
 import { users } from "@/server/db/schema";
 import { isValidTimeZone } from "@/server/services/shared/time-zone";
+import { DomainError } from "@/server/services/shared/domain-error";
 
 /**
  * Fuso do usuário (#72). Guardado em `users.time_zone`; nulo significa "nunca definido".
@@ -18,7 +19,7 @@ export async function getTimeZone(userId: string): Promise<string | null> {
 }
 
 function assertTimeZone(timeZone: string): void {
-  if (!isValidTimeZone(timeZone)) throw new Error("Fuso horário desconhecido.");
+  if (!isValidTimeZone(timeZone)) throw new DomainError("Fuso horário desconhecido.");
 }
 
 /** Troca o fuso — é a escolha explícita na tela, então vale sempre. */

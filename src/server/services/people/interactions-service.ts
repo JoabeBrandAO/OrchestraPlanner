@@ -2,6 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 
 import { withUserContext, type Tx } from "@/server/db/rls";
 import { interactions, people, type InteractionRow } from "@/server/db/schema";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 /**
  * Interações — o acompanhamento do convívio (#43). Recebe `userId` e roda sob
@@ -48,11 +49,11 @@ export async function addInteraction(
   personId: string,
   input: InteractionInput,
 ): Promise<InteractionsSnapshot> {
-  if (!ISO_DATE.test(input.happenedAt)) throw new Error("Data da interação inválida.");
+  if (!ISO_DATE.test(input.happenedAt)) throw new DomainError("Data da interação inválida.");
 
   return withUserContext(userId, async (tx) => {
     const [person] = await tx.select({ id: people.id }).from(people).where(eq(people.id, personId));
-    if (!person) throw new Error("Pessoa não encontrada.");
+    if (!person) throw new NotFoundError("Pessoa não encontrada.");
 
     await tx.insert(interactions).values({
       userId,

@@ -1,3 +1,5 @@
+import { DomainError } from "@/server/services/shared/domain-error";
+
 import { isMonth, monthOf, type Month } from "./budget";
 import { type Cents } from "./money";
 
@@ -51,7 +53,7 @@ export function currentMonth(now: Date): Month {
 
 /** O mês anterior. Janeiro volta para dezembro do ano passado — o caso que quebra `-1`. */
 export function previousMonth(month: Month): Month {
-  if (!isMonth(month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(month)) throw new DomainError("Mês inválido (use AAAA-MM).");
 
   const [year, index] = month.split("-").map(Number) as [number, number];
   return index === 1 ? `${year - 1}-12` : `${year}-${String(index - 1).padStart(2, "0")}`;
@@ -131,7 +133,7 @@ export function buildReport(input: {
   /** Quantos meses a evolução mostra, terminando no mês do relatório. */
   months: number;
 }): FinanceReport {
-  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(input.month)) throw new DomainError("Mês inválido (use AAAA-MM).");
 
   const doMes = input.transactions.filter((item) => monthOf(item.happenedAt) === input.month);
 
