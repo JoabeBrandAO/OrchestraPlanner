@@ -1,41 +1,59 @@
 # OrchestraPlanner
 
-Sistema de **gestão de vida pessoal** — organiza **metas/prioridades, agenda, finanças e o convívio entre pessoas (relacionamentos)** de forma integrada, sobre o framework **Corpo / Alma / Espírito**.
+Sistema de **gestão de vida pessoal**: metas e prioridades, agenda, finanças e o convívio entre
+pessoas, integrados sobre o framework **Corpo / Alma / Espírito** (12 áreas de vida).
 
-> Status: **planejamento concluído / Iteração 0 não iniciada** (greenfield).
+> **Status:** **Fase 1 completa e em produção** (uso pessoal). Em manutenção. As Fases 2 e 3 estão
+> congeladas no backlog. Estado do dia: [PROGRESSO.md](PROGRESSO.md).
 
-## Visão geral
-- **Para quem:** uso pessoal (cliente = administrador), evoluindo para **SaaS de produtividade pessoal**.
-- **Plataforma:** Web → mobile → desktop (arquitetura **API-first**).
-- **Metodologia:** Extreme Programming (XP) — TDD, fatias verticais, iterações curtas.
+## O que existe hoje
+| Módulo | O que faz |
+|---|---|
+| **Prioridades & Metas** | Áreas de vida, metas com marcos e progresso, Kanban de prioridades com tags, painel e Roda da Vida |
+| **Agenda** | Semana e mês, recorrência guardada como regra, exceção numa ocorrência, lembretes por Web Push (PWA) |
+| **Pessoas & Relacionamentos** | Cadastro e contatos, vínculos e círculos, interações ("há quanto tempo não falo"), aniversários na agenda |
+| **Financeiro** | Contas e lançamentos em centavos inteiros, orçamento por categoria, relatórios, importação OFX/CSV com conciliação |
+| **Conta** | Fuso horário, exportar todos os dados (JSON) e apagar a conta (LGPD) |
 
 ## Stack
-**Next.js 15 · tRPC · Drizzle ORM · PostgreSQL (Neon) · Clerk (auth) · shadcn/ui · Vitest + Playwright · Vercel · GitHub Actions**
+**Next.js 16 · React 19 · tRPC 11 · Drizzle ORM · PostgreSQL (Neon) · Clerk · Tailwind 4 + shadcn/ui ·
+Vitest + Playwright · Vercel · GitHub Actions**
 
-Multi-tenant desde o dia 1 por `user_id` + Row-Level Security (sem `organization_id` por ora).
+- **Isolamento por usuário na RLS do Postgres:** toda tabela tem `user_id` com
+  `ENABLE + FORCE ROW LEVEL SECURITY`, e a app conecta com um role **sem** `BYPASSRLS`. O CI prova
+  o isolamento contra um Postgres real.
+- **Segurança:** CSP obrigatória com nonce, HSTS e demais cabeçalhos, teto de chamadas por
+  usuário, Dependabot e `npm audit` barrando o CI. TLS `verify-full` no código e no CI; na
+  Vercel, a troca está pendente (#91).
+- **Regra de domínio pura** (sem banco) ao lado de cada serviço: é ela que os testes exercitam em
+  milissegundos.
 
-## Módulos (ordem)
-1. **Prioridades & Metas** (MVP) — áreas de vida, metas, marcos, Kanban, dashboard, Roda da Vida
-2. **Agenda** — calendário, compromissos, recorrência, lembretes
-3. **Financeiro** — contas, orçamento, relatórios (importação OFX/CSV por último)
-4. **Pessoas & Relacionamentos** — CRM pessoal (contatos, círculos/famílias, interações, aniversários)
+## Rodar local
+```bash
+npm install
+cp .env.example .env      # preencha DATABASE_URL e as chaves do Clerk (docs/SETUP.md)
+npm run db:migrate
+npm run dev
+```
+| Comando | Para quê |
+|---|---|
+| `npm test` | Vitest. Sem `DATABASE_URL`, os testes de integração são pulados |
+| `npm run test:e2e` | Playwright (precisa das chaves do Clerk e do usuário de teste) |
+| `npm run typecheck` · `npm run lint` · `npm run format` | Qualidade |
+| `npm run db:generate` | Gera migration a partir do schema |
+
+Setup completo (Neon, Clerk, Vercel, segredos do CI, webhook): [docs/SETUP.md](docs/SETUP.md).
 
 ## Documentação
-- [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md) — fonte da verdade (visão, arquitetura, modelo de dados, backlog)
-- [PROGRESSO.md](PROGRESSO.md) — diário de bordo (feito / fazendo / a fazer)
-- [SESSION-LOG-2026-06-17.md](SESSION-LOG-2026-06-17.md) — registro da sessão de planejamento
-- [docs/ISSUES.md](docs/ISSUES.md) — backlog de issues
-- [scripts/create-github-issues.ps1](scripts/create-github-issues.ps1) — cria as issues no GitHub via `gh`
+- [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md): visão, decisões, modelo de dados
+- [PROGRESSO.md](PROGRESSO.md): diário de bordo (estado atual)
+- [docs/sessions/](docs/sessions/): registro de cada sessão e o histórico arquivado do diário
+- [docs/ERROS.md](docs/ERROS.md): erros cometidos e a lição de cada um
+- [docs/FORMATACAO.md](docs/FORMATACAO.md): convenções de código e arquitetura
 
-## Como começar (Iteração 0)
-Ver checklist em [VISAO-DO-PRODUTO.md](VISAO-DO-PRODUTO.md#checklist-da-iteração-0) e as issues de setup em [docs/ISSUES.md](docs/ISSUES.md).
-
-## Roadmap (60 / 60 / 60 dias)
-| Fase | Janela | Entrega |
+## Roadmap
+| Fase | Entrega | Situação |
 |---|---|---|
-| 1 | 0–60 d | App web pessoal (Metas → Agenda → Financeiro → Pessoas) |
-| 2 | 60–120 d | Público (SaaS) + app mobile |
-| 3 | 120–180 d | Desktop |
-
----
-_Roadmap, decisões e bases conceituais detalhados nos documentos acima._
+| 1 | App web pessoal (Metas → Agenda → Pessoas → Financeiro) | ✅ Completa (2026-08-22) e auditada (2026-09-30) |
+| 2 | Público (SaaS multiusuário) + app mobile | 🧊 Congelada (#21) |
+| 3 | Desktop | 🧊 Congelada (#22) |
