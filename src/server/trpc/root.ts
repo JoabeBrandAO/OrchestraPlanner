@@ -1,3 +1,4 @@
+import { accountRouter } from "./routers/account";
 import { circlesRouter } from "./routers/circles";
 import { dashboardRouter } from "./routers/dashboard";
 import { eventsRouter } from "./routers/events";
@@ -16,6 +17,7 @@ import { router } from "./trpc";
 
 export const appRouter = router({
   health: healthRouter,
+  account: accountRouter,
   dashboard: dashboardRouter,
   circles: circlesRouter,
   lifeAreas: lifeAreasRouter,

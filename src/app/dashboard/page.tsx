@@ -5,6 +5,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { ensureUserRecord } from "@/server/users";
 
+import { AccountData } from "./account-data";
 import { FinanceOverview } from "./finance-overview";
 import { GoalsOverview } from "./goals-overview";
 import { HealthStatus } from "./health-status";
@@ -80,6 +81,12 @@ export default async function DashboardPage() {
       <section className="rounded-lg border p-6">
         <h2 className="mb-4 text-lg font-medium">Preferências</h2>
         <TimeZoneSetting />
+      </section>
+
+      {/* Seus dados (#74) — o que é guardado, exportar e apagar a conta. */}
+      <section className="rounded-lg border p-6">
+        <h2 className="mb-4 text-lg font-medium">Seus dados</h2>
+        <AccountData />
       </section>
     </main>
   );
