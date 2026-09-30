@@ -18,6 +18,17 @@ updates:
     labels: ["ci", "security"]
     commit-message:
       prefix: "chore(deps)"
+    # Majors recusadas com motivo (2026-09-30). Tirar daqui quando o motivo cair.
+    ignore:
+      # typescript-eslint não suporta TS 7 (#90).
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # eslint-plugin-react quebra no ESLint 10: `getFilename is not a function` (#87).
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # Os tipos seguem o runtime: produção e CI rodam Node 22 (#86).
+      - dependency-name: "@types/node"
+        versions: [">=23"]
     groups:
       # Patch e minor num PR só: dez PRs por semana viram ruído, e ruído não se lê.
       # Major vem separado, porque cada um é uma decisão.
