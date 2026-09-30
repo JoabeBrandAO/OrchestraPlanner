@@ -26,6 +26,12 @@ export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name"),
+  /**
+   * Fuso IANA do usuário (#72), ex.: "America/Sao_Paulo". Nulo = nunca definido: o navegador
+   * semeia no primeiro acesso, e até lá vale o padrão (`shared/time-zone.ts`). Editável na
+   * tela — quem viaja não fica preso ao fuso do primeiro acesso.
+   */
+  timeZone: text("time_zone"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),

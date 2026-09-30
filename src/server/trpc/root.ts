@@ -11,6 +11,7 @@ import { peopleRouter } from "./routers/people";
 import { prioritiesRouter } from "./routers/priorities";
 import { pushRouter } from "./routers/push";
 import { tagsRouter } from "./routers/tags";
+import { timeZoneRouter } from "./routers/time-zone";
 import { router } from "./trpc";
 
 export const appRouter = router({
@@ -27,6 +28,7 @@ export const appRouter = router({
   priorities: prioritiesRouter,
   push: pushRouter,
   tags: tagsRouter,
+  timeZone: timeZoneRouter,
 });
 
 /** Tipo do router raiz — consumido pelo client tRPC para inferência ponta-a-ponta. */

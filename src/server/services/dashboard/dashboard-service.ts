@@ -1,7 +1,8 @@
 import { asc, desc, eq, isNotNull } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
-import { goalMilestones, goals, lifeAreas } from "@/server/db/schema";
+import { goalMilestones, goals, lifeAreas, users } from "@/server/db/schema";
+import { resolveTimeZone } from "@/server/services/shared/time-zone";
 
 import { summarizeGoals, todayIso, type GoalsSummary } from "./summary";
 
@@ -37,10 +38,10 @@ export async function getGoalsDashboard(
   userId: string,
   options?: { today?: string },
 ): Promise<GoalsDashboard> {
-  const today = options?.today ?? todayIso();
-
   return withUserContext(userId, async (tx) => {
-    const [goalRows, areaRows, recentMilestones] = await Promise.all([
+    const [userRows, goalRows, areaRows, recentMilestones] = await Promise.all([
+      // O "hoje" é o do fuso do usuário (#72), não o do servidor, que roda em UTC.
+      tx.select({ timeZone: users.timeZone }).from(users).where(eq(users.id, userId)),
       tx.select().from(goals),
       tx
         .select({ id: lifeAreas.id, name: lifeAreas.name })
@@ -60,6 +61,7 @@ export async function getGoalsDashboard(
         .limit(ACTIVITY_LIMIT),
     ]);
 
+    const today = options?.today ?? todayIso(new Date(), resolveTimeZone(userRows[0]?.timeZone));
     const summary = summarizeGoals(goalRows, areaRows, today);
 
     const overdue = goalRows

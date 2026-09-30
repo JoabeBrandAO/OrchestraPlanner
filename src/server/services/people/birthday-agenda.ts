@@ -1,3 +1,5 @@
+import { DEFAULT_TIME_ZONE, instantAt } from "@/server/services/shared/time-zone";
+
 import { ageOn, celebrationIn, type Birthday } from "./birthday";
 
 /**
@@ -26,18 +28,17 @@ export type BirthdayOccurrence = {
 };
 
 /**
- * Hora em que o lembrete de aniversário dispara: **8h da manhã** do dia, no fuso do Brasil.
- * Não há "minutos antes" configurável como nos compromissos — aniversário é um dia, não um
- * horário —, então a escolha é uma só e fica aqui, explícita.
- *
- * O deslocamento é fixo (UTC-3): o Brasil não tem horário de verão desde 2019, a mesma
- * premissa já documentada em `events/recurrence.ts`.
+ * Hora em que o lembrete de aniversário dispara: **8h da manhã** do dia, **no fuso do
+ * usuário** (#72). Não há "minutos antes" configurável como nos compromissos — aniversário é
+ * um dia, não um horário —, então a escolha é uma só e fica aqui, explícita.
  */
-const REMINDER_HOUR_UTC = 11;
+const REMINDER_HOUR = 8;
 
-export function birthdayReminderAt(date: Date): Date {
-  return new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), REMINDER_HOUR_UTC, 0, 0, 0),
+export function birthdayReminderAt(date: Date, timeZone: string = DEFAULT_TIME_ZONE): Date {
+  return instantAt(
+    { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() },
+    REMINDER_HOUR,
+    timeZone,
   );
 }
 
