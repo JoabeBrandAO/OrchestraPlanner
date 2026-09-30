@@ -23,33 +23,11 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
 ];
 
-/**
- * Política de conteúdo em **Report-Only**, de propósito.
- *
- * O Clerk carrega script de terceiro (e o desafio anti-bot da Cloudflare), então uma CSP
- * obrigatória escrita às cegas quebraria o login em produção — e login quebrado por
- * cabeçalho é o tipo de falha que só aparece com o usuário na porta. Em Report-Only o
- * navegador **relata** a violação sem bloquear nada; depois de observar o que aparece no
- * console em uso real, ela vira obrigatória (issue de seguimento).
- *
- * `'unsafe-inline'` em `script-src` está aqui porque o Next injeta scripts inline de
- * hidratação; a saída correta é nonce por requisição, e isso entra junto com a promoção
- * para obrigatória.
+/*
+ * A política de conteúdo (CSP) não mora aqui: ela precisa de um **nonce por requisição**, e
+ * cabeçalho estático não tem como carregar isso. Quem a emite é o middleware (`src/middleware.ts`,
+ * #92), já obrigatória.
  */
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://img.clerk.com",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com",
-  "worker-src 'self' blob:",
-  "frame-src https://challenges.cloudflare.com",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-].join("; ");
 
 const nextConfig: NextConfig = {
   // O `X-Powered-By: Next.js` só serve para dizer a um atacante por onde começar.
@@ -59,7 +37,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: [...securityHeaders, { key: "Content-Security-Policy-Report-Only", value: csp }],
+        headers: securityHeaders,
       },
     ];
   },
