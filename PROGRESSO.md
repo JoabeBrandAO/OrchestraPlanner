@@ -27,7 +27,7 @@
 
 ### 📋 A fazer — na mão do dono
 1. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h.
-2. **Webhook do Clerk (#73):** cadastrar o endpoint no Clerk e `CLERK_WEBHOOK_SIGNING_SECRET` na
+2. **Webhook do Clerk (#114):** cadastrar o endpoint no Clerk e `CLERK_WEBHOOK_SIGNING_SECRET` na
    Vercel (passo a passo em `docs/SETUP.md` §4.2). **Até lá, apagar a conta no Clerk não apaga o
    dado.** Apagar pela tela ("Seus dados") já apaga as duas coisas.
 3. **#91 — `sslmode=verify-full`** em `DATABASE_URL` na Vercel. O passo a passo está na issue.
@@ -74,3 +74,6 @@ _Histórico de 2026-06-17 a 2026-09-04:
     corrigido.
   - **Fechamentos:** #58 "não fazer" (a medição mostra ~10–20 ms em produção). #21/#22 congeladas.
     Aberta a #106 (recorrência com fuso).
+  - **Checkpoint:** log em
+    [docs/sessions/2026-09-30-fechamento-fase-1.md](docs/sessions/2026-09-30-fechamento-fase-1.md),
+    três lições em `docs/ERROS.md` e #114 aberta (webhook do Clerk em produção).

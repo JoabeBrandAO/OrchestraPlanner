@@ -107,3 +107,24 @@
 - **Custo:** dois commits vazios ficaram na `main` (`d4a3e1f` e `a20cc6a`), com mensagem dizendo que deveriam ter sido recusados. Não foram removidos porque reescrever o histórico de uma branch pública custa mais do que o ruído que apagam.
 - **Como evitar a recorrência:** (1) configuração de segurança só conta como feita depois de ser **testada do lado de quem ela deveria barrar** — aqui, um push direto de verdade; (2) desconfiar de toda opção que "não vale para administrador" num repositório onde só há administradores.
 
+
+### 2026-09-30 — A causa real dos `_backups/` era o hook global `xlsx_guard.ps1`
+- **Contexto:** issue #77. Havia ~300 arquivos em 30 pastas `_backups/` dentro de `src/`, `e2e/`, `.github/` e `.claude/`.
+- **O que ocorreu:** a entrada de 2026-06-19 tratou o sintoma (excluir `_backups` do tsc/ESLint/Prettier), e os backups continuaram nascendo a cada edição.
+- **Causa raiz:** o hook global `~/.claude/hooks/xlsx_guard.ps1` se descreve como proteção de planilhas, mas para Write/Edit aceitava **qualquer** `file_path`. O filtro `.xlsx` só valia para comandos de shell.
+- **Correção:** o filtro `.xlsx` passou a valer também para Write/Edit (fora do repo). As pastas existentes foram movidas, não apagadas, para `.claude/_backups/legado/`.
+- **Como evitar a recorrência:** ao ver um artefato gerado sozinho, achar **quem** gera (`grep` pelo padrão do nome nos hooks locais e globais) antes de excluir o artefato das ferramentas.
+
+### 2026-09-30 — Teste de integração que só pegaria o defeito entre 21h e meia-noite
+- **Contexto:** #72, primeiro rascunho de `time-zone-service.test.ts`.
+- **O que ocorreu:** o teste "meta com prazo hoje não aparece vencida" usava o relógio real em `America/Sao_Paulo`. Fora da janela 21h–0h, o código antigo (UTC) também passaria. Corrigido antes do commit.
+- **Causa raiz:** o defeito só existe numa faixa do dia, e o teste herdava a hora de quem roda.
+- **Correção:** dois fusos que nunca estão no mesmo dia (`Etc/GMT+12` e `Pacific/Kiritimati`). O mesmo prazo tem de ser "em dia" num e "vencido" no outro, a qualquer hora.
+- **Como evitar a recorrência:** teste de data/fuso ou injeta o "agora" ou usa fusos cuja diferença torna o resultado independente da hora. Nunca depende do relógio de quem roda.
+
+### 2026-09-30 — Sabotagem que quebrou outra coisa não prova o teste
+- **Contexto:** #92, provar que o E2E de CSP detecta violação.
+- **O que ocorreu:** com `connect-src 'none'`, o teste ficou vermelho, mas no **login** (timeout do `waitForURL`), antes de chegar à asserção de violações.
+- **Causa raiz:** a sabotagem bloqueou o Frontend API do Clerk, e a falha veio de outro ponto do fluxo.
+- **Correção:** sabotagem com `img-src 'none'`: o login continua de pé e a asserção falhou listando 4 violações. Sabotagem revertida e nada commitado.
+- **Como evitar a recorrência:** ao sabotar para validar um teste, ler **onde** ele falhou (error-context) e conferir que a falha é na asserção que se quer provar.
