@@ -9,6 +9,7 @@ import { FinanceOverview } from "./finance-overview";
 import { GoalsOverview } from "./goals-overview";
 import { HealthStatus } from "./health-status";
 import { LifeWheelCallout } from "./life-wheel-callout";
+import { TimeZoneSetting } from "./time-zone-setting";
 
 // Área autenticada — sempre dinâmica (depende da sessão Clerk).
 export const dynamic = "force-dynamic";
@@ -73,6 +74,12 @@ export default async function DashboardPage() {
       <section className="rounded-lg border p-6">
         <h2 className="mb-4 text-lg font-medium">Panorama do dinheiro</h2>
         <FinanceOverview />
+      </section>
+
+      {/* Fuso horário (#72) — é dele que sai o "hoje" do painel e dos lembretes. */}
+      <section className="rounded-lg border p-6">
+        <h2 className="mb-4 text-lg font-medium">Preferências</h2>
+        <TimeZoneSetting />
       </section>
     </main>
   );

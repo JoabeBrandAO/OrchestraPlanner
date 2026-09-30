@@ -78,4 +78,10 @@ describe("birthdayReminderAt", () => {
     // Aniversário é um dia, não um horário: a escolha é uma só, e é esta.
     expect(birthdayReminderAt(local(2026, 8, 15)).toISOString()).toBe("2026-08-15T11:00:00.000Z");
   });
+
+  it("segue o fuso do usuário (#72): 8h em Lisboa, no verão, é 7h UTC", () => {
+    expect(birthdayReminderAt(local(2026, 8, 15), "Europe/Lisbon").toISOString()).toBe(
+      "2026-08-15T07:00:00.000Z",
+    );
+  });
 });

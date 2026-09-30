@@ -8,6 +8,8 @@
  * bundle (ver `docs/ERROS.md` 2026-08-11).
  */
 
+import { DEFAULT_TIME_ZONE, dateIn } from "@/server/services/shared/time-zone";
+
 export type SummaryGoalStatus = "ativa" | "pausada" | "completada";
 
 export type SummaryGoal = {
@@ -40,9 +42,13 @@ export type GoalsSummary = {
   byArea: AreaBreakdown[];
 };
 
-/** Data de hoje em "YYYY-MM-DD" — o mesmo formato do `date` do Postgres. */
-export function todayIso(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 10);
+/**
+ * Data de hoje em "YYYY-MM-DD" — o mesmo formato do `date` do Postgres — **no fuso do
+ * usuário** (#72). Com `toISOString()` o "hoje" era o de UTC, e às 21h de Brasília a meta
+ * com prazo para hoje já aparecia vencida.
+ */
+export function todayIso(now: Date = new Date(), timeZone: string = DEFAULT_TIME_ZONE): string {
+  return dateIn(now, timeZone);
 }
 
 /**

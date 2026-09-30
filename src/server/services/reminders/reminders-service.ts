@@ -5,6 +5,8 @@ import { pushSubscriptions, reminderSends, type PushSubscriptionRow } from "@/se
 import { listEventsInRange } from "@/server/services/events/events-service";
 import { birthdayReminderAt } from "@/server/services/people/birthday-agenda";
 import { listBirthdaysInRange } from "@/server/services/people/people-service";
+import { resolveTimeZone } from "@/server/services/shared/time-zone";
+import { getTimeZone } from "@/server/services/users/time-zone-service";
 
 import { dueReminders, type DueReminder } from "./due";
 
@@ -135,8 +137,9 @@ export async function pendingBirthdayReminders(
     to: new Date(window.now.getTime() + DAY_MS),
   });
 
+  const timeZone = resolveTimeZone(await getTimeZone(userId));
   const due = birthdays
-    .map((birthday) => ({ ...birthday, remindAt: birthdayReminderAt(birthday.date) }))
+    .map((birthday) => ({ ...birthday, remindAt: birthdayReminderAt(birthday.date, timeZone) }))
     .filter((birthday) => birthday.remindAt > window.since && birthday.remindAt <= window.now);
   if (due.length === 0) return [];
 

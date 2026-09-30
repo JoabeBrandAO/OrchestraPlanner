@@ -27,12 +27,13 @@ import {
   pendingReminders,
   releaseReminder,
 } from "../src/server/services/reminders/reminders-service";
+import { resolveTimeZone } from "../src/server/services/shared/time-zone";
+import { getTimeZone } from "../src/server/services/users/time-zone-service";
 
-const timeLabel = new Intl.DateTimeFormat("pt-BR", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "America/Sao_Paulo",
-});
+/** "Começa às 19:00" na hora do relógio de quem recebe (#72), não na do servidor. */
+function timeLabel(timeZone: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone });
+}
 
 /** Códigos com que o serviço de push diz "esta inscrição não existe mais". */
 const GONE = [404, 410];
@@ -123,6 +124,8 @@ async function main() {
     const subscriptions = await listSubscriptions(userId);
     if (subscriptions.length === 0) continue;
 
+    const label = timeLabel(resolveTimeZone(await getTimeZone(userId)));
+
     // Aniversários (#44): mesma reserva, mesma entrega. Só o texto muda.
     for (const birthday of birthdays) {
       const claimed = await claimBirthdayReminder(userId, birthday.personId, birthday.remindAt);
@@ -153,7 +156,7 @@ async function main() {
 
       const payload = JSON.stringify({
         title: reminder.title,
-        body: `Começa às ${timeLabel.format(reminder.startsAt)}.`,
+        body: `Começa às ${label.format(reminder.startsAt)}.`,
         url: "/dashboard/agenda",
         tag: `${reminder.eventId}@${reminder.occurrenceStartsAt.getTime()}`,
       });
