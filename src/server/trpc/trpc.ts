@@ -1,6 +1,12 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
+import {
+  hitRateLimit,
+  tooManyMessage,
+  type RateKey,
+} from "@/server/services/rate-limit/rate-limit";
+
 import type { TRPCContext } from "./context";
 
 const t = initTRPC.context<TRPCContext>().create({ transformer: superjson });
@@ -21,3 +27,20 @@ const enforceAuth = t.middleware(({ ctx, next }) => {
 
 /** Procedure autenticada: `ctx.userId` é garantidamente `string`. */
 export const protectedProcedure = t.procedure.use(enforceAuth);
+
+/**
+ * Procedure autenticada **com teto de chamadas** por usuário (#75). A chamada acima do teto é
+ * recusada com 429 e registrada — só `userId` e rota, nunca o conteúdo da chamada.
+ */
+export function rateLimitedProcedure(key: RateKey) {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    const decision = await hitRateLimit(ctx.userId, key);
+    if (!decision.allowed) {
+      console.warn(
+        JSON.stringify({ event: "rate_limited", userId: ctx.userId, key, count: decision.count }),
+      );
+      throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: tooManyMessage(decision.retryAt) });
+    }
+    return next();
+  });
+}

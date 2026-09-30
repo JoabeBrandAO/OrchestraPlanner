@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@/server/auth";
+import { hitRateLimit, tooManyMessage } from "@/server/services/rate-limit/rate-limit";
 import { dateIn, DEFAULT_TIME_ZONE } from "@/server/services/shared/time-zone";
 import { exportUserData } from "@/server/services/users/account";
 
@@ -9,6 +10,13 @@ import { exportUserData } from "@/server/services/users/account";
 export async function GET(): Promise<Response> {
   const userId = await getAuthUserId();
   if (!userId) return new Response("Faça login para exportar seus dados.", { status: 401 });
+
+  // Lê todas as tabelas do usuário: é a leitura mais cara do app (#75).
+  const decision = await hitRateLimit(userId, "account.export");
+  if (!decision.allowed) {
+    console.warn(JSON.stringify({ event: "rate_limited", userId, key: "account.export" }));
+    return new Response(tooManyMessage(decision.retryAt), { status: 429 });
+  }
 
   const data = await exportUserData(userId);
   const day = dateIn(new Date(), DEFAULT_TIME_ZONE);

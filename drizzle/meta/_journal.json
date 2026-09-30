@@ -225,6 +225,20 @@
       "when": 1790784927026,
       "tag": "0031_user_time_zone",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790786593151,
+      "tag": "0032_rate_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790786600555,
+      "tag": "0033_rate_limits_rls",
+      "breakpoints": true
     }
   ]
 }
