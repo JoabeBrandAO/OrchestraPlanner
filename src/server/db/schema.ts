@@ -884,3 +884,22 @@ export const budgets = pgTable(
 );
 
 export type BudgetRow = typeof budgets.$inferSelect;
+
+/**
+ * Teto de chamadas por usuário e por rota (#75). **Uma linha por (usuário, rota)**, com janela
+ * fixa: quando a janela vira, o upsert recomeça a contagem na mesma linha — a tabela não
+ * acumula histórico. Fica no Postgres, e não em memória, porque na Vercel cada instância
+ * teria o próprio contador e o teto viraria "por instância".
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.key] })],
+);

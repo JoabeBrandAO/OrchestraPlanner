@@ -20,7 +20,7 @@ import {
 } from "@/server/services/finance/finance-service";
 import { TITLE_MAX_LENGTH } from "@/server/services/shared/validate-title";
 
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, rateLimitedProcedure, router } from "../trpc";
 
 const uuid = z.string().uuid();
 const name = z.string().trim().min(1, "O nome é obrigatório.").max(TITLE_MAX_LENGTH);
@@ -135,7 +135,7 @@ export const financeRouter = router({
    * (ver `decodeStatement`): o servidor não recebe bytes, e o teto de tamanho existe para
    * um arquivo enorme não virar uma requisição que ninguém consegue cancelar.
    */
-  importStatement: protectedProcedure
+  importStatement: rateLimitedProcedure("finance.importStatement")
     .input(
       z.object({
         accountId: uuid,

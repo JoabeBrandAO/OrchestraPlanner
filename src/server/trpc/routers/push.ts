@@ -6,7 +6,7 @@ import {
   saveSubscription,
 } from "@/server/services/reminders/reminders-service";
 
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, rateLimitedProcedure, router } from "../trpc";
 
 /** Inscrições de Web Push (#36). Router fino: valida a entrada e delega ao serviço. */
 export const pushRouter = router({
@@ -18,7 +18,7 @@ export const pushRouter = router({
       return subscriptions.some((subscription) => subscription.endpoint === input.endpoint);
     }),
 
-  subscribe: protectedProcedure
+  subscribe: rateLimitedProcedure("push.subscribe")
     .input(
       z.object({
         endpoint: z.string().url(),
