@@ -3,6 +3,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { withUserContext } from "@/server/db/rls";
 import { lifeAreas, type LifeArea } from "@/server/db/schema";
 import { isUniqueViolation } from "@/server/services/shared/unique-violation";
+import { DomainError } from "@/server/services/shared/domain-error";
 
 import { DEFAULT_LIFE_AREAS, type LifeDimension } from "./default-areas";
 
@@ -64,7 +65,7 @@ export async function createLifeArea(
     });
   } catch (error) {
     // Sem isto o índice único vazaria "duplicate key value violates..." para a tela.
-    if (isUniqueViolation(error)) throw new Error(DUPLICATE_MESSAGE);
+    if (isUniqueViolation(error)) throw new DomainError(DUPLICATE_MESSAGE);
     throw error;
   }
 }
@@ -87,7 +88,7 @@ export async function updateLifeArea(
       return row ?? null;
     });
   } catch (error) {
-    if (isUniqueViolation(error)) throw new Error(DUPLICATE_MESSAGE);
+    if (isUniqueViolation(error)) throw new DomainError(DUPLICATE_MESSAGE);
     throw error;
   }
 }

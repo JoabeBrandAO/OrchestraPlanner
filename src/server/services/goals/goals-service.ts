@@ -2,6 +2,7 @@ import { desc, eq, type SQL, sql } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import { goals, type Goal } from "@/server/db/schema";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import { canTransition, type GoalStatusValue } from "./goal-status";
 import { validateGoalTitle } from "./validate-goal-title";
@@ -21,7 +22,7 @@ export type CreateGoalInput = {
 /** US-1.1 — cria meta "Ativa". Valida o título (obrigatório, ≤120). */
 export async function createGoal(userId: string, input: CreateGoalInput): Promise<Goal> {
   const title = validateGoalTitle(input.title);
-  if (!title.ok) throw new Error(title.error);
+  if (!title.ok) throw new DomainError(title.error);
 
   return withUserContext(userId, async (tx) => {
     const [row] = await tx
@@ -75,7 +76,7 @@ export async function updateGoal(
   const set: GoalUpdateSet = { updatedAt: sql`now()` };
   if (patch.title !== undefined) {
     const title = validateGoalTitle(patch.title);
-    if (!title.ok) throw new Error(title.error);
+    if (!title.ok) throw new DomainError(title.error);
     set.title = title.value;
   }
   if (patch.description !== undefined) set.description = patch.description;
@@ -97,9 +98,9 @@ export async function changeGoalStatus(
 ): Promise<Goal> {
   return withUserContext(userId, async (tx) => {
     const [current] = await tx.select({ status: goals.status }).from(goals).where(eq(goals.id, id));
-    if (!current) throw new Error("Meta não encontrada.");
+    if (!current) throw new NotFoundError("Meta não encontrada.");
     if (!canTransition(current.status, to)) {
-      throw new Error(`Transição de status inválida: ${current.status} → ${to}.`);
+      throw new DomainError(`Transição de status inválida: ${current.status} → ${to}.`);
     }
 
     const [row] = await tx

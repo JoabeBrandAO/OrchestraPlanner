@@ -9,6 +9,7 @@ import {
   type PersonRow,
 } from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import { isValidBirthday, type Birthday } from "./birthday";
 import { birthdaysInRange, type BirthdayOccurrence } from "./birthday-agenda";
@@ -65,13 +66,13 @@ function marriedAtFor(status: MaritalStatusValue, marriedAt: string | null | und
 
 function validateBirthday(birthday: Birthday | null | undefined): Birthday | null {
   if (!birthday) return null;
-  if (!isValidBirthday(birthday)) throw new Error("Data de nascimento inválida.");
+  if (!isValidBirthday(birthday)) throw new DomainError("Data de nascimento inválida.");
   return birthday;
 }
 
 export async function createPerson(userId: string, input: PersonInput): Promise<PersonRow> {
   const name = validateTitle(input.name);
-  if (!name.ok) throw new Error(name.error);
+  if (!name.ok) throw new DomainError(name.error);
 
   const birthday = validateBirthday(input.birthday);
   const maritalStatus = input.maritalStatus ?? "nao_informado";
@@ -151,7 +152,7 @@ export async function updatePerson(
 
     if (patch.name !== undefined) {
       const name = validateTitle(patch.name);
-      if (!name.ok) throw new Error(name.error);
+      if (!name.ok) throw new DomainError(name.error);
       set.name = name.value;
     }
     if (patch.nickname !== undefined) set.nickname = patch.nickname?.trim() || null;
@@ -189,11 +190,11 @@ export async function addContact(
   input: ContactInput,
 ): Promise<PersonContactRow> {
   const value = input.value.trim();
-  if (value === "") throw new Error("O contato não pode ser vazio.");
+  if (value === "") throw new DomainError("O contato não pode ser vazio.");
 
   return withUserContext(userId, async (tx) => {
     const [person] = await tx.select({ id: people.id }).from(people).where(eq(people.id, personId));
-    if (!person) throw new Error("Pessoa não encontrada.");
+    if (!person) throw new NotFoundError("Pessoa não encontrada.");
 
     const [row] = await tx
       .insert(peopleContacts)

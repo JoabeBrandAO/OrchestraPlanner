@@ -7,6 +7,7 @@ import { birthdayReminderAt } from "@/server/services/people/birthday-agenda";
 import { listBirthdaysInRange } from "@/server/services/people/people-service";
 import { resolveTimeZone } from "@/server/services/shared/time-zone";
 import { getTimeZone } from "@/server/services/users/time-zone-service";
+import { DomainError } from "@/server/services/shared/domain-error";
 
 import { dueReminders, type DueReminder } from "./due";
 
@@ -45,7 +46,7 @@ export async function saveSubscription(
   input: SubscriptionInput,
 ): Promise<PushSubscriptionRow> {
   if (!input.endpoint || !input.p256dh || !input.auth) {
-    throw new Error("Inscrição de notificação incompleta.");
+    throw new DomainError("Inscrição de notificação incompleta.");
   }
 
   return withUserContext(userId, async (tx) => {

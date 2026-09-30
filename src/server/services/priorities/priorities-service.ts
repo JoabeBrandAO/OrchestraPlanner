@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { withUserContext, type Tx } from "@/server/db/rls";
 import { priorities, priorityTags, tags, type Priority, type Tag } from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import { entersDone, leavesDone, type PriorityStatusValue } from "./priority-status";
 import { computeReorder } from "./reorder";
@@ -56,7 +57,7 @@ export async function createPriority(
   input: CreatePriorityInput,
 ): Promise<PriorityWithTags> {
   const title = validateTitle(input.title);
-  if (!title.ok) throw new Error(title.error);
+  if (!title.ok) throw new DomainError(title.error);
 
   return withUserContext(userId, async (tx) => {
     const [last] = await tx
@@ -140,7 +141,7 @@ export async function updatePriority(
   const set: PriorityUpdateSet = { updatedAt: sql`now()` };
   if (patch.title !== undefined) {
     const title = validateTitle(patch.title);
-    if (!title.ok) throw new Error(title.error);
+    if (!title.ok) throw new DomainError(title.error);
     set.title = title.value;
   }
   if (patch.description !== undefined) set.description = patch.description;
@@ -174,7 +175,7 @@ export async function movePriority(
       .from(priorities);
 
     const moved = snapshot.find((item) => item.id === id);
-    if (!moved) throw new Error("Prioridade não encontrada.");
+    if (!moved) throw new NotFoundError("Prioridade não encontrada.");
 
     for (const update of computeReorder(snapshot, id, target.toStatus, target.toIndex)) {
       await tx

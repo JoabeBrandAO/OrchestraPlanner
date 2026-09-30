@@ -3,6 +3,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { withUserContext, type Tx } from "@/server/db/rls";
 import { goalMilestones, goals, type GoalMilestone } from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import { computeProgress } from "./progress";
 
@@ -62,13 +63,13 @@ export async function addMilestone(
   input: { title: string },
 ): Promise<MilestonesSnapshot> {
   const title = validateTitle(input.title);
-  if (!title.ok) throw new Error(title.error);
+  if (!title.ok) throw new DomainError(title.error);
 
   return withUserContext(userId, async (tx) => {
     // A meta precisa existir *para este usuário*: sob RLS o select já filtra por dono,
     // então um id de outra pessoa simplesmente não aparece aqui.
     const [goal] = await tx.select({ id: goals.id }).from(goals).where(eq(goals.id, goalId));
-    if (!goal) throw new Error("Meta não encontrada.");
+    if (!goal) throw new NotFoundError("Meta não encontrada.");
 
     const [last] = await tx
       .select({ max: sql<number | null>`max(${goalMilestones.position})` })
@@ -93,7 +94,7 @@ export async function renameMilestone(
   input: { title: string },
 ): Promise<MilestonesSnapshot> {
   const title = validateTitle(input.title);
-  if (!title.ok) throw new Error(title.error);
+  if (!title.ok) throw new DomainError(title.error);
 
   return withUserContext(userId, async (tx) => {
     const [row] = await tx
@@ -101,7 +102,7 @@ export async function renameMilestone(
       .set({ title: title.value, updatedAt: sql`now()` })
       .where(eq(goalMilestones.id, id))
       .returning({ goalId: goalMilestones.goalId });
-    if (!row) throw new Error("Marco não encontrado.");
+    if (!row) throw new NotFoundError("Marco não encontrado.");
 
     return recompute(tx, row.goalId);
   });
@@ -122,7 +123,7 @@ export async function setMilestoneDone(
       .set({ completedAt: done ? sql`now()` : null, updatedAt: sql`now()` })
       .where(eq(goalMilestones.id, id))
       .returning({ goalId: goalMilestones.goalId });
-    if (!row) throw new Error("Marco não encontrado.");
+    if (!row) throw new NotFoundError("Marco não encontrado.");
 
     return recompute(tx, row.goalId);
   });
@@ -135,7 +136,7 @@ export async function deleteMilestone(userId: string, id: string): Promise<Miles
       .delete(goalMilestones)
       .where(eq(goalMilestones.id, id))
       .returning({ goalId: goalMilestones.goalId });
-    if (!row) throw new Error("Marco não encontrado.");
+    if (!row) throw new NotFoundError("Marco não encontrado.");
 
     const remaining = await readMilestones(tx, row.goalId);
     for (const [index, milestone] of remaining.entries()) {

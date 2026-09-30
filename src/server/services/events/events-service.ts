@@ -5,6 +5,7 @@ import { and, asc, eq, gt, gte, isNull, lt, ne, or, sql, type SQL } from "drizzl
 import { withUserContext } from "@/server/db/rls";
 import { eventExceptions, events, lifeAreas, priorities, type EventRow } from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import {
   expandOccurrences,
@@ -59,20 +60,20 @@ export type CreateEventInput = {
 /** Regras de escrita comuns a criar e editar — um compromisso não pode acabar antes de começar. */
 function validateWindow(startsAt: Date, endsAt: Date): void {
   if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
-    throw new Error("Data inválida.");
+    throw new DomainError("Data inválida.");
   }
-  if (endsAt <= startsAt) throw new Error("O fim precisa ser depois do início.");
+  if (endsAt <= startsAt) throw new DomainError("O fim precisa ser depois do início.");
 }
 
 function validateInterval(interval: number | undefined): void {
   if (interval !== undefined && (!Number.isInteger(interval) || interval < 1)) {
-    throw new Error("O intervalo da repetição precisa ser um número inteiro a partir de 1.");
+    throw new DomainError("O intervalo da repetição precisa ser um número inteiro a partir de 1.");
   }
 }
 
 export async function createEvent(userId: string, input: CreateEventInput): Promise<EventRow> {
   const title = validateTitle(input.title);
-  if (!title.ok) throw new Error(title.error);
+  if (!title.ok) throw new DomainError(title.error);
   validateWindow(input.startsAt, input.endsAt);
   validateInterval(input.recurrenceInterval);
 
@@ -259,7 +260,7 @@ export async function updateEvent(
     const set: Record<string, unknown> = { updatedAt: sql`now()` };
     if (patch.title !== undefined) {
       const title = validateTitle(patch.title);
-      if (!title.ok) throw new Error(title.error);
+      if (!title.ok) throw new DomainError(title.error);
       set.title = title.value;
     }
     if (patch.description !== undefined) set.description = patch.description;
@@ -306,7 +307,7 @@ async function loadOccurrenceTarget(
   occurrenceStartsAt: Date,
 ): Promise<EventRow> {
   const [event] = await tx.select().from(events).where(eq(events.id, eventId));
-  if (!event) throw new Error("Compromisso não encontrado.");
+  if (!event) throw new NotFoundError("Compromisso não encontrado.");
 
   const isOccurrence = isOccurrenceStart(
     event.startsAt,
@@ -317,7 +318,7 @@ async function loadOccurrenceTarget(
     },
     occurrenceStartsAt,
   );
-  if (!isOccurrence) throw new Error("Esta data não é uma ocorrência deste compromisso.");
+  if (!isOccurrence) throw new DomainError("Esta data não é uma ocorrência deste compromisso.");
 
   return event;
 }
@@ -373,7 +374,7 @@ export async function overrideOccurrence(
     let title: string | null = null;
     if (patch.title !== undefined) {
       const validated = validateTitle(patch.title);
-      if (!validated.ok) throw new Error(validated.error);
+      if (!validated.ok) throw new DomainError(validated.error);
       // Título igual ao da série não é sobrescrita — guardar seria criar uma segunda
       // verdade que para de acompanhar a série quando ela for renomeada.
       title = validated.value === event.title ? null : validated.value;

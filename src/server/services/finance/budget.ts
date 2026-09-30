@@ -1,3 +1,5 @@
+import { DomainError } from "@/server/services/shared/domain-error";
+
 import { type Cents } from "./money";
 
 /**
@@ -28,7 +30,7 @@ export function isMonth(value: string): value is Month {
  * pedido, e o UTC evita que fevereiro encolha um dia em quem está a oeste de Greenwich.
  */
 export function monthRange(month: Month): { from: string; to: string } {
-  if (!isMonth(month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(month)) throw new DomainError("Mês inválido (use AAAA-MM).");
 
   const [year, index] = month.split("-").map(Number) as [number, number];
   const lastDay = new Date(Date.UTC(year, index, 0)).getUTCDate();
@@ -101,7 +103,7 @@ export function compareBudget(input: {
   plans: readonly BudgetPlan[];
   actuals: readonly BudgetActual[];
 }): BudgetComparison {
-  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(input.month)) throw new DomainError("Mês inválido (use AAAA-MM).");
 
   const planned = new Map(input.plans.map((plan) => [plan.categoryId, plan.plannedCents]));
 

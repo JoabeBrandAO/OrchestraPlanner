@@ -1,3 +1,5 @@
+import { NotFoundError } from "@/server/services/shared/domain-error";
+
 import type { PriorityStatusValue } from "./priority-status";
 
 /**
@@ -31,7 +33,7 @@ export function computeReorder(
   toIndex: number,
 ): PositionUpdate[] {
   const moved = items.find((item) => item.id === movedId);
-  if (!moved) throw new Error("Prioridade não encontrada.");
+  if (!moved) throw new NotFoundError("Prioridade não encontrada.");
 
   const fromStatus = moved.status;
 

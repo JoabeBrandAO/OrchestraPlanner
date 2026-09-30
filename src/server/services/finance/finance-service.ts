@@ -14,6 +14,7 @@ import {
 } from "@/server/db/schema";
 import { isUniqueViolation } from "@/server/services/shared/unique-violation";
 import { validateTitle } from "@/server/services/shared/validate-title";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import {
   compareBudget,
@@ -90,16 +91,16 @@ function validateAmount(amountCents: Cents): void {
   if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
     // O sinal é do `direction`; número negativo aqui seria uma segunda forma de dizer
     // "saída", e as duas se desencontrariam na primeira edição.
-    throw new Error("O valor precisa ser maior que zero.");
+    throw new DomainError("O valor precisa ser maior que zero.");
   }
 }
 
 export async function createAccount(userId: string, input: AccountInput): Promise<AccountRow> {
   const name = validateTitle(input.name);
-  if (!name.ok) throw new Error(name.error);
+  if (!name.ok) throw new DomainError(name.error);
 
   const initial = input.initialBalanceCents ?? 0;
-  if (!Number.isSafeInteger(initial)) throw new Error("Saldo inicial inválido.");
+  if (!Number.isSafeInteger(initial)) throw new DomainError("Saldo inicial inválido.");
 
   return withUserContext(userId, async (tx) => {
     const [row] = await tx
@@ -175,7 +176,7 @@ export async function createCategory(
   input: { name: string; direction: TransactionRow["direction"] },
 ): Promise<TransactionCategoryRow> {
   const name = validateTitle(input.name);
-  if (!name.ok) throw new Error(name.error);
+  if (!name.ok) throw new DomainError(name.error);
 
   return withUserContext(userId, async (tx) => {
     const [row] = await tx
@@ -217,7 +218,7 @@ export async function renameCategory(
   input: { name: string },
 ): Promise<TransactionCategoryRow | null> {
   const name = validateTitle(input.name);
-  if (!name.ok) throw new Error(name.error);
+  if (!name.ok) throw new DomainError(name.error);
 
   try {
     return await withUserContext(userId, async (tx) => {
@@ -230,7 +231,7 @@ export async function renameCategory(
     });
   } catch (error) {
     // Sem isto o índice único vazaria "duplicate key value violates..." para a tela.
-    if (isUniqueViolation(error)) throw new Error(CATEGORY_DUPLICATE);
+    if (isUniqueViolation(error)) throw new DomainError(CATEGORY_DUPLICATE);
     throw error;
   }
 }
@@ -254,7 +255,7 @@ export async function createTransaction(
   userId: string,
   input: TransactionInput,
 ): Promise<TransactionRow> {
-  if (!ISO_DATE.test(input.happenedAt)) throw new Error("Data do lançamento inválida.");
+  if (!ISO_DATE.test(input.happenedAt)) throw new DomainError("Data do lançamento inválida.");
   validateAmount(input.amountCents);
 
   return withUserContext(userId, async (tx) => {
@@ -262,7 +263,7 @@ export async function createTransaction(
       .select({ id: accounts.id })
       .from(accounts)
       .where(eq(accounts.id, input.accountId));
-    if (!account) throw new Error("Conta não encontrada.");
+    if (!account) throw new NotFoundError("Conta não encontrada.");
 
     const [row] = await tx
       .insert(transactions)
@@ -299,7 +300,7 @@ export async function updateTransaction(
   id: string,
   input: TransactionInput,
 ): Promise<TransactionRow | null> {
-  if (!ISO_DATE.test(input.happenedAt)) throw new Error("Data do lançamento inválida.");
+  if (!ISO_DATE.test(input.happenedAt)) throw new DomainError("Data do lançamento inválida.");
   validateAmount(input.amountCents);
 
   return withUserContext(userId, async (tx) => {
@@ -307,7 +308,7 @@ export async function updateTransaction(
       .select({ id: accounts.id })
       .from(accounts)
       .where(eq(accounts.id, input.accountId));
-    if (!account) throw new Error("Conta não encontrada.");
+    if (!account) throw new NotFoundError("Conta não encontrada.");
 
     const [row] = await tx
       .update(transactions)
@@ -342,7 +343,7 @@ export async function listTransactions(
   range: { from: string; to: string },
 ): Promise<TransactionWithLabels[]> {
   if (!ISO_DATE.test(range.from) || !ISO_DATE.test(range.to)) {
-    throw new Error("Período inválido.");
+    throw new DomainError("Período inválido.");
   }
 
   return withUserContext(userId, async (tx) => {
@@ -377,7 +378,7 @@ export async function setBudget(
   userId: string,
   input: { categoryId: string; month: Month; plannedCents: Cents },
 ): Promise<BudgetRow> {
-  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(input.month)) throw new DomainError("Mês inválido (use AAAA-MM).");
   // Reusa a regra dos lançamentos: zero ou negativo não é valor. Orçar zero seria uma
   // segunda forma de dizer "sem orçamento", e as duas se desencontram na comparação.
   validateAmount(input.plannedCents);
@@ -387,7 +388,7 @@ export async function setBudget(
       .select({ id: transactionCategories.id })
       .from(transactionCategories)
       .where(eq(transactionCategories.id, input.categoryId));
-    if (!category) throw new Error("Categoria não encontrada.");
+    if (!category) throw new NotFoundError("Categoria não encontrada.");
 
     const [row] = await tx
       .insert(budgets)
@@ -411,7 +412,7 @@ export async function removeBudget(
   userId: string,
   input: { categoryId: string; month: Month },
 ): Promise<void> {
-  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(input.month)) throw new DomainError("Mês inválido (use AAAA-MM).");
 
   await withUserContext(userId, (tx) =>
     tx
@@ -435,7 +436,7 @@ export async function removeBudget(
  * compartilhada com os relatórios.
  */
 export async function getBudgetOverview(userId: string, month: Month): Promise<BudgetComparison> {
-  if (!isMonth(month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(month)) throw new DomainError("Mês inválido (use AAAA-MM).");
   const range = monthRange(month);
 
   return withUserContext(userId, async (tx) => {
@@ -516,7 +517,7 @@ export async function getFinanceReport(
   userId: string,
   input: { month: Month; months?: number },
 ): Promise<FinanceReport> {
-  if (!isMonth(input.month)) throw new Error("Mês inválido (use AAAA-MM).");
+  if (!isMonth(input.month)) throw new DomainError("Mês inválido (use AAAA-MM).");
   const months = input.months ?? 6;
 
   const janela = recentMonths(input.month, months);
@@ -600,14 +601,14 @@ export async function importStatement(
   input: { accountId: string; content: string },
 ): Promise<ImportResult> {
   const extrato = parseStatement(input.content);
-  if (!extrato) throw new Error("Não reconheci o arquivo como OFX nem como CSV.");
+  if (!extrato) throw new DomainError("Não reconheci o arquivo como OFX nem como CSV.");
 
   return withUserContext(userId, async (tx) => {
     const [account] = await tx
       .select({ id: accounts.id })
       .from(accounts)
       .where(eq(accounts.id, input.accountId));
-    if (!account) throw new Error("Conta não encontrada.");
+    if (!account) throw new NotFoundError("Conta não encontrada.");
 
     if (extrato.entries.length === 0) {
       return {

@@ -10,6 +10,7 @@ import {
   type CircleRow,
 } from "@/server/db/schema";
 import { validateTitle } from "@/server/services/shared/validate-title";
+import { DomainError, NotFoundError } from "@/server/services/shared/domain-error";
 
 import { canonicalLink, linkFrom, type RelationValue } from "./relations";
 
@@ -46,7 +47,7 @@ export async function linkPeople(
   relation: RelationValue,
 ): Promise<void> {
   if (personId === relatedPersonId) {
-    throw new Error("Uma pessoa não se vincula a si mesma.");
+    throw new DomainError("Uma pessoa não se vincula a si mesma.");
   }
 
   const link = canonicalLink(personId, relatedPersonId, relation);
@@ -58,7 +59,7 @@ export async function linkPeople(
       .select({ id: people.id })
       .from(people)
       .where(or(eq(people.id, personId), eq(people.id, relatedPersonId)));
-    if (found.length !== 2) throw new Error("Pessoa não encontrada.");
+    if (found.length !== 2) throw new NotFoundError("Pessoa não encontrada.");
 
     await tx
       .insert(personLinks)
@@ -116,7 +117,7 @@ export async function createCircle(
   input: { name: string; kind?: CircleRow["kind"]; notes?: string | null },
 ): Promise<CircleRow> {
   const name = validateTitle(input.name);
-  if (!name.ok) throw new Error(name.error);
+  if (!name.ok) throw new DomainError(name.error);
 
   return withUserContext(userId, async (tx) => {
     const [row] = await tx
@@ -175,10 +176,10 @@ export async function addCircleMember(
       .select({ id: circles.id })
       .from(circles)
       .where(eq(circles.id, circleId));
-    if (!circle) throw new Error("Círculo não encontrado.");
+    if (!circle) throw new NotFoundError("Círculo não encontrado.");
 
     const [person] = await tx.select({ id: people.id }).from(people).where(eq(people.id, personId));
-    if (!person) throw new Error("Pessoa não encontrada.");
+    if (!person) throw new NotFoundError("Pessoa não encontrada.");
 
     await tx
       .insert(circleMembers)
