@@ -61,6 +61,7 @@
     "jsdom": "^29.1.1",
     "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "standardwebhooks": "^1.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

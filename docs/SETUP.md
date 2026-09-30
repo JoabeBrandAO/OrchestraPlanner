@@ -103,6 +103,21 @@ O job falha com mensagem explícita se o secret não existir — em vez de rodar
 banco errado. Dá para disparar à mão em *Actions → Migrations → Run workflow* (útil quando
 uma migration falhou e foi corrigida sem commit novo em `drizzle/`).
 
+### 4.2 Webhook do Clerk (#73)
+
+É o webhook que cria, atualiza e **apaga** o usuário no banco. Enquanto não estiver ligado,
+`ensureUserRecord()` segue provisionando no primeiro acesso, mas **apagar a conta no Clerk não
+apaga o dado**.
+
+1. Clerk Dashboard → **Webhooks** → *Add Endpoint*:
+   `https://<domínio de produção>/api/webhooks/clerk`, eventos `user.created`,
+   `user.updated` e `user.deleted`.
+2. Copie o **Signing Secret** (`whsec_...`).
+3. Vercel → Settings → Environment Variables → `CLERK_WEBHOOK_SIGNING_SECRET` (Production) →
+   redeploy.
+4. No Clerk, *Testing* → mande um `user.updated` de exemplo: a resposta tem de ser **204**. Um
+   **400** significa que o segredo não bate.
+
 ## 5. E2E (Playwright — Phase B)
 
 ```bash
