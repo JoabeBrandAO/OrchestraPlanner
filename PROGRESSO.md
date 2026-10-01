@@ -7,7 +7,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-09-30
+## Estado atual — atualizado em 2026-10-01
 
 ### ✅ Feito
 - **Fase 1 (uso pessoal) completa e no ar** na Vercel (`orchestra-planner.vercel.app`), sob RLS por
@@ -26,14 +26,10 @@
   alinhamento sem código. O OrchestraPlanner fica em manutenção.
 
 ### 📋 A fazer — na mão do dono
-1. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h.
-2. **Webhook do Clerk (#114):** cadastrar o endpoint no Clerk e `CLERK_WEBHOOK_SIGNING_SECRET` na
-   Vercel (passo a passo em `docs/SETUP.md` §4.2). **Até lá, apagar a conta no Clerk não apaga o
-   dado.** Apagar pela tela ("Seus dados") já apaga as duas coisas.
-3. **#91 — `sslmode=verify-full`** em `DATABASE_URL` na Vercel. O passo a passo está na issue.
-4. **Primeiro login em produção depois da CSP obrigatória (#92):** entrar e abrir Agenda e
-   Financeiro. Uma tela em branco ou um login travado significa bloqueio pela CSP; me avise com o
-   console do navegador.
+1. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
+   depois do alinhamento do DOM.
+2. **Opcional (#114):** criar e apagar no Clerk um usuário descartável e confirmar que ele some
+   de `users`. O webhook já está ligado e testado; falta só a prova de exclusão de ponta a ponta.
 
 ### 🧊 Congelado (backlog sem data)
 - **#21** Fase 2 (SaaS + app mobile), **#22** Fase 3 (desktop) e **#106** (recorrência da Agenda
@@ -44,6 +40,19 @@
 ## Histórico recente
 _Histórico de 2026-06-17 a 2026-09-04:
 [docs/sessions/historico-progresso-ate-2026-09-04.md](docs/sessions/historico-progresso-ate-2026-09-04.md)._
+
+- **2026-10-01 — Pendências de infraestrutura do dono (guiado, sem código):**
+  - **#114 fechada:** webhook do Clerk cadastrado (`user.created/updated/deleted`),
+    `CLERK_WEBHOOK_SIGNING_SECRET` em Production, redeploy sem cache. *Testing* com
+    `user.updated` entregue com sucesso.
+  - **#91 fechada:** `DATABASE_URL` (app_rls) com `sslmode=verify-full` em Production e Preview.
+    O painel abre com dados, e é essa a prova de que o certificado validou.
+  - **Primeiro login depois da CSP obrigatória (#92):** feito, painel normal.
+  - **Lições:** variável *Secret* na Vercel não mostra o valor salvo; o campo de edição vem
+    **vazio** e salvar assim derruba a produção. Para trocar um parâmetro é preciso colar a
+    string inteira. A #91 mandava editar `MIGRATION_DATABASE_URL` na Vercel, mas ela não pode
+    estar lá (SETUP §4).
+  - Log: [docs/sessions/2026-10-01-pendencias-infra.md](docs/sessions/2026-10-01-pendencias-infra.md).
 
 - **2026-09-30 — Fechamento da Fase 1 (sessão única, merge autônomo com CI verde):**
   - **Dependabot:** 9 PRs de dependência mergeados. TypeScript 7, ESLint 10 e `@types/node` > 22
