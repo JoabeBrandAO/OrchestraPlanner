@@ -7,6 +7,7 @@ import type { AppRouter } from "@/server/trpc/root";
 import { formatCents, sumCents } from "@/server/services/finance/money";
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
+import { capitalizeFirst } from "@/lib/text";
 import { trpc } from "@/trpc/react";
 
 import { ACCOUNT_KINDS, AccountForm } from "./account-form";
@@ -161,7 +162,7 @@ export function FinanceManager() {
           >
             ←
           </Button>
-          <span className="text-sm font-medium capitalize">{monthLabel.format(anchor)}</span>
+          <span className="text-sm font-medium">{capitalizeFirst(monthLabel.format(anchor))}</span>
           <Button
             size="sm"
             variant="outline"

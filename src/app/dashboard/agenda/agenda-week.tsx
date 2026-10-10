@@ -5,6 +5,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { addDays, DAYS_IN_WEEK, isSameDay } from "@/server/services/events/calendar";
 import { RECURRENCE_LABELS } from "@/server/services/events/recurrence";
 import type { AppRouter } from "@/server/trpc/root";
+import { capitalizeFirst } from "@/lib/text";
 
 type Occurrence = inferRouterOutputs<AppRouter>["events"]["list"][number];
 type Birthday = inferRouterOutputs<AppRouter>["people"]["birthdaysInRange"][number];
@@ -68,8 +69,8 @@ export function AgendaWeek({ weekStart, occurrences, loading, birthdays, today, 
             key={day.toISOString()}
             className={isToday ? "rounded-lg border-2 p-3" : "rounded-lg border p-3"}
           >
-            <p className="mb-2 text-sm font-medium capitalize">
-              {dayLabel.format(day)}
+            <p className="mb-2 text-sm font-medium">
+              {capitalizeFirst(dayLabel.format(day))}
               {isToday && <span className="text-muted-foreground ml-2 text-xs">hoje</span>}
             </p>
 
