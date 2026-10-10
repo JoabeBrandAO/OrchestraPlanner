@@ -8,6 +8,7 @@ import { byMostForgotten, describeGap } from "@/server/services/people/contact-g
 import { MONTH_LABELS, RELATION_TYPE_LABELS } from "@/server/services/people/person-fields";
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { trpc } from "@/trpc/react";
 
@@ -70,7 +71,14 @@ export function PeopleManager() {
 
   const createPerson = trpc.people.create.useMutation({ onSuccess: close });
   const updatePerson = trpc.people.update.useMutation({ onSuccess: close });
-  const deletePerson = trpc.people.delete.useMutation({ onSuccess: invalidate });
+  /** Pessoa à espera de confirmação: apagar leva contatos, vínculos e convívio junto. */
+  const [removendo, setRemovendo] = useState<{ id: string; name: string } | null>(null);
+  const deletePerson = trpc.people.delete.useMutation({
+    onSuccess: () => {
+      setRemovendo(null);
+      return invalidate();
+    },
+  });
   const addContact = trpc.people.addContact.useMutation({ onSuccess: invalidate });
   const deleteContact = trpc.people.deleteContact.useMutation({ onSuccess: invalidate });
 
@@ -168,7 +176,10 @@ export function PeopleManager() {
                     variant="destructive"
                     disabled={busy}
                     aria-label={`Remover ${item.name}`}
-                    onClick={() => deletePerson.mutate({ id: item.id })}
+                    onClick={() => {
+                      deletePerson.reset();
+                      setRemovendo({ id: item.id, name: item.name });
+                    }}
                   >
                     Remover
                   </Button>
@@ -253,6 +264,27 @@ export function PeopleManager() {
           }
         />
       </FormDialog>
+
+      <ConfirmDialog
+        open={removendo !== null}
+        onOpenChange={(open) => !open && setRemovendo(null)}
+        title={`Remover ${removendo?.name ?? ""}?`}
+        description={
+          <>
+            Vão junto{" "}
+            <strong>
+              os contatos, os vínculos com outras pessoas, todo o registro de convívio e a
+              participação nos círculos
+            </strong>
+            . Não dá para desfazer.
+          </>
+        }
+        confirmLabel="Remover pessoa"
+        pendingLabel="Removendo…"
+        pending={deletePerson.isPending}
+        error={deletePerson.error?.message}
+        onConfirm={() => removendo && deletePerson.mutate({ id: removendo.id })}
+      />
 
       <CirclesSection
         people={(people.data ?? []).map((item) => ({ id: item.id, name: item.name }))}

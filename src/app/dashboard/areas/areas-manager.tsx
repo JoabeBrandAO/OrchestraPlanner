@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { trpc } from "@/trpc/react";
 
@@ -21,7 +22,17 @@ export function AreasManager() {
       await invalidate();
     },
   });
-  const remove = trpc.lifeAreas.delete.useMutation({ onSuccess: invalidate });
+  /**
+   * Área à espera de confirmação. Remover apaga as notas dela no histórico da Roda da Vida
+   * (`life_assessments` em cascata) e deixa metas e pessoas ligadas a ela sem área.
+   */
+  const [removendo, setRemovendo] = useState<{ id: string; name: string } | null>(null);
+  const remove = trpc.lifeAreas.delete.useMutation({
+    onSuccess: async () => {
+      setRemovendo(null);
+      await invalidate();
+    },
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -39,6 +50,24 @@ export function AreasManager() {
           onSubmit={(values) => create.mutate(values)}
         />
       </FormDialog>
+
+      <ConfirmDialog
+        open={removendo !== null}
+        onOpenChange={(open) => !open && setRemovendo(null)}
+        title={`Remover a área ${removendo?.name ?? ""}?`}
+        description={
+          <>
+            <strong>As notas desta área em todas as suas Rodas da Vida são apagadas</strong>, e o
+            histórico perde essa linha. Metas, compromissos, pessoas e lançamentos ligados a ela
+            continuam, só que sem área. Não dá para desfazer.
+          </>
+        }
+        confirmLabel="Remover área"
+        pendingLabel="Removendo…"
+        pending={remove.isPending}
+        error={remove.error?.message}
+        onConfirm={() => removendo && remove.mutate({ id: removendo.id })}
+      />
 
       {areas.isLoading ? (
         <p className="text-muted-foreground text-sm">Carregando áreas…</p>
@@ -61,8 +90,11 @@ export function AreasManager() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      disabled={remove.isPending}
-                      onClick={() => remove.mutate({ id: area.id })}
+                      aria-label={`Remover a área ${area.name}`}
+                      onClick={() => {
+                        remove.reset();
+                        setRemovendo({ id: area.id, name: area.name });
+                      }}
                     >
                       Remover
                     </Button>

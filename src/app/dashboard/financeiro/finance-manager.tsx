@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { AppRouter } from "@/server/trpc/root";
 import { formatCents, sumCents } from "@/server/services/finance/money";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { trpc } from "@/trpc/react";
 
@@ -74,7 +75,14 @@ export function FinanceManager() {
   const createTransaction = trpc.finance.createTransaction.useMutation({ onSuccess: close });
   const updateTransaction = trpc.finance.updateTransaction.useMutation({ onSuccess: close });
   const deleteTransaction = trpc.finance.deleteTransaction.useMutation({ onSuccess: invalidate });
-  const deleteAccount = trpc.finance.deleteAccount.useMutation({ onSuccess: invalidate });
+  /** Conta à espera de confirmação: apagar uma conta leva junto todos os lançamentos dela. */
+  const [removendoConta, setRemovendoConta] = useState<{ id: string; name: string } | null>(null);
+  const deleteAccount = trpc.finance.deleteAccount.useMutation({
+    onSuccess: () => {
+      setRemovendoConta(null);
+      return invalidate();
+    },
+  });
 
   const contas = accounts.data ?? [];
   const lancamentos = transactions.data ?? [];
@@ -129,9 +137,11 @@ export function FinanceManager() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={deleteAccount.isPending}
                   aria-label={`Remover conta ${account.name}`}
-                  onClick={() => deleteAccount.mutate({ id: account.id })}
+                  onClick={() => {
+                    deleteAccount.reset();
+                    setRemovendoConta({ id: account.id, name: account.name });
+                  }}
                 >
                   Remover
                 </Button>
@@ -341,6 +351,24 @@ export function FinanceManager() {
           }
         />
       </FormDialog>
+
+      <ConfirmDialog
+        open={removendoConta !== null}
+        onOpenChange={(open) => !open && setRemovendoConta(null)}
+        title={`Remover a conta ${removendoConta?.name ?? ""}?`}
+        description={
+          <>
+            <strong>Todos os lançamentos dela, de todos os meses, também são apagados</strong>, e o
+            saldo some do panorama. Não dá para desfazer. Se quiser guardar o histórico, baixe seus
+            dados no painel antes.
+          </>
+        }
+        confirmLabel="Remover conta e lançamentos"
+        pendingLabel="Removendo…"
+        pending={deleteAccount.isPending}
+        error={deleteAccount.error?.message}
+        onConfirm={() => removendoConta && deleteAccount.mutate({ id: removendoConta.id })}
+      />
     </div>
   );
 }
