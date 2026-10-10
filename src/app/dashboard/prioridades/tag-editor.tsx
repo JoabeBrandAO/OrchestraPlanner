@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { TAG_NAME_MAX_LENGTH } from "@/server/services/tags/tag-name";
@@ -78,7 +79,8 @@ export function TagEditor({
             onClick={() => setIds((current) => current.filter((id) => id !== tag.id))}
             aria-label={`Remover tag ${tag.name}`}
           >
-            {tag.name} ×
+            {tag.name}
+            <X aria-hidden className="size-3" />
           </button>
         ))}
       </div>

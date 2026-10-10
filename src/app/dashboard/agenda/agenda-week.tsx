@@ -1,6 +1,7 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
+import { Cake } from "lucide-react";
 
 import { addDays, DAYS_IN_WEEK, isSameDay } from "@/server/services/events/calendar";
 import { RECURRENCE_LABELS } from "@/server/services/events/recurrence";
@@ -75,7 +76,9 @@ export function AgendaWeek({ weekStart, occurrences, loading, birthdays, today, 
 
             {aniversarios.map((birthday) => (
               <p key={birthday.personId} className="text-sm">
-                🎂 <span className="font-medium">{birthday.name}</span>
+                <Cake aria-hidden className="mr-1 inline size-3.5 align-[-2px]" />
+                <span className="sr-only">Aniversário de </span>
+                <span className="font-medium">{birthday.name}</span>
                 {birthday.turningAge !== null && (
                   <span className="text-muted-foreground"> faz {birthday.turningAge} anos</span>
                 )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import type { inferRouterOutputs } from "@trpc/server";
 
 import {
@@ -111,7 +112,8 @@ export function Agenda() {
               )
             }
           >
-            ← {mode === "week" ? "Semana" : "Mês"}
+            <ChevronLeft aria-hidden />
+            {mode === "week" ? "Semana" : "Mês"}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setAnchor(new Date())}>
             Hoje
@@ -126,7 +128,8 @@ export function Agenda() {
               )
             }
           >
-            {mode === "week" ? "Semana" : "Mês"} →
+            {mode === "week" ? "Semana" : "Mês"}
+            <ChevronRight aria-hidden />
           </Button>
         </div>
 
@@ -155,7 +158,8 @@ export function Agenda() {
             </Button>
           </div>
           <Button size="sm" onClick={() => setTarget("new")}>
-            + Novo compromisso
+            <Plus aria-hidden />
+            Novo compromisso
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import type { inferRouterOutputs } from "@trpc/server";
 
 import { ageOn, nextBirthday } from "@/server/services/people/birthday";
@@ -36,7 +37,7 @@ function resumo(person: Person, today: Date): string {
       `${person.birthDay} de ${MONTH_LABELS[person.birthMonth - 1]}` +
         // Sem o ano não há idade — mostrar uma seria pior do que não mostrar.
         (idade === null ? "" : ` · ${idade} anos`) +
-        (dias === 0 ? " · é hoje 🎂" : dias <= 30 ? ` · em ${dias} dia(s)` : ""),
+        (dias === 0 ? " · aniversário hoje" : dias <= 30 ? ` · em ${dias} dia(s)` : ""),
     );
   }
 
@@ -107,7 +108,8 @@ export function PeopleManager() {
               Há mais tempo sem contato
             </Button>
             <Button size="sm" onClick={() => setEditing("new")}>
-              + Nova pessoa
+              <Plus aria-hidden />
+              Nova pessoa
             </Button>
           </div>
         </div>
@@ -203,10 +205,11 @@ export function PeopleManager() {
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground text-sm">
-            Ninguém cadastrado ainda. Comece pelas pessoas que você mais quer acompanhar. 👥
+            Ninguém cadastrado ainda. Comece pelas pessoas que você mais quer acompanhar.
           </p>
           <Button size="sm" onClick={() => setEditing("new")}>
-            + Nova pessoa
+            <Plus aria-hidden />
+            Nova pessoa
           </Button>
         </div>
       )}
