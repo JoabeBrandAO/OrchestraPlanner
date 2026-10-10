@@ -104,37 +104,51 @@ trabalho, incluindo teste e print.
 | PR | Tema | Achados |
 |---|---|---|
 | 1 | `ux/tipografia` | 1 e 5 — fonte do app e caixa das datas |
-| 2 | `ux/login-pt-br` | 2 — Clerk em português |
-| 3 | `ux/roda-da-vida` | 3 — largura no celular e radar legível |
-| 4 | `ux/contraste` | 6 e 4 — cores semânticas com contraste AA, erro anunciado, painel sem ID técnico |
-| 5 | `ux/confirmar-exclusao` | 7 — confirmação antes de apagar o que leva outros dados junto |
+| 2 | `ux/roda-da-vida` | 3 — largura no celular e radar legível |
+| 3 | `ux/contraste` | 6 e 4 — cores semânticas com contraste AA, erro anunciado, painel sem ID técnico |
+| 4 | `ux/confirmar-exclusao` | 7 — confirmação antes de apagar o que leva outros dados junto |
+| 5 | `ux/icones` | 8 — ícones da biblioteca (já instalada) no lugar de emoji e setas Unicode |
 
 ## O que fica de fora, e por quê
 
-- **9 (navegação persistente)** — o maior ganho estrutural que sobra, mas tem a menor razão
-  impacto ÷ esforço do grupo de cima e mexe em todas as telas. Merece rodada própria,
-  junto com o **12** (tirar Preferências e "Seus dados" do painel para uma tela de Conta).
+- **2 (login em português)** — a correção certa é o pacote oficial de tradução do Clerk
+  (`@clerk/localizations`), que é dependência nova. Mexer em dependência ficou fora do que
+  esta sessão podia fazer sozinha; fica para o dono aprovar (ver "Decisões do dono").
+- **9 (navegação persistente)** — o maior ganho estrutural que sobra, mas tem razão
+  impacto ÷ esforço menor e mexe em todas as telas. Merece rodada própria, junto com o
+  **12** (tirar Preferências e "Seus dados" do painel para uma tela de Conta).
 - **10 (alvos de toque)** — mexer no tamanho padrão do botão muda a densidade de todas as
   telas; precisa ser decidido junto com a navegação para o celular.
-- **8, 11, 13, 14, 15** — razão abaixo de 2 ou impacto baixo; ficam no backlog de UX.
+- **11, 13, 14, 15** — razão abaixo de 2 ou impacto baixo; ficam no backlog de UX.
 
 ## Pendências que não são só de UI
 
 Nenhum achado desta rodada exigiu mudar regra de negócio, schema, RLS, rota de API, CSP ou
-variável de ambiente. Duas observações para quando houver rodada de produto:
+variável de ambiente. Observações para quando houver rodada de produto:
 
-- **Desfazer em vez de confirmar.** A confirmação (PR 5) é o remédio de UI. O remédio melhor
+- **Desfazer em vez de confirmar.** A confirmação (PR 4) é o remédio de UI. O remédio melhor
   — apagar "macio" com desfazer por alguns segundos — exige mudar schema e serviço.
 - **Remover área de vida apaga o histórico da Roda da Vida daquela área** (`on delete
   cascade` em `life_assessments`). A tela agora avisa, mas talvez a regra devesse ser outra
   (arquivar a área em vez de apagar).
+- **CI vermelho na `main` desde antes desta rodada:** o passo "Auditar dependências de
+  produção" acusa 13 falhas (1 crítica, 10 altas) publicadas depois de 2026-10-01 — `next`
+  16.3.6 (corrigido em 16.3.8), `proxy-addr`, `sharp`, `source-map-js`, `braces` (este só
+  pelo `shadcn`, que é ferramenta de build e pode ir para `devDependencies`). Enquanto isso
+  não for corrigido, **nenhum PR passa no CI** e nada pode ser mergeado na `main` protegida.
 
 ## Decisões do dono
 
-1. **Identidade visual.** Hoje é o tema neutro do shadcn. Quer uma identidade própria
+1. **Destravar o CI** (pendência acima): aprovar a atualização de dependências — `npm audit
+   fix`, `next`/`eslint-config-next` 16.3.8 e `shadcn` para `devDependencies`. Feito
+   localmente, isso zerou a auditoria de produção; typecheck, testes e build com as versões
+   novas ainda precisam rodar.
+2. **Login em português:** aprovar a dependência `@clerk/localizations` (do próprio Clerk)
+   e ligar `localization={ptBR}` no `ClerkProvider`. ~0,5 h.
+3. **Identidade visual.** Hoje é o tema neutro do shadcn. Quer uma identidade própria
    (cor por dimensão Corpo / Alma / Espírito, tipografia de marca)? Isso é `/impeccable
    shape` + `document`, não polimento.
-2. **Tema escuro.** Os tokens existem; nada liga a classe `.dark`. Seguir o sistema
+4. **Tema escuro.** Os tokens existem; nada liga a classe `.dark`. Seguir o sistema
    operacional, ter um botão, ou apagar os tokens?
-3. **Próxima rodada de UX:** navegação persistente + tela de Conta (achados 9 e 12),
+5. **Próxima rodada de UX:** navegação persistente + tela de Conta (achados 9 e 12),
    estimativa ~3,5 h — mais de meia semana da janela livre.
