@@ -7,7 +7,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-10-01
+## Estado atual — atualizado em 2026-10-10
 
 ### ✅ Feito
 - **Fase 1 (uso pessoal) completa e no ar** na Vercel (`orchestra-planner.vercel.app`), sob RLS por
@@ -20,15 +20,24 @@
 - **Qualidade:** 503 casos no Vitest (unitários, de componente e de integração sob RLS contra
   Postgres real no CI) e 4 E2E (landing, login → painel, CSP obrigatória e varredura de violações).
   A `main` é protegida: PR obrigatório com o CI exigido, e isso vale também para admin.
+- **Primeira rodada de UI/UX com o Impeccable (2026-10-10):** contexto de design em
+  `PRODUCT.md`, diagnóstico em `docs/ux/2026-10-10-diagnostico-impeccable.md` e 5 correções
+  prontas em PR (#122–#126). **Abertas, não mergeadas** — ver "A fazer" 1.
 
 ### 🔄 Fazendo
-- Nada. O próximo projeto é o **DOM** (`C:\projetos\DOM\DOM.txt`), começando por uma sessão de
-  alinhamento sem código. O OrchestraPlanner fica em manutenção.
+- Nada em execução. O próximo projeto é o **DOM** (`C:\projetos\DOM\DOM.txt`). O OrchestraPlanner
+  fica em manutenção; os PRs da rodada de UX (#121–#127) esperam o CI destravar.
 
 ### 📋 A fazer — na mão do dono
-1. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
+1. **Destravar o CI da `main`.** A auditoria de dependências de produção reprova desde depois de
+   2026-10-01 (13 falhas, 1 crítica) e nenhum PR passa. Correção testada localmente e revertida:
+   `npm audit fix`, `next`/`eslint-config-next` 16.3.8 e `shadcn` para `devDependencies`. Precisa
+   de aprovação; depois, mergear #121–#127 (sem conflito entre si). Ver `docs/ERROS.md` 2026-10-10.
+2. **Decisões de UX** (diagnóstico, "Decisões do dono"): login em português
+   (`@clerk/localizations`), tema escuro, identidade visual e instância de produção do Clerk.
+3. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
    depois do alinhamento do DOM.
-2. **Opcional (#114):** criar e apagar no Clerk um usuário descartável e confirmar que ele some
+4. **Opcional (#114):** criar e apagar no Clerk um usuário descartável e confirmar que ele some
    de `users`. O webhook já está ligado e testado; falta só a prova de exclusão de ponta a ponta.
 
 ### 🧊 Congelado (backlog sem data)
@@ -40,6 +49,19 @@
 ## Histórico recente
 _Histórico de 2026-06-17 a 2026-09-04:
 [docs/sessions/historico-progresso-ate-2026-09-04.md](docs/sessions/historico-progresso-ate-2026-09-04.md)._
+
+- **2026-10-10 — Primeira rodada de UI/UX com o Impeccable (subagente front-end/UX):**
+  - **Contexto e diagnóstico (#121):** `PRODUCT.md` (o `init` do Impeccable, a partir da Visão) e
+    `docs/ux/2026-10-10-diagnostico-impeccable.md`: nota técnica 11/20, heurísticas 19/40, 18
+    achados por impacto ÷ esforço. `e2e/ux-prints.spec.ts` fotografa as telas sob demanda.
+  - **Achado mais grave:** a fonte do app nunca carregou (`--font-sans` apontava para si mesma);
+    tudo em Times New Roman desde a Iteração 0, com build verde o tempo todo.
+  - **Correções em PR, uma por tema:** #122 fonte e datas · #123 Roda da Vida no celular, radar e
+    largura das telas · #124 contraste AA e erro anunciado · #125 confirmação antes de exclusão
+    em cascata · #126 ícones no lugar de emoji.
+  - **Bloqueio:** CI vermelho na `main` por falhas novas de dependência; nada mergeado. Cinco
+    lições em `docs/ERROS.md`.
+  - Log: [docs/sessions/2026-10-10-ux-impeccable.md](docs/sessions/2026-10-10-ux-impeccable.md).
 
 - **2026-10-01 — Pendências de infraestrutura do dono (guiado, sem código):**
   - **#114 fechada:** webhook do Clerk cadastrado (`user.created/updated/deleted`),
