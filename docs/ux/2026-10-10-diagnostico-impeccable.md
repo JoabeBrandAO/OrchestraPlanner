@@ -98,16 +98,21 @@ trabalho, incluindo teste e print.
 | 13 | Formulários | 19 cópias da mesma classe de campo (`inputClass`) | 2 | 2 | 1 | audit · integridade (deriva do design system) |
 | 14 | Pessoas | Cada linha com 6 botões; "Remover" vermelho em todas | 2 | 2 | 1 | critique · carga cognitiva (≤ 4 opções por decisão) |
 | 15 | Todas | Carregamento só em texto, sem esqueleto | 1 | 2 | 0,5 | operate "esqueleto, não spinner no meio do conteúdo" |
+| 16 | Todas | Cada tela com uma largura: o `<main>` encolhe até o conteúdo (Áreas 464 px, Agenda 660, painel 704) | 3 | 0,25 | 12 | operate "mesmo vocabulário visual de tela em tela"; audit · responsivo |
+| 17 | Prioridades | Prazo do cartão em formato de banco ("2026-10-10") | 1 | 0,25 | 4 | critique · heurística 2 |
+| 18 | Login | Selo "Development mode" do Clerk (contraste 2,8:1) — a produção usa a instância de desenvolvimento | 2 | — | — | fora da UI: configuração do Clerk |
+
+_Achados 16 e 17 apareceram durante as correções; o 18, na varredura final com tudo junto._
 
 ## O que entra nesta rodada (5 PRs)
 
 | PR | Tema | Achados |
 |---|---|---|
-| 1 | `ux/tipografia` | 1 e 5 — fonte do app e caixa das datas |
-| 2 | `ux/roda-da-vida` | 3 — largura no celular e radar legível |
-| 3 | `ux/contraste` | 6 e 4 — cores semânticas com contraste AA, erro anunciado, painel sem ID técnico |
-| 4 | `ux/confirmar-exclusao` | 7 — confirmação antes de apagar o que leva outros dados junto |
-| 5 | `ux/icones` | 8 — ícones da biblioteca (já instalada) no lugar de emoji e setas Unicode |
+| 1 — #122 | `ux/tipografia` | 1 e 5 — fonte do app e caixa das datas |
+| 2 — #123 | `ux/layout` | 3 e 16 — Roda da Vida no celular, radar legível e largura estável entre telas |
+| 3 — #124 | `ux/contraste` | 6 e 4 — cores semânticas com contraste AA, erro anunciado, painel sem ID técnico |
+| 4 — #125 | `ux/confirmar-exclusao` | 7 — confirmação antes de apagar o que leva outros dados junto |
+| 5 — #126 | `ux/icones` | 8 — ícones da biblioteca (já instalada) no lugar de emoji e setas Unicode |
 
 ## O que fica de fora, e por quê
 
@@ -119,7 +124,8 @@ trabalho, incluindo teste e print.
   **12** (tirar Preferências e "Seus dados" do painel para uma tela de Conta).
 - **10 (alvos de toque)** — mexer no tamanho padrão do botão muda a densidade de todas as
   telas; precisa ser decidido junto com a navegação para o celular.
-- **11, 13, 14, 15** — razão abaixo de 2 ou impacto baixo; ficam no backlog de UX.
+- **11, 13, 14, 15, 17** — razão abaixo de 2 ou impacto baixo; ficam no backlog de UX.
+- **18 (selo do Clerk)** — não é código: some quando a produção usar uma instância de produção do Clerk. Decisão do dono, junto com o login em português.
 
 ## Pendências que não são só de UI
 
@@ -152,3 +158,16 @@ variável de ambiente. Observações para quando houver rodada de produto:
    operacional, ter um botão, ou apagar os tokens?
 5. **Próxima rodada de UX:** navegação persistente + tela de Conta (achados 9 e 12),
    estimativa ~3,5 h — mais de meia semana da janela livre.
+
+## Resultado com os 5 PRs juntos
+
+Os seis ramos (este + os 5 de correção) foram mesclados num ramo local de conferência, sem
+conflito: typecheck e lint limpos, 103 testes de UI verdes, build ok. O detector nas 10
+telas, depois:
+
+| Antes | Depois |
+|---|---|
+| 3 `low-contrast` (painel, Financeiro) | 0 nas telas do app (sobra 1 no selo "Development mode" do Clerk, achado 18) |
+| 4 `tiny-text` (radar) | 0 |
+| Roda da Vida com 435 px no celular de 390 | todas as telas com 390 px |
+| Times New Roman em tudo | Geist; o detector passa a acusar `overused-font` (Geist em 100% do texto) — aviso, não falha; entra na decisão de identidade visual |
