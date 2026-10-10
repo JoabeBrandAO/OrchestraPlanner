@@ -11,7 +11,7 @@ export default async function AreasPage() {
   await ensureUserRecord();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-8">
+    <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-6 p-4 sm:p-8">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Áreas de Vida</h1>
         <Link href="/dashboard" className="text-muted-foreground text-sm hover:underline">
