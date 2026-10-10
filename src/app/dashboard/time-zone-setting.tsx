@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue } from "@/lib/form";
 import { DEFAULT_TIME_ZONE } from "@/server/services/shared/time-zone";
 import { trpc } from "@/trpc/react";
@@ -66,7 +67,7 @@ export function TimeZoneSetting() {
       <Button type="submit" variant="outline" disabled={save.isPending}>
         {save.isPending ? "Salvando…" : "Salvar fuso"}
       </Button>
-      {save.error ? <p className="text-sm text-red-500">{save.error.message}</p> : null}
+      <FormError message={save.error?.message} />
     </form>
   );
 }

@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { TAG_NAME_MAX_LENGTH } from "@/server/services/tags/tag-name";
 import { trpc } from "@/trpc/react";
 
@@ -125,11 +126,10 @@ export function TagEditor({
         chip para tirá-lo desta prioridade.
       </p>
 
-      {(createTag.error ?? setForPriority.error) && (
-        <span className="text-xs text-red-500">
-          {createTag.error?.message ?? setForPriority.error?.message}
-        </span>
-      )}
+      <FormError
+        message={createTag.error?.message ?? setForPriority.error?.message}
+        className="text-xs"
+      />
     </div>
   );
 }

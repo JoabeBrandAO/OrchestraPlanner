@@ -28,6 +28,7 @@ import { useMemo, useRef, useState } from "react";
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
+import { FormError } from "@/components/ui/form-error";
 import {
   PRIORITY_STATUS_LABELS,
   PRIORITY_STATUSES,
@@ -250,7 +251,7 @@ export function PrioritiesBoard() {
         </Button>
       </div>
 
-      {moveError && <p className="text-sm text-red-500">{moveError}</p>}
+      <FormError message={moveError} />
 
       {priorities.isLoading ? (
         <p className="text-muted-foreground text-sm">Carregando prioridades…</p>

@@ -23,9 +23,9 @@ function Card({ label, value, tone }: { label: string; value: number; tone?: "ba
       <p
         className={
           tone === "bad"
-            ? "text-red-500 tabular-nums"
+            ? "text-destructive tabular-nums"
             : tone === "good"
-              ? "text-emerald-600 tabular-nums"
+              ? "text-success tabular-nums"
               : "tabular-nums"
         }
       >
@@ -121,13 +121,13 @@ export function ReportPanel({ month }: Props) {
               <div className="flex flex-1 flex-col gap-1">
                 <div className="bg-muted h-1.5 overflow-hidden rounded-full">
                   <div
-                    className="h-full bg-emerald-600"
+                    className="bg-success h-full"
                     style={{ width: `${(mes.incomeCents / teto) * 100}%` }}
                   />
                 </div>
                 <div className="bg-muted h-1.5 overflow-hidden rounded-full">
                   <div
-                    className="h-full bg-red-500"
+                    className="bg-destructive h-full"
                     style={{ width: `${(mes.expenseCents / teto) * 100}%` }}
                   />
                 </div>
@@ -135,7 +135,7 @@ export function ReportPanel({ month }: Props) {
               <span
                 className={
                   mes.resultCents < 0
-                    ? "w-24 shrink-0 text-right text-red-500 tabular-nums"
+                    ? "text-destructive w-24 shrink-0 text-right tabular-nums"
                     : "w-24 shrink-0 text-right tabular-nums"
                 }
               >

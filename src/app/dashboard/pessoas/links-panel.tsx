@@ -2,6 +2,7 @@
 
 import { RELATION_LABELS, RELATIONS, type RelationValue } from "@/server/services/people/relations";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue } from "@/lib/form";
 import { trpc } from "@/trpc/react";
 
@@ -109,7 +110,7 @@ export function LinksPanel({ personId, personName, candidates }: Props) {
         </form>
       )}
 
-      {error && <span className="text-sm text-red-500">{error.message}</span>}
+      <FormError message={error?.message} />
     </div>
   );
 }

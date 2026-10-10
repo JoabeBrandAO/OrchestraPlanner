@@ -58,9 +58,7 @@ export default async function DashboardPage() {
             Roda da Vida
           </Link>
         </div>
-        <div className="mt-4">
-          <HealthStatus />
-        </div>
+        <HealthStatus />
       </section>
 
       <LifeWheelCallout />

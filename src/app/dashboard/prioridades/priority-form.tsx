@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue, hasText } from "@/lib/form";
 
 /** Rótulos do nível de prioridade — o índice é o valor guardado. */
@@ -107,7 +108,7 @@ export function PriorityForm({ goals, pending, error, onSubmit, onCancel }: Prop
         <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
           Cancelar
         </Button>
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </form>
   );

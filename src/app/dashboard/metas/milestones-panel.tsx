@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { trpc } from "@/trpc/react";
 
 type Snapshot = inferRouterOutputs<AppRouter>["milestones"]["list"];
@@ -107,7 +108,7 @@ export function MilestonesPanel({ goalId }: { goalId: string }) {
         </Button>
       </form>
 
-      {error && <span className="text-sm text-red-500">{error.message}</span>}
+      <FormError message={error?.message} />
     </div>
   );
 }

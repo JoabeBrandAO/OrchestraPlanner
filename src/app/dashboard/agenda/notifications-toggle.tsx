@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { SERVICE_WORKER_PATH, urlBase64ToUint8Array, VAPID_PUBLIC_KEY } from "@/lib/push";
 import { trpc } from "@/trpc/react";
 
@@ -130,7 +131,7 @@ export function NotificationsToggle() {
           A permissão foi negada — para reativar, libere as notificações nas configurações do site.
         </span>
       )}
-      {status.kind === "error" && <span className="text-xs text-red-500">{status.message}</span>}
+      <FormError message={status.kind === "error" ? status.message : null} className="text-xs" />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { parseAmount } from "@/server/services/finance/money";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue, hasText } from "@/lib/form";
 
 export const ACCOUNT_KINDS = [
@@ -100,7 +101,7 @@ export function AccountForm({ pending, error, onSubmit, onCancel }: Props) {
         <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
           Cancelar
         </Button>
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </form>
   );

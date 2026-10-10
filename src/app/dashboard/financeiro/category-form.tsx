@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { hasText } from "@/lib/form";
 
 import { type Direction } from "./transaction-form";
@@ -91,7 +92,7 @@ export function CategoryForm({ initial, pending, error, onSubmit, onCancel }: Pr
         <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
           Cancelar
         </Button>
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </form>
   );

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { decodeStatement } from "@/server/services/finance/statement-import";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 
 import { type Option } from "./transaction-form";
 
@@ -149,7 +150,7 @@ export function ImportForm({ accounts, pending, error, result, onSubmit, onClose
         <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
           Cancelar
         </Button>
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </div>
   );

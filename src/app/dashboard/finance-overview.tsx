@@ -36,12 +36,12 @@ export function FinanceOverview() {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
-          { rotulo: "Entradas", valor: totals.incomeCents, classe: "text-emerald-600" },
-          { rotulo: "Saídas", valor: totals.expenseCents, classe: "text-red-500" },
+          { rotulo: "Entradas", valor: totals.incomeCents, classe: "text-success" },
+          { rotulo: "Saídas", valor: totals.expenseCents, classe: "text-destructive" },
           {
             rotulo: "Saldo das contas",
             valor: consolidatedCents,
-            classe: consolidatedCents < 0 ? "text-red-500" : "",
+            classe: consolidatedCents < 0 ? "text-destructive" : "",
           },
         ].map((cartao) => (
           <div key={cartao.rotulo} className="rounded-lg border p-3">

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue } from "@/lib/form";
 import { trpc } from "@/trpc/react";
 
@@ -65,7 +66,7 @@ export function AccountData() {
             Para confirmar, digite {CONFIRMATION}
             <input name="confirmation" autoComplete="off" className={inputClass} />
           </label>
-          {remove.error ? <p className="text-red-500">{remove.error.message}</p> : null}
+          <FormError message={remove.error?.message} />
           <Button type="submit" variant="destructive" disabled={remove.isPending}>
             {remove.isPending ? "Apagando…" : "Apagar tudo, para sempre"}
           </Button>

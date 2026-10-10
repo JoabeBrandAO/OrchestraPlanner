@@ -13,6 +13,7 @@ import {
   type MaritalStatusValue,
 } from "@/server/services/people/person-fields";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue } from "@/lib/form";
 
 import {
@@ -228,7 +229,7 @@ export function PersonForm({
             Confira a data: não pode ser futura nem inexistente.
           </span>
         )}
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </form>
   );

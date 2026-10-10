@@ -5,6 +5,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { describeGap } from "@/server/services/people/contact-gap";
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue } from "@/lib/form";
 import { todayISO } from "@/app/dashboard/pessoas/person-input";
 import { trpc } from "@/trpc/react";
@@ -140,7 +141,7 @@ export function InteractionsPanel({ personId, today }: Props) {
         </Button>
       </form>
 
-      {error && <span className="text-sm text-red-500">{error.message}</span>}
+      <FormError message={error?.message} />
     </div>
   );
 }
