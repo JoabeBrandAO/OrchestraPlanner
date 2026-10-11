@@ -1,3 +1,4 @@
+import { ptBR } from "@clerk/localizations";
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -36,7 +37,9 @@ export default function RootLayout({
   return (
     // `dynamic`: o Clerk lê o nonce da CSP (#92) a cada requisição e o aplica nos próprios
     // scripts. O custo é não haver página estática — num app autenticado, quase não havia.
-    <ClerkProvider dynamic>
+    // `localization`: login, cadastro e o menu da conta (UserButton) em português — sem ela os
+    // componentes do Clerk saem em inglês no meio de um app todo em pt-BR.
+    <ClerkProvider dynamic localization={ptBR}>
       <html
         lang="pt-BR"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
