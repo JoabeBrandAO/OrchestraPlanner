@@ -7,39 +7,57 @@
 
 ---
 
-## Estado atual — atualizado em 2026-10-10
+## Estado atual — atualizado em 2026-10-11
 
 ### ✅ Feito
 - **Fase 1 (uso pessoal) completa e no ar** na Vercel (`orchestra-planner.vercel.app`), sob RLS por
   `user_id`: **Prioridades & Metas**, **Agenda** (recorrência, exceções, lembretes por Web Push),
   **Pessoas & Relacionamentos** (vínculos, círculos, interações, aniversários) e **Financeiro**
   (contas, orçamento, relatórios, importação OFX/CSV).
-- **Auditoria de 2026-09-04 zerada:** as 12 issues fechadas. As últimas 7 fecharam em
-  2026-09-30: fuso do usuário (#72), webhook do Clerk (#73), LGPD (#74), rate limiting (#75),
-  erros e rastro (#76), CSP obrigatória (#92) e higiene (#77).
-- **Qualidade:** 503 casos no Vitest (unitários, de componente e de integração sob RLS contra
-  Postgres real no CI) e 4 E2E (landing, login → painel, CSP obrigatória e varredura de violações).
-  A `main` é protegida: PR obrigatório com o CI exigido, e isso vale também para admin.
-- **Primeira rodada de UI/UX com o Impeccable (2026-10-10):** contexto de design em
-  `PRODUCT.md`, diagnóstico em `docs/ux/2026-10-10-diagnostico-impeccable.md`, correções,
-  login em português, tema escuro, cor por dimensão e o guia do Clerk de produção — **12 PRs
-  com CI verde, prontos e não mergeados** (o merge é do dono; ver "A fazer" 1).
+- **Auditoria de 2026-09-04 zerada:** as 12 issues fechadas (as últimas 7 em 2026-09-30).
+- **Rodada de UI/UX com o Impeccable (2026-10-10), toda no ar:** os 12 PRs (#121–#132) mesclados
+  na `main` (`829d488`) e em produção (site respondendo 200). Fonte do app corrigida, Roda da
+  Vida no celular, contraste AA, confirmação antes de exclusão em cascata, ícones, login em
+  português, tema escuro pelo sistema, uma cor por dimensão (Corpo / Alma / Espírito).
+  Contexto de design em `PRODUCT.md`; diagnóstico em `docs/ux/2026-10-10-diagnostico-impeccable.md`.
+- **Segurança zerada:** `npm audit --omit=dev` com 0 vulnerabilidades desde o #128 (Next.js
+  16.3.8, `shadcn` em `devDependencies`).
+- **Qualidade:** 517 casos no Vitest e 4 E2E (landing, login → painel, CSP obrigatória e varredura
+  de violações). A `main` é protegida: PR obrigatório com o CI exigido, inclusive para admin.
 
-### 🔄 Fazendo
-- Nada em execução. O próximo projeto é o **DOM** (`C:\projetos\DOM\DOM.txt`). O OrchestraPlanner
-  fica em manutenção; os PRs de 2026-10-10 esperam o merge do dono.
+### 🔄 Onde paramos
+- **Manutenção.** Nada em execução no OrchestraPlanner. O próximo projeto é o **DOM**
+  (`C:\projetos\DOM\DOM.txt`).
 
-### 📋 A fazer — na mão do dono
-1. **Terminar o merge dos PRs de 2026-10-10** (com "Create a merge commit"): #131 → #132 →
-   #127. Já entraram #128, #121–#126, #129 e #130 (`main` em `de612fb`, CI verde, auditoria em
-   0). O #131 acusou conflito no GitHub depois do #130; resolvido trazendo a `main` para o ramo
-   (ver `docs/ERROS.md` 2026-10-10, "simulação de merge").
-2. **Clerk de produção:** seguir `docs/CLERK-PRODUCAO.md` (#132), ~2,5 h em dois dias. A etapa 7
-   (levar os dados para o usuário novo) precisa de um script ainda não escrito.
-3. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
-   depois do alinhamento do DOM.
-4. **Opcional (#114):** criar e apagar no Clerk um usuário descartável e confirmar que ele some
-   de `users`. O webhook já está ligado e testado; falta só a prova de exclusão de ponta a ponta.
+### 📋 Próximos passos, em ordem
+1. **Menu fixo e tela de Conta** (achados 9 e 12 do diagnóstico), ~3,5 h: navegação persistente
+   entre os módulos e Preferências/"Seus dados" fora do painel.
+2. **Script de troca de dono dos dados** — leva o `user_id` de toda tabela do ID antigo para o
+   novo, numa transação. Tem de existir **antes** de trocar o Clerk para produção. Mexe em dado
+   de produção: **pede aprovação do dono**.
+3. **Clerk de produção** pelo `docs/CLERK-PRODUCAO.md`, ~2,5 h do dono em dois dias (domínio,
+   DNS, chaves, webhook). A etapa 7 usa o script do passo 2.
+4. **Pendências menores:** contraste das cores de tag (escolhidas pelo usuário, sem garantia nos
+   dois temas); resumo por área do painel sem a cor da dimensão (o serviço não manda a
+   dimensão); `provisioning.test.ts` estourando 30 s contra o Neon quando roda local.
+5. **Com o dono:** #64 (validação manual da Fase 1, ~3 h) e #114 (opcional: prova de exclusão de
+   usuário de ponta a ponta).
+6. **Dependabot (conferido em 2026-10-11):** #117 e #120 fechados pelo próprio Dependabot (as
+   atualizações já tinham entrado pelo #128). Abertos, com CI verde: **#118** (Vitest 4 → 5) e
+   **#119** (dotenv 17 → 18) — as duas são versão major e pedem leitura das notas de mudança
+   antes do merge.
+
+### 💡 Aprendizados de 2026-10-10/11
+- **O merge autônomo agora é barrado pelo sistema de permissões do Claude Code.** O fluxo atual:
+  o agente deixa o CI verde e informa a ordem de merge; o dono mescla no GitHub (ou libera
+  `Bash(gh pr merge:*)` em `/permissions`).
+- **PRs que dependem uns dos outros entram com "Create a merge commit",** não com *squash*:
+  esmagar os anteriores faz os empilhados conflitarem.
+- **Vários pontos de partida em comum (bases de merge) enganam a simulação local:** o git local
+  mescla limpo e o GitHub acusa conflito. Detalhe e prevenção em `docs/ERROS.md` (2026-10-10,
+  "A simulação da ordem de merge…").
+- **Print de tela entra no ciclo de toda mudança visual:** a fonte quebrada passou meses por
+  build verde e pelo detector estático.
 
 ### 🧊 Congelado (backlog sem data)
 - **#21** Fase 2 (SaaS + app mobile), **#22** Fase 3 (desktop) e **#106** (recorrência da Agenda
@@ -50,6 +68,11 @@
 ## Histórico recente
 _Histórico de 2026-06-17 a 2026-09-04:
 [docs/sessions/historico-progresso-ate-2026-09-04.md](docs/sessions/historico-progresso-ate-2026-09-04.md)._
+
+- **2026-10-11 — Checkpoint de fim de sessão:** os 12 PRs da rodada de UX mesclados pelo dono
+  (`main` em `829d488`), deploy de produção ok (200) e auditoria de produção em 0. Projeto volta
+  para a manutenção; próximos passos e aprendizados no Estado atual. Fechamento no log
+  [docs/sessions/2026-10-10-ux-impeccable.md](docs/sessions/2026-10-10-ux-impeccable.md).
 
 - **2026-10-10 — Primeira rodada de UI/UX com o Impeccable (subagente front-end/UX):**
   - **Contexto e diagnóstico (#121):** `PRODUCT.md` (o `init` do Impeccable, a partir da Visão) e

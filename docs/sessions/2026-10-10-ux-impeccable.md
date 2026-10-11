@@ -105,3 +105,19 @@ lint, build e testes verdes. Faltam #131 → #132 → #127.
    cor de tag escolhida pelo usuário sem contraste garantido; resumo por área do painel sem a
    dimensão (precisa de mudança no serviço).
 4. **Próxima rodada de UX:** navegação persistente + tela de Conta (achados 9 e 12), ~3,5 h.
+
+## Fechamento — 2026-10-11
+
+- **Merges reais (pelo dono, com merge commit):** #128 → #121 → #122 → #123 → #124 → #125 → #126
+  → #129 → #130, depois #131 (após trazer a `main` para o ramo, por causa das cinco bases de
+  merge) → #132 → #127. A `main` está em `829d488`.
+- **Produção:** deploy concluído, `orchestra-planner.vercel.app` respondendo 200;
+  `npm audit --omit=dev` com 0 vulnerabilidades.
+- **Dependabot:** #117 e #120 fechados pelo próprio Dependabot (já cobertos pelo #128); #118
+  (Vitest 5) e #119 (dotenv 18) abertos, com CI verde, esperando leitura por serem major.
+- **Impeccable:** 4.5.2 (binário 0.1.14), instalado localmente em `.claude/skills/impeccable/` e
+  fora do git (`.git/info/exclude`).
+- **Fluxo de merge daqui em diante:** o agente deixa o CI verde e informa a ordem; o dono
+  mescla, porque o sistema de permissões do Claude Code barra o `gh pr merge` do agente.
+- **Próximo passo:** menu fixo e tela de Conta (~3,5 h); depois o script de troca de dono dos
+  dados, que precisa existir antes do Clerk de produção. Lista completa no `PROGRESSO.md`.
