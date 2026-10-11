@@ -1,6 +1,7 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
@@ -63,7 +64,8 @@ export function GoalsManager() {
       {hasGoals && (
         <div className="flex justify-end">
           <Button size="sm" onClick={() => setCreating(true)}>
-            + Nova meta
+            <Plus aria-hidden />
+            Nova meta
           </Button>
         </div>
       )}
@@ -97,10 +99,11 @@ export function GoalsManager() {
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center">
           <p className="text-muted-foreground text-sm">
-            Você ainda não tem metas. Crie a primeira para começar. ✨
+            Você ainda não tem metas. Crie a primeira para começar.
           </p>
           <Button size="sm" onClick={() => setCreating(true)}>
-            + Nova meta
+            <Plus aria-hidden />
+            Nova meta
           </Button>
         </div>
       )}

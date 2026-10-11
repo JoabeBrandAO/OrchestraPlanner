@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
@@ -51,7 +52,8 @@ export function CirclesSection({ people }: { people: { id: string; name: string 
         <h2 className="text-lg font-medium">Círculos</h2>
         {hasCircles && (
           <Button size="sm" onClick={() => setCreating(true)}>
-            + Novo círculo
+            <Plus aria-hidden />
+            Novo círculo
           </Button>
         )}
       </div>
@@ -158,7 +160,8 @@ export function CirclesSection({ people }: { people: { id: string; name: string 
             Nenhum círculo ainda. Agrupe família, célula, amigos próximos ou mentores.
           </p>
           <Button size="sm" onClick={() => setCreating(true)}>
-            + Novo círculo
+            <Plus aria-hidden />
+            Novo círculo
           </Button>
         </div>
       )}

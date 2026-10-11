@@ -1,6 +1,7 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
@@ -105,7 +106,8 @@ export function FinanceManager() {
                 Total: <span className="tabular-nums">R$ {formatCents(consolidado)}</span>
               </span>
               <Button size="sm" onClick={() => setDialog("conta")}>
-                + Nova conta
+                <Plus aria-hidden />
+                Nova conta
               </Button>
             </div>
           )}
@@ -152,10 +154,11 @@ export function FinanceManager() {
         ) : (
           <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center">
             <p className="text-muted-foreground text-sm">
-              Nenhuma conta ainda. Comece por onde o dinheiro entra e sai. 💰
+              Nenhuma conta ainda. Comece por onde o dinheiro entra e sai.
             </p>
             <Button size="sm" onClick={() => setDialog("conta")}>
-              + Nova conta
+              <Plus aria-hidden />
+              Nova conta
             </Button>
           </div>
         )}
@@ -170,7 +173,7 @@ export function FinanceManager() {
             aria-label="Mês anterior"
             onClick={() => setAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
           >
-            ←
+            <ChevronLeft aria-hidden />
           </Button>
           <span className="text-sm font-medium">{capitalizeFirst(monthLabel.format(anchor))}</span>
           <Button
@@ -179,7 +182,7 @@ export function FinanceManager() {
             aria-label="Próximo mês"
             onClick={() => setAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
           >
-            →
+            <ChevronRight aria-hidden />
           </Button>
         </div>
 
@@ -189,7 +192,8 @@ export function FinanceManager() {
               Importar extrato
             </Button>
             <Button size="sm" onClick={() => setDialog("lancamento")}>
-              + Novo lançamento
+              <Plus aria-hidden />
+              Novo lançamento
             </Button>
           </div>
         )}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import { ensureUserRecord } from "@/server/users";
 
@@ -14,8 +15,12 @@ export default async function AreasPage() {
     <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-6 p-4 sm:p-8">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Áreas de Vida</h1>
-        <Link href="/dashboard" className="text-muted-foreground text-sm hover:underline">
-          ← Dashboard
+        <Link
+          href="/dashboard"
+          className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline"
+        >
+          <ArrowLeft aria-hidden className="size-4" />
+          Painel
         </Link>
       </header>
       <p className="text-muted-foreground text-sm">

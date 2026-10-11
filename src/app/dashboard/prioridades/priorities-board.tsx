@@ -22,6 +22,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { CalendarDays, GripVertical, Plus, Target } from "lucide-react";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo, useRef, useState } from "react";
 
@@ -247,7 +248,8 @@ export function PrioritiesBoard() {
           </Button>
         )}
         <Button size="sm" className="ml-auto" onClick={() => setCreating(true)}>
-          + Nova prioridade
+          <Plus aria-hidden />
+          Nova prioridade
         </Button>
       </div>
 
@@ -406,7 +408,7 @@ function CardBody({
           aria-label={`Mover ${item.title}`}
           {...handleProps}
         >
-          ⠿
+          <GripVertical aria-hidden className="size-4" />
         </button>
         {editing ? (
           <input
@@ -426,9 +428,19 @@ function CardBody({
 
       {(goal || item.dueDate || item.priorityLevel > 0) && (
         <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
-          {goal && <span className="rounded-full border px-2 py-0.5">🎯 {goal.title}</span>}
+          {goal && (
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+              <Target aria-hidden className="size-3" />
+              <span className="sr-only">Meta: </span>
+              {goal.title}
+            </span>
+          )}
           {item.dueDate && (
-            <span className="rounded-full border px-2 py-0.5">📅 {item.dueDate}</span>
+            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+              <CalendarDays aria-hidden className="size-3" />
+              <span className="sr-only">Prazo: </span>
+              {item.dueDate}
+            </span>
           )}
           {item.priorityLevel > 0 && (
             <span className="rounded-full border px-2 py-0.5">

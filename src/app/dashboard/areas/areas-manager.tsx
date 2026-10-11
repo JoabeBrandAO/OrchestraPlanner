@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -38,7 +39,8 @@ export function AreasManager() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-end">
         <Button size="sm" onClick={() => setCreating(true)}>
-          + Nova área
+          <Plus aria-hidden />
+          Nova área
         </Button>
       </div>
 

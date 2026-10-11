@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
@@ -73,7 +74,8 @@ export function CategoriesPanel() {
             setAlvo({ kind: "nova" });
           }}
         >
-          + Nova categoria
+          <Plus aria-hidden />
+          Nova categoria
         </Button>
       </div>
 
