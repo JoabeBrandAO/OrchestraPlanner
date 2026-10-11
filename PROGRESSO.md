@@ -7,7 +7,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-10-01
+## Estado atual — atualizado em 2026-10-10
 
 ### ✅ Feito
 - **Fase 1 (uso pessoal) completa e no ar** na Vercel (`orchestra-planner.vercel.app`), sob RLS por
@@ -20,15 +20,25 @@
 - **Qualidade:** 503 casos no Vitest (unitários, de componente e de integração sob RLS contra
   Postgres real no CI) e 4 E2E (landing, login → painel, CSP obrigatória e varredura de violações).
   A `main` é protegida: PR obrigatório com o CI exigido, e isso vale também para admin.
+- **Primeira rodada de UI/UX com o Impeccable (2026-10-10):** contexto de design em
+  `PRODUCT.md`, diagnóstico em `docs/ux/2026-10-10-diagnostico-impeccable.md`, correções,
+  login em português, tema escuro, cor por dimensão e o guia do Clerk de produção — **12 PRs
+  com CI verde, prontos e não mergeados** (o merge é do dono; ver "A fazer" 1).
 
 ### 🔄 Fazendo
-- Nada. O próximo projeto é o **DOM** (`C:\projetos\DOM\DOM.txt`), começando por uma sessão de
-  alinhamento sem código. O OrchestraPlanner fica em manutenção.
+- Nada em execução. O próximo projeto é o **DOM** (`C:\projetos\DOM\DOM.txt`). O OrchestraPlanner
+  fica em manutenção; os PRs de 2026-10-10 esperam o merge do dono.
 
 ### 📋 A fazer — na mão do dono
-1. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
+1. **Terminar o merge dos PRs de 2026-10-10** (com "Create a merge commit"): #131 → #132 →
+   #127. Já entraram #128, #121–#126, #129 e #130 (`main` em `de612fb`, CI verde, auditoria em
+   0). O #131 acusou conflito no GitHub depois do #130; resolvido trazendo a `main` para o ramo
+   (ver `docs/ERROS.md` 2026-10-10, "simulação de merge").
+2. **Clerk de produção:** seguir `docs/CLERK-PRODUCAO.md` (#132), ~2,5 h em dois dias. A etapa 7
+   (levar os dados para o usuário novo) precisa de um script ainda não escrito.
+3. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
    depois do alinhamento do DOM.
-2. **Opcional (#114):** criar e apagar no Clerk um usuário descartável e confirmar que ele some
+4. **Opcional (#114):** criar e apagar no Clerk um usuário descartável e confirmar que ele some
    de `users`. O webhook já está ligado e testado; falta só a prova de exclusão de ponta a ponta.
 
 ### 🧊 Congelado (backlog sem data)
@@ -40,6 +50,27 @@
 ## Histórico recente
 _Histórico de 2026-06-17 a 2026-09-04:
 [docs/sessions/historico-progresso-ate-2026-09-04.md](docs/sessions/historico-progresso-ate-2026-09-04.md)._
+
+- **2026-10-10 — Primeira rodada de UI/UX com o Impeccable (subagente front-end/UX):**
+  - **Contexto e diagnóstico (#121):** `PRODUCT.md` (o `init` do Impeccable, a partir da Visão) e
+    `docs/ux/2026-10-10-diagnostico-impeccable.md`: nota técnica 11/20, heurísticas 19/40, 18
+    achados por impacto ÷ esforço. `e2e/ux-prints.spec.ts` fotografa as telas sob demanda.
+  - **Achado mais grave:** a fonte do app nunca carregou (`--font-sans` apontava para si mesma);
+    tudo em Times New Roman desde a Iteração 0, com build verde o tempo todo.
+  - **Correções em PR, uma por tema:** #122 fonte e datas · #123 Roda da Vida no celular, radar e
+    largura das telas · #124 contraste AA e erro anunciado · #125 confirmação antes de exclusão
+    em cascata · #126 ícones no lugar de emoji.
+  - **CI vermelho na `main`** por 13 falhas novas de dependência de produção (1 crítica). Corrigido
+    em #128 (`npm audit fix`, Next.js 16.3.8, `shadcn` em `devDependencies`): auditoria em 0.
+  - **Segunda leva, liberada pelo dono no mesmo dia:** #129 login em português
+    (`@clerk/localizations`) · #130 tema escuro pelo sistema operacional · #131 uma cor por
+    dimensão (Corpo terracota, Alma azul-petróleo, Espírito dourado; AA nos dois temas) · #132
+    guia do Clerk de produção. Todos os PRs com CI verde; **nenhum merge feito pela sessão**.
+  - **Merge pelo dono:** #128, #121–#126, #129 e #130 entraram (`de612fb`). O #131 ficou em
+    conflito no GitHub, embora o git local mesclasse limpo: o ramo tinha cinco bases de merge
+    com a `main`. Resolvido com um merge da `main` no ramo; faltam #131, #132 e #127.
+  - Cinco lições em `docs/ERROS.md`.
+  - Log: [docs/sessions/2026-10-10-ux-impeccable.md](docs/sessions/2026-10-10-ux-impeccable.md).
 
 - **2026-10-01 — Pendências de infraestrutura do dono (guiado, sem código):**
   - **#114 fechada:** webhook do Clerk cadastrado (`user.created/updated/deleted`),

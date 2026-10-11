@@ -128,3 +128,45 @@
 - **Causa raiz:** a sabotagem bloqueou o Frontend API do Clerk, e a falha veio de outro ponto do fluxo.
 - **Correção:** sabotagem com `img-src 'none'`: o login continua de pé e a asserção falhou listando 4 violações. Sabotagem revertida e nada commitado.
 - **Como evitar a recorrência:** ao sabotar para validar um teste, ler **onde** ele falhou (error-context) e conferir que a falha é na asserção que se quer provar.
+
+### 2026-10-10 — A fonte do app nunca carregou: `--font-sans` apontava para si mesma
+- **Contexto:** diagnóstico de UI/UX com o Impeccable (`docs/ux/2026-10-10-diagnostico-impeccable.md`), primeiro print das telas.
+- **O que ocorreu:** todas as telas — inclusive o login do Clerk — em Times New Roman desde a Iteração 0. O `next/font` baixava a Geist e ninguém a usava. O detector estático do Impeccable não acusou nada; só o print mostrou.
+- **Causa raiz:** o `shadcn init` escreveu `--font-sans: var(--font-sans)` no `@theme inline` do `globals.css`, esperando que o layout publicasse `--font-sans`. O `layout.tsx` publica `--font-geist-sans`. Variável que referencia a si mesma é inválida no CSS; `font-family` inválido cai no padrão do navegador, em silêncio.
+- **Correção:** `--font-sans`/`--font-heading` apontam para `--font-geist-sans`, com fallback de sistema (#122).
+- **Como evitar a recorrência:** depois de gerar tema ou tocar em `globals.css`, olhar **um print** da tela, não só o build verde — CSS inválido não quebra compilação. Variável de tema nunca se referencia pelo próprio nome.
+
+### 2026-10-10 — `text-transform: capitalize` não serve para português
+- **Contexto:** mesmo diagnóstico; títulos de dia e mês na Agenda e no Financeiro.
+- **O que ocorreu:** "Outubro De 2026", "Segunda-Feira, 05 De Out.".
+- **Causa raiz:** `capitalize` põe maiúscula na primeira letra de **cada palavra**. Em português, preposição e a segunda parte de "segunda-feira" ficam minúsculas, e mês no meio da frase também.
+- **Correção:** `capitalizeFirst` (`src/lib/text.ts`), só a primeira letra do rótulo (#122).
+- **Como evitar a recorrência:** não usar `capitalize` em texto que sai do `Intl` em `pt-BR`; capitalizar no TypeScript, e só no começo do rótulo.
+
+### 2026-10-10 — `<main>` com `mx-auto` dentro de flex encolhe até o conteúdo
+- **Contexto:** mesmo diagnóstico; Roda da Vida e Áreas.
+- **O que ocorreu:** cada tela com uma largura (Áreas 464 px, Agenda 660, painel 704), e o radar da Roda espremido.
+- **Causa raiz:** o `<body>` é `flex flex-col`; um filho com `mx-auto` e só `max-w-*` não estica — margem automática num eixo transversal de flex vira "encolher e centralizar".
+- **Correção:** `w-full` no `<main>` de cada tela (#123).
+- **Como evitar a recorrência:** container de página é sempre `w-full max-w-* mx-auto`. Ao revisar layout, comparar a largura da mesma área em duas telas diferentes.
+
+### 2026-10-10 — CI vermelho na `main` por falha nova em dependência de produção
+- **Contexto:** primeiro PR da rodada de UX (#121).
+- **O que ocorreu:** o passo "Auditar dependências de produção" reprovou com 13 falhas (1 crítica em `proxy-addr`, 10 altas: `next` 16.3.6, `sharp`, `source-map-js`, `braces`…). Nenhuma veio desta rodada: foram publicadas depois do último verde, em 2026-10-01. Com a `main` protegida, **nenhum PR pode ser mergeado** até isso ser resolvido.
+- **Causa raiz:** a auditoria olha avisos publicados até hoje, não até o dia do lockfile. Um repositório parado fica vermelho sozinho. E o `shadcn` (ferramenta de geração de código, cuja única parte usada em produção é um CSS lido no build) está em `dependencies`, o que traz o `braces` vulnerável para a conta de produção.
+- **Correção:** #128, depois da liberação do dono: `npm audit fix`, `next`/`eslint-config-next` 16.3.8 e `shadcn` em `devDependencies`. `npm audit --omit=dev` em 0; typecheck, lint, build, testes e os 4 E2E verdes. Os demais PRs da rodada trazem esse ramo para ficarem verdes antes do merge dele.
+- **Como evitar a recorrência:** o Dependabot já abre PR de versão; vale um agendamento semanal do workflow de CI na `main` para o vermelho aparecer no dia em que a falha é publicada, e não no primeiro PR depois dela.
+
+### 2026-10-10 — `provisioning.test.ts` estoura os 30 s contra o Neon a partir do Brasil
+- **Contexto:** `npm test` local em todas as branches da rodada de UX, inclusive na `main`.
+- **O que ocorreu:** "apagar o usuário não deixa nenhuma linha dele em nenhuma tabela" falha por tempo (30 s), sempre. No CI, com Postgres local, passa.
+- **Causa raiz:** o teste encadeia dezenas de idas e voltas ao banco (preencher todos os módulos para dois usuários, apagar, e contar linha por tabela, uma consulta por tabela). Contra o Neon em us-east-1, cada ida e volta custa a latência da rede, e a soma passa do `testTimeout` global de 30 s.
+- **Correção:** nenhuma nesta sessão (fora do escopo de UI). Opções: `timeout` maior só neste caso, ou contar as linhas de todas as tabelas numa consulta só.
+- **Como evitar a recorrência:** teste de integração que varre o catálogo deve ter orçamento de consultas, como os de leitura (`query-budget.test.ts`) — senão cresce a cada tabela nova.
+
+### 2026-10-10 — A simulação da ordem de merge disse "sem conflito" e o GitHub acusou conflito
+- **Contexto:** rodada de UX. Antes de entregar os PRs, a ordem de merge (#128 → #121 → … → #131) foi simulada num ramo local com `git merge --no-ff` em sequência: limpo. O dono mesclou até o #130 pelo GitHub, e o #131 (`ux/identidade`) passou a aparecer como **em conflito**.
+- **O que ocorreu:** localmente, `git merge origin/main` no ramo do #131 continuava limpo; o GitHub dizia `CONFLICTING`.
+- **Causa raiz:** o ramo do #131 tinha sido montado mesclando, um a um, os ramos dos PRs anteriores (#122, #123, #124/#130, #125, #126); a `main` recebeu esses mesmos ramos por outros merges. Resultado: **cinco bases de merge** entre o ramo e a `main` (`git merge-base --all`). O git local (estratégia `ort`) junta várias bases numa base virtual e mescla limpo; a checagem do GitHub compara contra **uma** base só — e com qualquer uma das cinco o mesmo merge dá conflito (`git merge-tree --merge-base=<base>` reproduz). A simulação usou o algoritmo que tolera isso; o GitHub, não.
+- **Correção:** merge da `main` atual no ramo do #131 (sem force-push). A única base passa a ser a ponta da `main`, e o GitHub volta a marcar o PR como mesclável. Typecheck, lint, build e testes verdes.
+- **Como evitar a recorrência:** (1) não montar um ramo mesclando vários ramos-irmãos que vão entrar na `main` em separado — empilhar em fila (cada um sai do anterior) ou esperar o merge e partir da `main`; (2) ao simular uma ordem de merge, conferir também `git merge-base --all` e, quando houver mais de uma base, testar com `git merge-tree --write-tree --merge-base=<cada base>`, que é o que o GitHub enxerga; (3) depois de cada merge na `main`, olhar o estado "mesclável" dos PRs seguintes antes de seguir.
