@@ -13,6 +13,7 @@ import {
 } from "@/server/services/events/calendar";
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { capitalizeFirst } from "@/lib/text";
 import { trpc } from "@/trpc/react";
 
 import { AgendaMonth } from "./agenda-month";
@@ -131,10 +132,10 @@ export function Agenda() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-muted-foreground text-sm capitalize">
+          <span className="text-muted-foreground text-sm">
             {mode === "week"
               ? `${rangeLabel.format(range.from)} – ${rangeLabel.format(addDays(range.from, 6))}`
-              : monthLabel.format(anchor)}
+              : capitalizeFirst(monthLabel.format(anchor))}
           </span>
           <div className="flex items-center gap-1">
             <Button

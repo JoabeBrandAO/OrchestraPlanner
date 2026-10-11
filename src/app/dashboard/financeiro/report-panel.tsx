@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCents } from "@/server/services/finance/money";
+import { capitalizeFirst } from "@/lib/text";
 import { trpc } from "@/trpc/react";
 
 type Props = {
@@ -115,8 +116,8 @@ export function ReportPanel({ month }: Props) {
         <ul className="flex flex-col gap-2">
           {evolution.map((mes) => (
             <li key={mes.month} className="flex items-center gap-3 text-xs">
-              <span className="text-muted-foreground w-10 shrink-0 capitalize">
-                {monthLabel(mes.month)}
+              <span className="text-muted-foreground w-10 shrink-0">
+                {capitalizeFirst(monthLabel(mes.month))}
               </span>
               <div className="flex flex-1 flex-col gap-1">
                 <div className="bg-muted h-1.5 overflow-hidden rounded-full">
