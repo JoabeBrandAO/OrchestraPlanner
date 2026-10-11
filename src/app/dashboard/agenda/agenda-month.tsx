@@ -1,6 +1,7 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
+import { Cake } from "lucide-react";
 
 import { isSameDay, monthGrid } from "@/server/services/events/calendar";
 import type { AppRouter } from "@/server/trpc/root";
@@ -101,7 +102,9 @@ export function AgendaMonth({
                   className="truncate text-[11px] leading-tight"
                   title={`Aniversário de ${birthday.name}`}
                 >
-                  🎂 {birthday.name}
+                  <Cake aria-hidden className="mr-0.5 inline size-3 align-[-2px]" />
+                  <span className="sr-only">Aniversário de </span>
+                  {birthday.name}
                 </span>
               ))}
 
