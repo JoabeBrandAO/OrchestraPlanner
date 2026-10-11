@@ -154,7 +154,7 @@
 - **Contexto:** primeiro PR da rodada de UX (#121).
 - **O que ocorreu:** o passo "Auditar dependências de produção" reprovou com 13 falhas (1 crítica em `proxy-addr`, 10 altas: `next` 16.3.6, `sharp`, `source-map-js`, `braces`…). Nenhuma veio desta rodada: foram publicadas depois do último verde, em 2026-10-01. Com a `main` protegida, **nenhum PR pode ser mergeado** até isso ser resolvido.
 - **Causa raiz:** a auditoria olha avisos publicados até hoje, não até o dia do lockfile. Um repositório parado fica vermelho sozinho. E o `shadcn` (ferramenta de geração de código, cuja única parte usada em produção é um CSS lido no build) está em `dependencies`, o que traz o `braces` vulnerável para a conta de produção.
-- **Correção:** **não aplicada nesta sessão** — mexer em dependência ficou fora do que a sessão podia fazer sozinha. Testado localmente e revertido: `npm audit fix`, `next`/`eslint-config-next` 16.3.8 e `shadcn` para `devDependencies` zeram a auditoria de produção. Falta aprovação do dono e rodar typecheck, testes e build com as versões novas.
+- **Correção:** #128, depois da liberação do dono: `npm audit fix`, `next`/`eslint-config-next` 16.3.8 e `shadcn` em `devDependencies`. `npm audit --omit=dev` em 0; typecheck, lint, build, testes e os 4 E2E verdes. Os demais PRs da rodada trazem esse ramo para ficarem verdes antes do merge dele.
 - **Como evitar a recorrência:** o Dependabot já abre PR de versão; vale um agendamento semanal do workflow de CI na `main` para o vermelho aparecer no dia em que a falha é publicada, e não no primeiro PR depois dela.
 
 ### 2026-10-10 — `provisioning.test.ts` estoura os 30 s contra o Neon a partir do Brasil

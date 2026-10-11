@@ -21,20 +21,21 @@
   Postgres real no CI) e 4 E2E (landing, login → painel, CSP obrigatória e varredura de violações).
   A `main` é protegida: PR obrigatório com o CI exigido, e isso vale também para admin.
 - **Primeira rodada de UI/UX com o Impeccable (2026-10-10):** contexto de design em
-  `PRODUCT.md`, diagnóstico em `docs/ux/2026-10-10-diagnostico-impeccable.md` e 5 correções
-  prontas em PR (#122–#126). **Abertas, não mergeadas** — ver "A fazer" 1.
+  `PRODUCT.md`, diagnóstico em `docs/ux/2026-10-10-diagnostico-impeccable.md`, correções,
+  login em português, tema escuro, cor por dimensão e o guia do Clerk de produção — **12 PRs
+  com CI verde, prontos e não mergeados** (o merge é do dono; ver "A fazer" 1).
 
 ### 🔄 Fazendo
 - Nada em execução. O próximo projeto é o **DOM** (`C:\projetos\DOM\DOM.txt`). O OrchestraPlanner
-  fica em manutenção; os PRs da rodada de UX (#121–#127) esperam o CI destravar.
+  fica em manutenção; os PRs de 2026-10-10 esperam o merge do dono.
 
 ### 📋 A fazer — na mão do dono
-1. **Destravar o CI da `main`.** A auditoria de dependências de produção reprova desde depois de
-   2026-10-01 (13 falhas, 1 crítica) e nenhum PR passa. Correção testada localmente e revertida:
-   `npm audit fix`, `next`/`eslint-config-next` 16.3.8 e `shadcn` para `devDependencies`. Precisa
-   de aprovação; depois, mergear #121–#127 (sem conflito entre si). Ver `docs/ERROS.md` 2026-10-10.
-2. **Decisões de UX** (diagnóstico, "Decisões do dono"): login em português
-   (`@clerk/localizations`), tema escuro, identidade visual e instância de produção do Clerk.
+1. **Mergear os PRs de 2026-10-10, nesta ordem e com "Create a merge commit"** (não squash:
+   #130 e #131 empilham sobre os anteriores e dão conflito se eles entrarem esmagados):
+   **#128** (dependências — a produção está vulnerável até ele entrar) → #121 → #122 → #123 →
+   #124 → #125 → #126 → #129 → #130 → #131 → #132 → #127. Simulado: sem conflito.
+2. **Clerk de produção:** seguir `docs/CLERK-PRODUCAO.md` (#132), ~2,5 h em dois dias. A etapa 7
+   (levar os dados para o usuário novo) precisa de um script ainda não escrito.
 3. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
    depois do alinhamento do DOM.
 4. **Opcional (#114):** criar e apagar no Clerk um usuário descartável e confirmar que ele some
@@ -59,8 +60,13 @@ _Histórico de 2026-06-17 a 2026-09-04:
   - **Correções em PR, uma por tema:** #122 fonte e datas · #123 Roda da Vida no celular, radar e
     largura das telas · #124 contraste AA e erro anunciado · #125 confirmação antes de exclusão
     em cascata · #126 ícones no lugar de emoji.
-  - **Bloqueio:** CI vermelho na `main` por falhas novas de dependência; nada mergeado. Cinco
-    lições em `docs/ERROS.md`.
+  - **CI vermelho na `main`** por 13 falhas novas de dependência de produção (1 crítica). Corrigido
+    em #128 (`npm audit fix`, Next.js 16.3.8, `shadcn` em `devDependencies`): auditoria em 0.
+  - **Segunda leva, liberada pelo dono no mesmo dia:** #129 login em português
+    (`@clerk/localizations`) · #130 tema escuro pelo sistema operacional · #131 uma cor por
+    dimensão (Corpo terracota, Alma azul-petróleo, Espírito dourado; AA nos dois temas) · #132
+    guia do Clerk de produção. Todos os PRs com CI verde; **nenhum merge feito pela sessão**.
+  - Cinco lições em `docs/ERROS.md`.
   - Log: [docs/sessions/2026-10-10-ux-impeccable.md](docs/sessions/2026-10-10-ux-impeccable.md).
 
 - **2026-10-01 — Pendências de infraestrutura do dono (guiado, sem código):**

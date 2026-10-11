@@ -35,27 +35,47 @@ Mais #121 (diagnóstico + `PRODUCT.md` + `e2e/ux-prints.spec.ts`) e este fechame
 - `npm test` em cada ramo: tudo verde menos `provisioning.test.ts`, que estoura 30 s contra o
   Neon — igual na `main` (ver `docs/ERROS.md`).
 
-## O que travou
+## O que travou, e como destravou
 
-**Nada foi mergeado.** O CI da `main` está vermelho desde antes da rodada: o passo de
-auditoria de dependências de produção acusa 13 falhas publicadas depois de 2026-10-01. Com a
-`main` protegida, nenhum PR passa. A correção (atualizar dependências) foi testada localmente
-e revertida — mexer em dependência ficou fora do que a sessão podia fazer sozinha. Os 7 PRs
-estão abertos esperando o dono.
+Na primeira leva, **nada podia ser mergeado**: o CI da `main` estava vermelho desde antes da
+rodada (13 falhas de dependência de produção publicadas depois de 2026-10-01). A correção foi
+testada e revertida, porque mexer em dependência ficou fora do que a sessão podia fazer
+sozinha. O dono liberou no mesmo dia, e ela virou o #128.
+
+## Segunda leva (liberada pelo dono em 2026-10-10)
+
+| PR | O que muda |
+|---|---|
+| #128 | `npm audit fix`, Next.js 16.3.6 → 16.3.8, `shadcn` em `devDependencies`. `npm audit --omit=dev`: **0 vulnerabilidades** (era 13: 1 crítica, 10 altas, 2 moderadas). Typecheck, lint, build, testes e os 4 E2E verdes |
+| #129 | Login, cadastro e menu da conta em português (`@clerk/localizations` 4.20.0, a versão que usa o mesmo `@clerk/shared` já instalado) |
+| #130 | Tema escuro seguindo o sistema operacional, sem botão; detector com 0 `low-contrast` no escuro |
+| #131 | Uma cor por dimensão: Corpo terracota, Alma azul-petróleo, Espírito dourado; AA nos dois temas (≥ 5,3:1 claro, ≥ 8:1 escuro) em Áreas, Roda da Vida e Metas |
+| #132 | `docs/CLERK-PRODUCAO.md`: passo a passo do Clerk de produção (~2,5 h), sem tocar em conta |
+
+Os PRs #121–#127 receberam o ramo do #128 por merge (sem force-push) e ficaram verdes antes
+dele entrar. **A sessão não mergeou nada**: o merge é do dono.
+
+**Ordem de merge, com "Create a merge commit":** #128 → #121 → #122 → #123 → #124 → #125 → #126
+→ #129 → #130 → #131 → #132 → #127. Simulado num ramo local: sem conflito. Com *squash*, #130 e
+#131 conflitam, porque empilham sobre #124 (e #131 sobre todos os de código) e mexem nas mesmas
+linhas; o repositório permite merge commit e a `main` não exige histórico linear.
 
 ## Decisões e porquês
 
-- **Login em português (achado 2) ficou de fora** apesar da razão alta: a correção certa é o
-  pacote `@clerk/localizations`, dependência nova. Entrou o achado 8 (ícones), que usa uma
-  biblioteca que o projeto já tinha e nunca usou.
+- **Login em português ficou para a segunda leva** porque dependia de pacote novo; na
+  primeira entrou o achado 8 (ícones), com uma biblioteca que o projeto já tinha.
 - **Confirmação só para exclusão em cascata.** Apagar um contato ou um marco continua em um
   clique: confirmar tudo treina a pessoa a confirmar sem ler.
-- **PRs independentes, todos a partir da `main`**, para o dono mergear em qualquer ordem. O
-  custo: os prints "depois" de #123, #124 e #126 ainda aparecem em Times New Roman, porque a
-  fonte só é corrigida no #122.
+- **Primeira leva independente; segunda empilhada.** #122–#126 saem da `main` e entram em
+  qualquer ordem; #130 sai de #124 (precisa dos tokens `--success`/`--destructive`) e #131 sai
+  de todos os de código (mexe nas mesmas telas). Os prints "depois" de #123, #124 e #126 ainda
+  aparecem em Times New Roman porque a fonte só é corrigida no #122.
+- **Sem violeta na identidade.** A primeira versão pintava Espírito de violeta; o detector do
+  Impeccable acusou paleta típica de interface gerada por IA. Trocado por dourado.
 - **Nenhum dado escrito no banco.** O usuário de teste está vazio; telas cheias (Kanban,
   extrato, lista de pessoas) foram avaliadas pelo código. O print da confirmação foi tirado
-  abrindo a janela e cancelando.
+  abrindo a janela e cancelando. O print do menu da conta não foi versionado porque mostra o
+  e-mail do usuário de teste.
 
 ## Lições
 
@@ -63,11 +83,15 @@ estão abertos esperando o dono.
   apareceu no print. Print de tela entra no ciclo de qualquer mudança visual.
 - CI de repositório parado fica vermelho sozinho: a auditoria olha avisos publicados até
   hoje.
+- PR empilhado e *squash* não combinam: quem empilha precisa dizer a forma de merge, não só a
+  ordem.
 
 ## Onde paramos / próximo passo
 
-1. **Dono:** aprovar a atualização de dependências que destrava o CI; depois os PRs #121–#127
-   podem ser mergeados (a sessão deixou todos prontos e sem conflito entre si).
-2. **Dono:** decidir login em português (`@clerk/localizations`), tema escuro, identidade
-   visual e instância de produção do Clerk.
-3. **Próxima rodada de UX:** navegação persistente + tela de Conta (achados 9 e 12), ~3,5 h.
+1. **Dono:** mergear na ordem acima, começando pelo #128 (a produção fica vulnerável até ele).
+2. **Dono:** Clerk de produção pelo `docs/CLERK-PRODUCAO.md`; a etapa 7 (levar os dados para o
+   usuário novo) pede um script de troca de dono, ainda não escrito.
+3. **Pendências de código:** `provisioning.test.ts` estourando 30 s contra o Neon (só local);
+   cor de tag escolhida pelo usuário sem contraste garantido; resumo por área do painel sem a
+   dimensão (precisa de mudança no serviço).
+4. **Próxima rodada de UX:** navegação persistente + tela de Conta (achados 9 e 12), ~3,5 h.
