@@ -95,23 +95,31 @@ export function LifeWheelManager() {
       >
         <h2 className="text-lg font-medium">Como está cada área hoje?</h2>
         {areas.data.map((area) => (
-          <div key={area.id} className="flex items-center gap-3">
-            <label htmlFor={`score-${area.id}`} className="w-40 shrink-0 truncate text-sm">
+          // No celular o nome vai em cima e a régua embaixo, com a largura toda: lado a lado,
+          // nome + régua + nota passavam da tela e a página rolava para o lado.
+          <div key={area.id} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <label
+              htmlFor={`score-${area.id}`}
+              title={area.name}
+              className="text-sm sm:w-60 sm:shrink-0 sm:truncate"
+            >
               {area.name}
             </label>
-            <input
-              id={`score-${area.id}`}
-              type="range"
-              min={SCORE_MIN}
-              max={SCORE_MAX}
-              step={1}
-              value={scoreOf(area.id)}
-              className="accent-primary flex-1"
-              onChange={(e) =>
-                setDraft((current) => ({ ...current, [area.id]: Number(e.target.value) }))
-              }
-            />
-            <span className="w-6 text-right text-sm tabular-nums">{scoreOf(area.id)}</span>
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <input
+                id={`score-${area.id}`}
+                type="range"
+                min={SCORE_MIN}
+                max={SCORE_MAX}
+                step={1}
+                value={scoreOf(area.id)}
+                className="accent-primary h-6 min-w-0 flex-1"
+                onChange={(e) =>
+                  setDraft((current) => ({ ...current, [area.id]: Number(e.target.value) }))
+                }
+              />
+              <span className="w-6 text-right text-sm tabular-nums">{scoreOf(area.id)}</span>
+            </div>
           </div>
         ))}
         <div className="flex items-center gap-3">
