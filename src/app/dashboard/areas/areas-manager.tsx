@@ -5,7 +5,9 @@ import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DimensionDot } from "@/components/ui/dimension-dot";
 import { FormDialog } from "@/components/ui/form-dialog";
+import { DIMENSION_STYLE } from "@/lib/dimension-style";
 import { trpc } from "@/trpc/react";
 
 import { AreaForm, DIMENSIONS } from "./area-form";
@@ -79,7 +81,10 @@ export function AreasManager() {
           if (items.length === 0) return null;
           return (
             <section key={d.value}>
-              <h2 className="text-muted-foreground mb-2 text-sm font-medium uppercase">
+              <h2
+                className={`mb-2 flex items-center gap-2 text-sm font-medium uppercase ${DIMENSION_STYLE[d.value].text}`}
+              >
+                <DimensionDot dimension={d.value} />
                 {d.label}
               </h2>
               <ul className="flex flex-col gap-2">
@@ -88,7 +93,10 @@ export function AreasManager() {
                     key={area.id}
                     className="flex items-center justify-between rounded-lg border px-3 py-2"
                   >
-                    <span className="text-sm">{area.name}</span>
+                    <span className="flex items-center gap-2 text-sm">
+                      <DimensionDot dimension={area.dimension} />
+                      {area.name}
+                    </span>
                     <Button
                       size="sm"
                       variant="ghost"

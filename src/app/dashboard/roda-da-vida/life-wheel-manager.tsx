@@ -5,7 +5,9 @@ import { useState } from "react";
 
 import { SCORE_MAX, SCORE_MIN } from "@/server/services/life-wheel/wheel";
 import { Button } from "@/components/ui/button";
+import { DimensionDot } from "@/components/ui/dimension-dot";
 import { FormError } from "@/components/ui/form-error";
+import { DIMENSION_LABEL, DIMENSION_STYLE } from "@/lib/dimension-style";
 import { trpc } from "@/trpc/react";
 
 import { RadarChart } from "./radar-chart";
@@ -67,12 +69,22 @@ export function LifeWheelManager() {
     lifeAreaId: area.id,
     name: area.name,
     score: scoreOf(area.id),
+    dimension: area.dimension,
   }));
 
   return (
     <div className="flex flex-col gap-6">
       <section className="rounded-lg border p-4">
         <RadarChart entries={radarEntries} />
+        {/* Legenda das cores: a mesma de Áreas de Vida. */}
+        <ul className="text-muted-foreground mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
+          {(["corpo", "alma", "espirito"] as const).map((dimension) => (
+            <li key={dimension} className="flex items-center gap-1.5">
+              <DimensionDot dimension={dimension} />
+              {DIMENSION_LABEL[dimension]}
+            </li>
+          ))}
+        </ul>
         {latest.data ? (
           <p className="text-muted-foreground mt-2 text-center text-sm">
             Última avaliação em {dateFormat.format(latest.data.assessedAt)} · média{" "}
@@ -102,9 +114,10 @@ export function LifeWheelManager() {
             <label
               htmlFor={`score-${area.id}`}
               title={area.name}
-              className="text-sm sm:w-60 sm:shrink-0 sm:truncate"
+              className="flex items-center gap-2 text-sm sm:w-60 sm:shrink-0"
             >
-              {area.name}
+              <DimensionDot dimension={area.dimension} />
+              <span className="sm:truncate">{area.name}</span>
             </label>
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <input
@@ -114,7 +127,7 @@ export function LifeWheelManager() {
                 max={SCORE_MAX}
                 step={1}
                 value={scoreOf(area.id)}
-                className="accent-primary h-6 min-w-0 flex-1"
+                className={`h-6 min-w-0 flex-1 ${DIMENSION_STYLE[area.dimension].accent}`}
                 onChange={(e) =>
                   setDraft((current) => ({ ...current, [area.id]: Number(e.target.value) }))
                 }

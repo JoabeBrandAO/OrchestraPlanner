@@ -1,6 +1,7 @@
 "use client";
 
 import { radarPoints, toPolygonPoints, SCORE_MAX } from "@/server/services/life-wheel/wheel";
+import { DIMENSION_STYLE, type Dimension } from "@/lib/dimension-style";
 
 import { wrapLabel } from "./wrap-label";
 
@@ -26,7 +27,13 @@ const LINE_HEIGHT = 13;
 const LABEL_CHARS = 14;
 const LABEL_LINES = 3;
 
-export type RadarEntry = { lifeAreaId: string; name: string; score: number };
+export type RadarEntry = {
+  lifeAreaId: string;
+  name: string;
+  score: number;
+  /** Pinta o rótulo com a cor da dimensão (Corpo / Alma / Espírito). */
+  dimension?: Dimension;
+};
 
 export function RadarChart({ entries }: { entries: RadarEntry[] }) {
   if (entries.length < 3) {
@@ -106,7 +113,9 @@ export function RadarChart({ entries }: { entries: RadarEntry[] }) {
             textAnchor={anchor}
             dominantBaseline="middle"
             fontSize={FONT_SIZE}
-            className="fill-current opacity-75"
+            className={
+              entry.dimension ? DIMENSION_STYLE[entry.dimension].fill : "fill-current opacity-75"
+            }
           >
             <title>{`${entry.name}: ${entry.score}`}</title>
             {lines.map((line, lineIndex) => (
