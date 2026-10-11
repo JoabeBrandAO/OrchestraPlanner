@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { SCORE_MAX, SCORE_MIN } from "@/server/services/life-wheel/wheel";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { trpc } from "@/trpc/react";
 
 import { RadarChart } from "./radar-chart";
@@ -126,7 +127,7 @@ export function LifeWheelManager() {
           <Button type="submit" disabled={save.isPending}>
             {save.isPending ? "Salvando…" : "Salvar avaliação"}
           </Button>
-          {save.error && <span className="text-sm text-red-500">{save.error.message}</span>}
+          <FormError message={save.error?.message} />
         </div>
       </form>
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue, hasText } from "@/lib/form";
 
 export type GoalFormValues = {
@@ -82,7 +83,7 @@ export function GoalForm({ areas, pending, error, onSubmit, onCancel }: Props) {
         <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
           Cancelar
         </Button>
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </form>
   );

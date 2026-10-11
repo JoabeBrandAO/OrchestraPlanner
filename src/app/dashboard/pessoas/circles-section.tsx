@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { FormDialog } from "@/components/ui/form-dialog";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue, hasText } from "@/lib/form";
 import { trpc } from "@/trpc/react";
 
@@ -208,9 +209,7 @@ export function CirclesSection({ people }: { people: { id: string; name: string 
             <Button type="button" variant="ghost" onClick={() => setCreating(false)}>
               Cancelar
             </Button>
-            {createCircle.error && (
-              <span className="text-sm text-red-500">{createCircle.error.message}</span>
-            )}
+            <FormError message={createCircle.error?.message} />
           </div>
         </form>
       </FormDialog>

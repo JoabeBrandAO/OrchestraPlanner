@@ -84,7 +84,7 @@ export function BudgetPanel({ month, monthLabel }: Props) {
                 rotulo: "Sobra",
                 valor: painel!.totalPlannedCents - painel!.totalRealizedCents,
                 classe:
-                  painel!.totalRealizedCents > painel!.totalPlannedCents ? "text-red-500" : "",
+                  painel!.totalRealizedCents > painel!.totalPlannedCents ? "text-destructive" : "",
               },
             ].map((cartao) => (
               <div key={cartao.rotulo} className="rounded-lg border p-3">
@@ -108,7 +108,7 @@ export function BudgetPanel({ month, monthLabel }: Props) {
 
                   <div className="bg-muted h-2 overflow-hidden rounded-full">
                     <div
-                      className={estourou ? "h-full bg-red-500" : "h-full bg-emerald-600"}
+                      className={estourou ? "bg-destructive h-full" : "bg-success h-full"}
                       style={{ width: `${percent(linha.realizedCents, linha.plannedCents!)}%` }}
                     />
                   </div>
@@ -116,7 +116,7 @@ export function BudgetPanel({ month, monthLabel }: Props) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span
                       className={
-                        estourou ? "text-xs text-red-500" : "text-muted-foreground text-xs"
+                        estourou ? "text-destructive text-xs" : "text-muted-foreground text-xs"
                       }
                     >
                       {estourou

@@ -120,7 +120,7 @@ export function FinanceManager() {
                   <p
                     className={
                       account.balanceCents < 0
-                        ? "mt-1 text-red-500 tabular-nums"
+                        ? "text-destructive mt-1 tabular-nums"
                         : "mt-1 tabular-nums"
                     }
                   >
@@ -221,8 +221,8 @@ export function FinanceManager() {
                   <span
                     className={
                       item.direction === "entrada"
-                        ? "text-emerald-600 tabular-nums"
-                        : "text-red-500 tabular-nums"
+                        ? "text-success tabular-nums"
+                        : "text-destructive tabular-nums"
                     }
                   >
                     {item.direction === "entrada" ? "+" : "−"} R$ {formatCents(item.amountCents)}

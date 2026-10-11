@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { formatCents, parseAmount } from "@/server/services/finance/money";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { fieldValue } from "@/lib/form";
 
 export type Direction = "entrada" | "saida";
@@ -203,7 +204,7 @@ export function TransactionForm({
         <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
           Cancelar
         </Button>
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </form>
   );

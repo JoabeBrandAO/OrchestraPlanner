@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 
 import { RECURRENCE_FREQUENCIES, RECURRENCE_LABELS } from "@/server/services/events/recurrence";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 
 import {
   checkEventFields,
@@ -245,7 +246,7 @@ export function EventForm({
         {status.invertedWindow && (
           <span className="text-muted-foreground text-sm">O fim precisa ser depois do início.</span>
         )}
-        {error && <span className="text-sm text-red-500">{error}</span>}
+        <FormError message={error} />
       </div>
     </form>
   );
