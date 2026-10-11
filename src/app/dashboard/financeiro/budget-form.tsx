@@ -68,8 +68,7 @@ export function BudgetForm({
       }}
     >
       <p className="text-muted-foreground text-xs">
-        Orçamento de <span className="capitalize">{monthLabel}</span>. Cada mês começa zerado — nada
-        é copiado do mês anterior.
+        Orçamento de {monthLabel}. Cada mês começa zerado — nada é copiado do mês anterior.
       </p>
 
       <label className="text-muted-foreground flex flex-col gap-1 text-xs">
