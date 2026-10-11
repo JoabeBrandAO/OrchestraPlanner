@@ -30,10 +30,10 @@
   fica em manutenção; os PRs de 2026-10-10 esperam o merge do dono.
 
 ### 📋 A fazer — na mão do dono
-1. **Mergear os PRs de 2026-10-10, nesta ordem e com "Create a merge commit"** (não squash:
-   #130 e #131 empilham sobre os anteriores e dão conflito se eles entrarem esmagados):
-   **#128** (dependências — a produção está vulnerável até ele entrar) → #121 → #122 → #123 →
-   #124 → #125 → #126 → #129 → #130 → #131 → #132 → #127. Simulado: sem conflito.
+1. **Terminar o merge dos PRs de 2026-10-10** (com "Create a merge commit"): #131 → #132 →
+   #127. Já entraram #128, #121–#126, #129 e #130 (`main` em `de612fb`, CI verde, auditoria em
+   0). O #131 acusou conflito no GitHub depois do #130; resolvido trazendo a `main` para o ramo
+   (ver `docs/ERROS.md` 2026-10-10, "simulação de merge").
 2. **Clerk de produção:** seguir `docs/CLERK-PRODUCAO.md` (#132), ~2,5 h em dois dias. A etapa 7
    (levar os dados para o usuário novo) precisa de um script ainda não escrito.
 3. **#64 — validação manual da Fase 1.** O roteiro está na issue. Estimativa: ~3 h. Fica para
@@ -66,6 +66,9 @@ _Histórico de 2026-06-17 a 2026-09-04:
     (`@clerk/localizations`) · #130 tema escuro pelo sistema operacional · #131 uma cor por
     dimensão (Corpo terracota, Alma azul-petróleo, Espírito dourado; AA nos dois temas) · #132
     guia do Clerk de produção. Todos os PRs com CI verde; **nenhum merge feito pela sessão**.
+  - **Merge pelo dono:** #128, #121–#126, #129 e #130 entraram (`de612fb`). O #131 ficou em
+    conflito no GitHub, embora o git local mesclasse limpo: o ramo tinha cinco bases de merge
+    com a `main`. Resolvido com um merge da `main` no ramo; faltam #131, #132 e #127.
   - Cinco lições em `docs/ERROS.md`.
   - Log: [docs/sessions/2026-10-10-ux-impeccable.md](docs/sessions/2026-10-10-ux-impeccable.md).
 

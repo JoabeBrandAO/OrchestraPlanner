@@ -60,6 +60,14 @@ dele entrar. **A sessão não mergeou nada**: o merge é do dono.
 #131 conflitam, porque empilham sobre #124 (e #131 sobre todos os de código) e mexem nas mesmas
 linhas; o repositório permite merge commit e a `main` não exige histórico linear.
 
+**O que aconteceu de fato:** o dono mesclou #128, #121–#126, #129 e #130 com merge commit
+(`main` em `de612fb`, CI verde, auditoria em 0). O GitHub então marcou o #131 como em
+conflito, embora o git local mesclasse limpo. Causa: o ramo `ux/identidade` tinha **cinco bases
+de merge** com a `main` (cada PR anterior entrou nos dois por merges separados); o git local
+resolve isso com uma base virtual, e a checagem do GitHub usa uma base só. Resolvido com um
+merge da `main` no ramo (a base passa a ser a ponta da `main`), sem force-push; typecheck,
+lint, build e testes verdes. Faltam #131 → #132 → #127.
+
 ## Decisões e porquês
 
 - **Login em português ficou para a segunda leva** porque dependia de pacote novo; na
@@ -85,6 +93,8 @@ linhas; o repositório permite merge commit e a `main` não exige histórico lin
   hoje.
 - PR empilhado e *squash* não combinam: quem empilha precisa dizer a forma de merge, não só a
   ordem.
+- Simular a ordem de merge com `git merge` local não basta quando há várias bases de merge: o
+  GitHub decide com uma base só. Ver `docs/ERROS.md`.
 
 ## Onde paramos / próximo passo
 
