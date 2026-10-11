@@ -6,8 +6,10 @@ import { useState } from "react";
 
 import type { AppRouter } from "@/server/trpc/root";
 import { Button } from "@/components/ui/button";
+import { DimensionDot } from "@/components/ui/dimension-dot";
 import { FormDialog } from "@/components/ui/form-dialog";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { type Dimension } from "@/lib/dimension-style";
 import { trpc } from "@/trpc/react";
 
 import { GoalForm } from "./goal-form";
@@ -89,6 +91,7 @@ export function GoalsManager() {
             <li key={goal.id} className="rounded-lg border p-4">
               <GoalRow
                 goal={goal}
+                area={areas.data?.find((area) => area.id === goal.lifeAreaId)}
                 onStatus={(status) => setStatus.mutate({ id: goal.id, status })}
                 onRename={(newTitle) => updateGoal.mutate({ id: goal.id, title: newTitle })}
                 busy={setStatus.isPending || updateGoal.isPending}
@@ -113,11 +116,14 @@ export function GoalsManager() {
 
 function GoalRow({
   goal,
+  area,
   onStatus,
   onRename,
   busy,
 }: {
   goal: GoalItem;
+  /** A área da meta, com a cor da dimensão — a mesma de Áreas de Vida e da Roda. */
+  area?: { name: string; dimension: Dimension };
   onStatus: (status: keyof typeof STATUS_LABEL) => void;
   onRename: (title: string) => void;
   busy: boolean;
@@ -144,6 +150,12 @@ function GoalRow({
             </p>
             {goal.description && (
               <p className="text-muted-foreground mt-0.5 text-sm">{goal.description}</p>
+            )}
+            {area && (
+              <p className="text-muted-foreground mt-1 flex items-center gap-1.5 text-xs">
+                <DimensionDot dimension={area.dimension} />
+                {area.name}
+              </p>
             )}
           </div>
         )}
