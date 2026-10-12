@@ -1,20 +1,20 @@
-import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
-import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
 import { ensureUserRecord } from "@/server/users";
 
-import { AccountData } from "./account-data";
 import { FinanceOverview } from "./finance-overview";
 import { GoalsOverview } from "./goals-overview";
 import { HealthStatus } from "./health-status";
 import { LifeWheelCallout } from "./life-wheel-callout";
-import { TimeZoneSetting } from "./time-zone-setting";
 
 // Área autenticada — sempre dinâmica (depende da sessão Clerk).
 export const dynamic = "force-dynamic";
 
+/**
+ * O panorama do dia. Os atalhos para os módulos viraram o menu fixo (layout) e as
+ * preferências, o login e "Seus dados" foram para a tela de Conta: aqui fica só o que se lê
+ * ao abrir o app.
+ */
 export default async function DashboardPage() {
   // Garante a linha do usuário no banco (upsert idempotente) ao entrar.
   await ensureUserRecord();
@@ -23,43 +23,11 @@ export default async function DashboardPage() {
   const greeting = user?.firstName ?? "bem-vindo";
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-6 p-4 sm:p-8">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 sm:p-8">
+      <header>
         <h1 className="text-2xl font-semibold">Olá, {greeting}</h1>
-        <UserButton />
-      </header>
-      <section className="rounded-lg border p-6">
-        <h2 className="mb-2 text-lg font-medium">OrchestraPlanner</h2>
-        <p className="text-muted-foreground text-sm">
-          Organize suas Metas por Áreas de Vida, leve o dia a dia no quadro de Prioridades, marque
-          os compromissos na Agenda, cuide de quem importa em Pessoas e acompanhe o dinheiro no
-          Financeiro.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/dashboard/metas" className={buttonVariants({ variant: "default" })}>
-            Minhas Metas
-          </Link>
-          <Link href="/dashboard/prioridades" className={buttonVariants({ variant: "outline" })}>
-            Prioridades
-          </Link>
-          <Link href="/dashboard/agenda" className={buttonVariants({ variant: "outline" })}>
-            Agenda
-          </Link>
-          <Link href="/dashboard/pessoas" className={buttonVariants({ variant: "outline" })}>
-            Pessoas
-          </Link>
-          <Link href="/dashboard/financeiro" className={buttonVariants({ variant: "outline" })}>
-            Financeiro
-          </Link>
-          <Link href="/dashboard/areas" className={buttonVariants({ variant: "outline" })}>
-            Áreas de Vida
-          </Link>
-          <Link href="/dashboard/roda-da-vida" className={buttonVariants({ variant: "outline" })}>
-            Roda da Vida
-          </Link>
-        </div>
         <HealthStatus />
-      </section>
+      </header>
 
       <LifeWheelCallout />
 
@@ -73,18 +41,6 @@ export default async function DashboardPage() {
       <section className="rounded-lg border p-6">
         <h2 className="mb-4 text-lg font-medium">Panorama do dinheiro</h2>
         <FinanceOverview />
-      </section>
-
-      {/* Fuso horário (#72) — é dele que sai o "hoje" do painel e dos lembretes. */}
-      <section className="rounded-lg border p-6">
-        <h2 className="mb-4 text-lg font-medium">Preferências</h2>
-        <TimeZoneSetting />
-      </section>
-
-      {/* Seus dados (#74) — o que é guardado, exportar e apagar a conta. */}
-      <section className="rounded-lg border p-6">
-        <h2 className="mb-4 text-lg font-medium">Seus dados</h2>
-        <AccountData />
       </section>
     </main>
   );

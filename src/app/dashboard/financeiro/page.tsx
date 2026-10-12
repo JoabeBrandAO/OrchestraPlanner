@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-
 import { ensureUserRecord } from "@/server/users";
 
 import { FinanceManager } from "./finance-manager";
@@ -13,16 +10,9 @@ export default async function FinancePage() {
   await ensureUserRecord();
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-4xl flex-col gap-6 p-4 sm:p-8">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-4 sm:p-8">
+      <header>
         <h1 className="text-2xl font-semibold">Financeiro</h1>
-        <Link
-          href="/dashboard"
-          className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline"
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          Painel
-        </Link>
       </header>
       <FinanceManager />
     </main>
