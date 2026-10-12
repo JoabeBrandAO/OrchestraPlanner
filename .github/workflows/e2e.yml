@@ -21,6 +21,7 @@ jobs:
   login:
     name: Login ponta a ponta (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       # Role restrito (`app_rls`): o painel que o teste abre depois do login lê sob RLS.
@@ -63,7 +64,7 @@ jobs:
         run: npm run build
 
       - name: E2E (login → painel)
-        run: npx playwright test e2e/medicao-navegacao.spec.ts --reporter=list
+        run: npx playwright test e2e/medicao-navegacao.spec.ts --reporter=list --retries=0
 
       # O relatório só interessa quando quebrou — e aí é o que diz se foi o login ou a
       # verificação de dispositivo novo.

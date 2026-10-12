@@ -55,7 +55,7 @@ test.describe("medição da navegação no celular", () => {
               const navs = [
                 ...document.querySelectorAll('nav[aria-label="Navegação principal"]'),
               ];
-              const nav = navs.find((n) => getComputedStyle(n).display !== "none")!;
+              const nav = navs.find((n) => n.getClientRects().length > 0)!;
               const link = [...nav.querySelectorAll("a")].find(
                 (a) => a.textContent?.trim() === nome,
               )!;
@@ -93,15 +93,15 @@ test.describe("medição da navegação no celular", () => {
               setTimeout(() => {
                 obs.disconnect();
                 resolve(m);
-              }, 20000);
+              }, 8000);
               link.click();
             }),
           [aba.nome, aba.titulo] as const,
         );
         const f = (v: number | null) => (v === null ? "NA" : v.toFixed(0));
-        linhas.push(
-          `MEDICAO|rodada=${rodada}|aba=${aba.nome}|pilula=${f(m.pilula)}|conteudo=${f(m.conteudo)}|titulo=${f(m.titulo)}`,
-        );
+        const linha = `MEDICAO|rodada=${rodada}|aba=${aba.nome}|pilula=${f(m.pilula)}|conteudo=${f(m.conteudo)}|titulo=${f(m.titulo)}`;
+        linhas.push(linha);
+        console.log(linha);
         // Espera a tela assentar (consultas do cliente, prefetch) antes do próximo toque.
         await page.waitForTimeout(2500);
       }
