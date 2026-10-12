@@ -38,7 +38,7 @@ test.describe("CSP obrigatória", () => {
 
   test("login e as telas do painel não geram nenhuma violação", async ({ page }) => {
     test.skip(!hasTestUser, "Requer E2E_CLERK_EMAIL/E2E_CLERK_PASSWORD.");
-    // Oito telas autenticadas, cada uma com suas consultas: da máquina de desenvolvimento
+    // Nove telas autenticadas, cada uma com suas consultas: da máquina de desenvolvimento
     // (Brasil → Neon us-east-1) passa fácil dos 30 s padrão.
     test.setTimeout(120_000);
     const violations = watchViolations(page);
@@ -54,6 +54,7 @@ test.describe("CSP obrigatória", () => {
       "/dashboard/financeiro",
       "/dashboard/areas",
       "/dashboard/roda-da-vida",
+      "/dashboard/conta",
     ]) {
       await page.goto(path);
       // `networkidle` nunca chega com o Clerk consultando a sessão de tempos em tempos. O
@@ -69,6 +70,12 @@ test.describe("CSP obrigatória", () => {
       await importar.click();
       await page.waitForTimeout(500);
     }
+
+    // "Gerenciar login" saiu do avatar do painel para a Conta: a janela do Clerk carrega
+    // scripts e estilos próprios, então entra na varredura.
+    await page.goto("/dashboard/conta");
+    await page.getByRole("button", { name: "Gerenciar login" }).click();
+    await page.waitForTimeout(1_000);
 
     expect(violations).toEqual([]);
   });

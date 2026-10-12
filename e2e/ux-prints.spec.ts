@@ -30,6 +30,7 @@ const SCREENS = [
   { slug: "financeiro", path: "/dashboard/financeiro" },
   { slug: "areas", path: "/dashboard/areas" },
   { slug: "roda-da-vida", path: "/dashboard/roda-da-vida" },
+  { slug: "conta", path: "/dashboard/conta" },
 ] as const;
 
 const VIEWPORTS = [

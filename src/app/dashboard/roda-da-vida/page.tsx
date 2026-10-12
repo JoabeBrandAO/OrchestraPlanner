@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-
 import { ensureUserRecord } from "@/server/users";
 
 import { LifeWheelManager } from "./life-wheel-manager";
@@ -13,16 +10,9 @@ export default async function RodaDaVidaPage() {
   await ensureUserRecord();
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-6 p-4 sm:p-8">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 sm:p-8">
+      <header>
         <h1 className="text-2xl font-semibold">Roda da Vida</h1>
-        <Link
-          href="/dashboard"
-          className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline"
-        >
-          <ArrowLeft aria-hidden className="size-4" />
-          Painel
-        </Link>
       </header>
       <LifeWheelManager />
     </main>

@@ -28,7 +28,8 @@ export function AccountData() {
 
   return (
     <div className="flex flex-col gap-4 text-sm">
-      <div className="text-muted-foreground flex flex-col gap-2">
+      {/* `max-w-prose`: no painel a linha passava de 110 caracteres (alvo: < 80). */}
+      <div className="text-muted-foreground flex max-w-prose flex-col gap-2">
         <p>
           Guardamos o que você registra aqui — metas, prioridades, agenda, pessoas, conversas e
           finanças — só para mostrar de volta a você. Nada é vendido nem compartilhado.
