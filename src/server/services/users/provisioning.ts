@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, getTableColumns, sql } from "drizzle-orm";
 
 import { withUserContext } from "@/server/db/rls";
 import { users, type User } from "@/server/db/schema";
@@ -13,9 +13,13 @@ import { seedDefaultLifeAreas } from "@/server/services/life-areas/life-areas-se
 export type UserProfile = { id: string; email: string; name: string | null };
 
 /**
- * Cria (ou atualiza) a linha do usuário e garante as Áreas de Vida padrão. Idempotente: o
- * Clerk reentrega webhook quando não recebe 2xx, e `user.updated` chega a toda troca de
- * nome ou e-mail.
+ * Cria (ou atualiza) a linha do usuário. Idempotente: o Clerk reentrega webhook quando não
+ * recebe 2xx, e `user.updated` chega a toda troca de nome ou e-mail.
+ *
+ * As Áreas de Vida padrão só são semeadas quando a linha **nasce** (`xmax = 0` no
+ * `returning` diz que foi INSERT, não UPDATE). Antes, todo `user.updated` re-semeava, e uma
+ * área padrão que a pessoa tinha apagado voltava sozinha — inclusive depois da troca de dono
+ * (`transfer-owner.ts`), quando o Clerk reentrega o `user.created` da conta nova.
  */
 export async function provisionUser(profile: UserProfile): Promise<User> {
   const [row] = await withUserContext(profile.id, (tx) =>
@@ -26,10 +30,11 @@ export async function provisionUser(profile: UserProfile): Promise<User> {
         target: users.id,
         set: { email: profile.email, name: profile.name, updatedAt: sql`now()` },
       })
-      .returning(),
+      .returning({ ...getTableColumns(users), created: sql<boolean>`(xmax = 0)` }),
   );
-  await seedDefaultLifeAreas(profile.id);
-  return row!;
+  const { created, ...user } = row!;
+  if (created) await seedDefaultLifeAreas(profile.id);
+  return user;
 }
 
 /** O usuário já existe no banco? Uma leitura só — é o que roda na renderização. */

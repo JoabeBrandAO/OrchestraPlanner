@@ -21,7 +21,7 @@
 | 4 | Login com Google (opcional) | Google Cloud + Clerk | 30 min | — |
 | 5 | Variáveis na Vercel e redeploy | Vercel | 15 min | 3 min de build |
 | 6 | Webhook de produção | Clerk + Vercel | 10 min | — |
-| 7 | Levar seus dados para o usuário novo | banco (com script) | 30–45 min | — |
+| 7 | Levar seus dados para o usuário novo | Clerk + script | 20–30 min | — |
 | 8 | Conferir | navegador | 15 min | — |
 
 **Total de mão: ~2,5 h** (2 h sem o Google), espalhadas em dois dias por causa do DNS. É ~40%
@@ -30,11 +30,13 @@ das 6,2 h livres da semana. Etapas 1–3 numa sessão, 4–8 na seguinte.
 ## Antes de começar
 
 - **A etapa 7 é obrigatória e é o risco desta troca.** O banco guarda tudo pelo ID de usuário
-  do Clerk (`user_…`). A instância de produção cria usuários **novos, com outro ID**: no
-  primeiro login em produção você entra num app vazio, e seus dados continuam no banco, presos
-  ao ID antigo. Nada se perde, mas nada aparece até a etapa 7.
-- Baixe seus dados antes (painel → **Seus dados** → *Baixar meus dados (JSON)*). É o seu backup
-  legível.
+  do Clerk (`user_…`). A instância de produção cria usuários **novos, com outro ID**, e seus
+  dados continuam no banco presos ao ID antigo. Nada se perde, mas nada aparece até a etapa 7.
+- **Não entre no app de produção antes da etapa 7.** O e-mail é único no banco e ainda pertence
+  ao ID antigo: o primeiro acesso do ID novo com o mesmo e-mail dá **erro na tela** (e o webhook
+  do Clerk falha e fica reentregando). Não estraga nada, mas assusta. A etapa 7 cria o usuário
+  novo pelo painel do Clerk, roda o script e só então você entra.
+- Baixe seus dados antes (**Conta** → *Baixar meus dados (JSON)*). É o seu backup legível.
 - **O E2E continua na instância de desenvolvimento.** O usuário de teste (`+clerk_test@`) e o
   código fixo 424242 só existem lá. Os secrets do GitHub (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`,
   `CLERK_SECRET_KEY`, `E2E_CLERK_*`) e o `.env` local **não mudam**.
@@ -135,17 +137,42 @@ O webhook atual está na instância de desenvolvimento e não vê os usuários d
 
 ## 7. Levar seus dados para o usuário novo
 
-1. Entre em `https://SEU-DOMINIO` e crie a conta com **o mesmo e-mail** de sempre. O app abre
-   vazio — é esperado.
-2. Anote os dois IDs: o novo (Clerk Production → Users → você → `user_…`) e o antigo (Clerk
-   Development → Users → você).
-3. **Peça ao Claude um PR com o script de troca de dono**, que numa transação só: cria a linha
-   nova em `users`, passa o `user_id` de **toda tabela que tem a coluna** (a mesma lista do
-   catálogo que o "Baixar meus dados" já usa) do ID antigo para o novo, e apaga a linha antiga.
-   Ele roda com a `MIGRATION_DATABASE_URL`, do seu computador, depois do backup da etapa
-   "Antes de começar". **Este script ainda não existe** — escrevê-lo é mexer em dado de
-   produção e precisa da sua aprovação.
-4. Recarregue o painel: metas, agenda, pessoas e finanças voltam.
+O script é `scripts/troca-de-dono.ts`. Numa transação só, ele cria a linha nova em `users`
+(com o seu fuso e a data de cadastro), passa o `user_id` de **toda tabela que tem a coluna**
+(a mesma lista do "Baixar meus dados") do ID antigo para o novo, confere linha por linha e apaga
+a linha antiga. **Por padrão só simula**: faz tudo, confere e desfaz no fim.
+
+1. Clerk (**Production**) → **Users → Create user** → o **mesmo e-mail** de sempre (e uma senha,
+   se você entra com senha). Copie o ID novo (`user_…`). Ainda **não** entre no app.
+2. Clerk (**Development**) → **Users** → você → copie o ID antigo.
+3. No seu computador, na pasta do projeto, com o `.env` de sempre (é a
+   `MIGRATION_DATABASE_URL` que vale aqui), **simule**:
+
+   ```
+   npx tsx scripts/troca-de-dono.ts --de user_ANTIGO --para user_NOVO
+   ```
+
+   Confira o banco na primeira linha e a lista por tabela (metas, pessoas, lançamentos…). Os
+   números têm de bater com o que você tem no app.
+4. Se bateu, **aplique** (mesmo comando + `--aplicar`):
+
+   ```
+   npx tsx scripts/troca-de-dono.ts --de user_ANTIGO --para user_NOVO --aplicar
+   ```
+
+5. Entre em `https://SEU-DOMINIO`: metas, agenda, pessoas e finanças estão lá.
+
+**Se o script recusar:**
+
+- *"conexão sujeita à RLS"*: o `.env` está com a conexão do app. Ele só roda com a do dono.
+- *"o usuário antigo não existe"*: o ID antigo está errado (ou a troca já foi feita).
+- *"a conta nova já tem dados"*: você usou a conta nova antes do script. Se o que está lá pode
+  ser apagado, rode de novo com `--descartar-dados-da-conta-nova`. Uma conta recém-criada (só
+  as Áreas de Vida padrão) é substituída sem precisar disso.
+- Qualquer outro erro: nada foi gravado (é uma transação só). Mande o texto do erro ao Claude.
+
+**Depois:** o Clerk reentrega o `user.created` da conta nova que tinha falhado; agora ele só
+atualiza nome e e-mail e não traz de volta área padrão que você tinha apagado.
 
 ## 8. Conferir
 
@@ -159,5 +186,5 @@ O webhook atual está na instância de desenvolvimento e não vê os usuários d
 ## Para desfazer
 
 Volte as variáveis de Production na Vercel para as chaves `pk_test_`/`sk_test_` e o webhook
-antigo, e faça redeploy. Os dados não são afetados até a etapa 7; depois dela, o script de
-troca de dono pode rodar no sentido inverso.
+antigo, e faça redeploy. Os dados não são afetados até a etapa 7; depois dela, o mesmo script roda no sentido
+inverso (`--de user_NOVO --para user_ANTIGO`).

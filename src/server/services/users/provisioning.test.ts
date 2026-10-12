@@ -8,7 +8,7 @@ import { users } from "@/server/db/schema";
 import { createEvent } from "@/server/services/events/events-service";
 import { createAccount, createTransaction } from "@/server/services/finance/finance-service";
 import { createGoal } from "@/server/services/goals/goals-service";
-import { listLifeAreas } from "@/server/services/life-areas/life-areas-service";
+import { deleteLifeArea, listLifeAreas } from "@/server/services/life-areas/life-areas-service";
 import { addInteraction } from "@/server/services/people/interactions-service";
 import { addContact, createPerson } from "@/server/services/people/people-service";
 
@@ -88,6 +88,19 @@ describe.skipIf(!hasDb)("provisionamento e exclusão do usuário", () => {
     const [row] = await withUserContext(uid, (tx) => tx.select().from(users));
     expect(row).toMatchObject({ email: `novo-${uid}@test.local`, name: "Ana Souza" });
     expect(await listLifeAreas(uid)).toHaveLength(12);
+  });
+
+  it("atualizar quem já existe não ressuscita área padrão apagada (user.updated, reentrega)", async () => {
+    const financas = (await listLifeAreas(uid)).find((area) => area.name === "Finanças");
+    await deleteLifeArea(uid, financas!.id);
+
+    // O Clerk manda `user.updated` a cada troca de nome/e-mail e reentrega `user.created`
+    // quando não recebe 2xx — na troca de dono (etapa 7 do Clerk de produção), depois do script.
+    await provisionUser({ id: uid, email: `novo-${uid}@test.local`, name: "Ana Souza" });
+
+    const names = (await listLifeAreas(uid)).map((area) => area.name);
+    expect(names).toHaveLength(11);
+    expect(names).not.toContain("Finanças");
   });
 
   it("para quem já existe, a renderização só lê: uma consulta, nenhuma escrita", async () => {
