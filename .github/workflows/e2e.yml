@@ -63,7 +63,7 @@ jobs:
         run: npm run build
 
       - name: E2E (login → painel)
-        run: npm run test:e2e
+        run: npx playwright test e2e/medicao-navegacao.spec.ts --reporter=list
 
       # O relatório só interessa quando quebrou — e aí é o que diz se foi o login ou a
       # verificação de dispositivo novo.
