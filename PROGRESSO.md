@@ -7,7 +7,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-10-11
+## Estado atual — atualizado em 2026-10-12
 
 ### ✅ Feito
 - **Fase 1 (uso pessoal) completa e no ar** na Vercel (`orchestra-planner.vercel.app`), sob RLS por
@@ -26,26 +26,26 @@
   de violações). A `main` é protegida: PR obrigatório com o CI exigido, inclusive para admin.
 
 ### 🔄 Onde paramos
-- **Manutenção.** Nada em execução no OrchestraPlanner. O próximo projeto é o **DOM**
-  (`C:\projetos\DOM\DOM.txt`).
+- **Dois PRs com CI verde esperando o merge do dono** (2026-10-12), independentes entre si:
+  - **#135** menu fixo no computador, barra inferior no celular (Pílula, escolhida pelo dono)
+    e tela de Conta. Mockup em `docs/mockups/menu-inferior.html`; auditoria 19/20 em
+    `docs/ux/2026-10-12-auditoria-navegacao.md`.
+  - **#136** script de troca de dono (`scripts/troca-de-dono.ts`, simula por padrão) e a
+    correção do `provisionUser` que ressuscitava área apagada. Nunca rodado contra produção.
 
 ### 📋 Próximos passos, em ordem
-1. **Menu fixo e tela de Conta** (achados 9 e 12 do diagnóstico), ~3,5 h: navegação persistente
-   entre os módulos e Preferências/"Seus dados" fora do painel.
-2. **Script de troca de dono dos dados** — leva o `user_id` de toda tabela do ID antigo para o
-   novo, numa transação. Tem de existir **antes** de trocar o Clerk para produção. Mexe em dado
-   de produção: **pede aprovação do dono**.
-3. **Clerk de produção** pelo `docs/CLERK-PRODUCAO.md`, ~2,5 h do dono em dois dias (domínio,
-   DNS, chaves, webhook). A etapa 7 usa o script do passo 2.
-4. **Pendências menores:** contraste das cores de tag (escolhidas pelo usuário, sem garantia nos
-   dois temas); resumo por área do painel sem a cor da dimensão (o serviço não manda a
-   dimensão); `provisioning.test.ts` estourando 30 s contra o Neon quando roda local.
-5. **Com o dono:** #64 (validação manual da Fase 1, ~3 h) e #114 (opcional: prova de exclusão de
-   usuário de ponta a ponta).
-6. **Dependabot (conferido em 2026-10-11):** #117 e #120 fechados pelo próprio Dependabot (as
-   atualizações já tinham entrado pelo #128). Abertos, com CI verde: **#118** (Vitest 4 → 5) e
-   **#119** (dotenv 17 → 18) — as duas são versão major e pedem leitura das notas de mudança
-   antes do merge.
+1. **Dono:** mesclar #135 e #136 (qualquer ordem).
+2. **Dono, ~10 min:** abrir o app instalado no iPhone e conferir a barra (acima do indicador
+   de início; título fora da barra de status). Só foi testado em navegador emulado.
+3. **Clerk de produção** pelo `docs/CLERK-PRODUCAO.md`, ~2,5 h do dono em dois dias. A etapa 7
+   agora tem o script e o passo a passo; **não entrar no app de produção antes dela** (o e-mail
+   único faz o primeiro acesso dar erro).
+4. **Pendências menores:** contraste das cores de tag; resumo por área do painel sem a cor da
+   dimensão; `provisioning.test.ts` estourando 30 s contra o Neon quando roda local; o botão
+   "Mais" não anuncia ao leitor de tela qual tela está dentro dele (P3).
+5. **Com o dono:** #64 (validação manual da Fase 1, ~3 h).
+6. **Dependabot:** #118 (Vitest 5), #119 (dotenv 18) e #133 (grupo rotina) abertos; os dois
+   primeiros são major e pedem leitura das notas de mudança.
 
 ### 💡 Aprendizados de 2026-10-10/11
 - **O merge autônomo agora é barrado pelo sistema de permissões do Claude Code.** O fluxo atual:
@@ -68,6 +68,17 @@
 ## Histórico recente
 _Histórico de 2026-06-17 a 2026-09-04:
 [docs/sessions/historico-progresso-ate-2026-09-04.md](docs/sessions/historico-progresso-ate-2026-09-04.md)._
+
+- **2026-10-12 — Menu fixo, barra do celular, Conta e troca de dono (subagente):**
+  - **#135:** navegação persistente (achado 9) e tela de Conta (achado 12). Uma lista de telas
+    para o menu lateral (≥ 768 px) e a barra inferior (< 768 px). Barra: 4 destinos + "Mais",
+    rótulo visível, 56 px, `aria-current`, área segura do iPhone, `prefers-reduced-motion`.
+    Mockup de 3 estilos; o dono escolheu a **Pílula**, na cor `--marcador` (couro no claro,
+    papel no escuro). E2E novo em 390×844 e 1280×800; CSP agora varre a Conta e a janela do Clerk.
+  - **#136:** `scripts/troca-de-dono.ts` (simula por padrão; recusa conexão sujeita à RLS e
+    conta nova com dado). Achado: o e-mail único faz o primeiro acesso em produção dar erro
+    antes da etapa 7; guia corrigido. Defeito do `provisionUser` em `docs/ERROS.md`.
+  - Log: [docs/sessions/2026-10-12-menu-conta-troca-de-dono.md](docs/sessions/2026-10-12-menu-conta-troca-de-dono.md).
 
 - **2026-10-11 — Checkpoint de fim de sessão:** os 12 PRs da rodada de UX mesclados pelo dono
   (`main` em `829d488`), deploy de produção ok (200) e auditoria de produção em 0. Projeto volta
