@@ -2,8 +2,8 @@
 
 > `audit` + leitura de `critique`, rodados sobre o resultado **antes** de abrir o PR. Mesma
 > régua do [diagnóstico de 2026-10-10](2026-10-10-diagnostico-impeccable.md). Modo da tela:
-> *Operate* (quem usa veio fazer uma tarefa). Extensão do visual que já existe: nenhuma cor,
-> fonte ou componente novo no sistema; o `DESIGN.md` não muda.
+> *Operate* (quem usa veio fazer uma tarefa). Extensão do visual que já existe: nenhuma fonte ou
+> componente novo; uma cor nova só para o menu (`--marcador`, abaixo). O `DESIGN.md` não muda.
 
 ## O que foi auditado
 
@@ -11,7 +11,7 @@
   768 px), os dois lendo a mesma lista: `src/app/dashboard/nav-items.ts`.
 - Tela de Conta (`/dashboard/conta`): login, preferências e "Seus dados".
 - Painel sem os atalhos, sem preferências e sem "Seus dados".
-- Mockup das opções de barra: [`docs/mockups/menu-inferior.html`](../mockups/menu-inferior.html).
+- Mockup da barra escolhida (Pílula), claro e escuro: [`docs/mockups/menu-inferior.html`](../mockups/menu-inferior.html).
 
 **Evidência:** prints em 320, 390, 768 e 1280 px, claro e escuro
 ([`prints/menu-fixo-conta/`](prints/menu-fixo-conta/)); E2E `e2e/navegacao.spec.ts` (390×844 e
@@ -61,12 +61,21 @@ e sem link quebrado (confere se cada rota tem `page.tsx`).
 
 ## Decisões
 
-- **Estilo da barra: Pílula** (recomendado no mockup). O Traço também está no código; trocar é
-  mudar `BOTTOM_NAV_STYLE` em `nav-items.ts`. O Botão central (+) não entrou: exige uma janela
-  de criação rápida que não existe (~2–3 h).
+- **Estilo da barra: Pílula**, escolhido pelo dono em 2026-10-12 entre Pílula, Traço e Botão
+  central. Só a Pílula ficou no código.
+- **A pílula é o marcador de página do planner** (`--marcador`): couro de capa no claro
+  (`oklch(0.4 0.075 45)`), papel no escuro (`oklch(0.87 0.03 80)`). Conversa com o jeito de
+  caderno do app e com a família quente das dimensões, sem ser nenhuma delas. Contraste: pílula
+  ≥ 9:1 contra o fundo e ícone ≥ 8,8:1 sobre ela, nos dois temas. O menu lateral e a folha "Mais"
+  usam o mesmo marcador. Os prints `depois-*` desta pasta foram tirados com a pílula na versão
+  final, menos `depois-agenda-desktop-escuro`, `depois-conta-*`, `depois-foco-*` e
+  `depois-prioridades-768`, que mostram a primeira versão (pílula preta/branca); a forma é a mesma.
 - **Metas na barra, Financeiro no "Mais"**, porque a meta é o centro (`PRODUCT.md`). Se o uso no
   celular for mais lançar gasto do que olhar meta, trocar é mudar a lista `MOBILE_PRIMARY`.
 - **Cores das dimensões fora do menu:** terracota no item ativo faria "estou aqui" parecer
   "Corpo". Elas aparecem só na marca (os três pontos) e onde significam a dimensão.
+- **Sugestões fora da barra (não aplicadas, a pedido do dono):** levar o `--marcador` a outros
+  "você está aqui" do app (aba Semana/Mês da Agenda, filtros); revisar o peso dos cartões com
+  borda em todas as telas. Ficam para quando a direção visual for reavaliada.
 - **O avatar do Clerk saiu do painel.** "Gerenciar login" e "Sair" moram na Conta, que é o único
   lugar de conta do app. A janela do Clerk entrou na varredura de CSP do E2E.

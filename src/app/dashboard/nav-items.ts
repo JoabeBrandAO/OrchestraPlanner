@@ -51,15 +51,6 @@ export const MOBILE_PRIMARY: NavItem[] = [PAINEL, PRIORIDADES, AGENDA, METAS];
 export const MOBILE_MORE: NavItem[] = [PESSOAS, FINANCEIRO, RODA, AREAS, CONTA];
 
 /**
- * Como a barra do celular marca a tela atual (mockup em `docs/mockups/menu-inferior.html`):
- * - `pilula`: pílula sólida atrás do ícone (recomendado: o mais fácil de ver de relance);
- * - `traco`: traço curto sobre o item.
- * Os dois estão prontos e testados; trocar é mudar esta linha.
- */
-export type BottomNavStyle = "pilula" | "traco";
-export const BOTTOM_NAV_STYLE: BottomNavStyle = "pilula";
-
-/**
  * A tela `pathname` está dentro do destino `href`? O Painel (`/dashboard`) é pai de tudo,
  * então só acende nele mesmo; os outros acendem neles e nas telas de dentro deles.
  */

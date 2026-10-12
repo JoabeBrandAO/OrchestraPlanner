@@ -3,40 +3,37 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Menu inferior — 3 estilos</title>
+    <title>Menu inferior — Pílula</title>
     <style>
       /* Tokens copiados de src/app/globals.css (claro e escuro), para o mockup bater com o app. */
       .claro {
         --background: oklch(1 0 0);
         --foreground: oklch(0.145 0 0);
         --card: oklch(1 0 0);
-        --primary: oklch(0.205 0 0);
-        --primary-foreground: oklch(0.985 0 0);
-        --muted: oklch(0.97 0 0);
+        --popover: oklch(1 0 0);
         --muted-foreground: oklch(0.556 0 0);
         --border: oklch(0.922 0 0);
         --corpo: oklch(0.52 0.12 40);
         --alma: oklch(0.5 0.1 240);
         --espirito: oklch(0.53 0.105 85);
-        --bar: oklch(1 0 0);
+        --marcador: oklch(0.4 0.075 45);
+        --marcador-foreground: oklch(0.975 0.012 85);
         --scrim: oklch(0 0 0 / 40%);
       }
       .escuro {
         --background: oklch(0.145 0 0);
         --foreground: oklch(0.985 0 0);
         --card: oklch(0.205 0 0);
-        --primary: oklch(0.922 0 0);
-        --primary-foreground: oklch(0.205 0 0);
-        --muted: oklch(0.269 0 0);
+        --popover: oklch(0.205 0 0);
         --muted-foreground: oklch(0.708 0 0);
         --border: oklch(1 0 0 / 10%);
         --corpo: oklch(0.76 0.11 45);
         --alma: oklch(0.76 0.09 235);
         --espirito: oklch(0.8 0.11 88);
-        --bar: oklch(0.175 0 0);
+        --marcador: oklch(0.87 0.03 80);
+        --marcador-foreground: oklch(0.3 0.05 45);
         --scrim: oklch(0 0 0 / 60%);
       }
-
       * {
         box-sizing: border-box;
       }
@@ -53,11 +50,8 @@
         color: oklch(0.2 0 0);
         line-height: 1.45;
       }
-      ::selection {
-        background: oklch(0.52 0.12 40 / 25%);
-      }
       .pagina {
-        max-width: 1160px;
+        max-width: 860px;
         margin: 0 auto;
         padding: 32px 16px 64px;
       }
@@ -66,86 +60,37 @@
         margin: 0 0 8px;
         letter-spacing: -0.01em;
       }
-      .intro {
+      .texto,
+      .lista {
         max-width: 68ch;
-        margin: 0 0 8px;
-        color: oklch(0.38 0 0);
+        color: oklch(0.32 0 0);
       }
-      .nota {
-        max-width: 68ch;
+      .texto {
+        margin: 0 0 10px;
+      }
+      .lista {
         margin: 0 0 28px;
-        color: oklch(0.38 0 0);
-        font-size: 0.9rem;
-      }
-
-      /* subgrid: os três quadros começam na mesma altura, mesmo com textos de tamanhos diferentes. */
-      .grade {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        column-gap: 24px;
-        row-gap: 12px;
-      }
-      @media (max-width: 1000px) {
-        .grade {
-          grid-template-columns: minmax(0, 1fr);
-          max-width: 380px;
-          margin: 0 auto;
-        }
-      }
-
-      .opcao {
-        display: grid;
-        grid-row: span 7;
-        grid-template-rows: subgrid;
-        align-items: start;
-      }
-      .opcao h2 {
-        font-size: 1.15rem;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .selo {
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 2px 10px;
-        border-radius: 999px;
-        background: oklch(0.205 0 0);
-        color: oklch(0.985 0 0);
-      }
-      .opcao.recomendado {
-        outline: 2px solid oklch(0.205 0 0);
-        outline-offset: 12px;
-        border-radius: 4px;
-      }
-      .porque {
-        margin: 0;
-        font-size: 0.92rem;
-        color: oklch(0.3 0 0);
-      }
-      .fatos {
-        margin: 0;
         padding-left: 18px;
-        font-size: 0.85rem;
-        color: oklch(0.38 0 0);
+        font-size: 0.92rem;
       }
-      .fatos li + li {
-        margin-top: 2px;
+      .quadros {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+        justify-content: center;
       }
       .rotulo-tema {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         color: oklch(0.42 0 0);
-        margin: 6px 0 -6px;
+        margin: 0 0 8px;
+        text-align: center;
       }
 
-      /* ---------- Quadro de celular (390×844 em escala ~0,77) ---------- */
+      /* Quadro de celular (390×844 em escala ~0,87) */
       .celular {
-        width: 340px;
-        height: 720px;
-        margin: 0 auto;
-        border-radius: 40px;
+        width: 360px;
+        height: 760px;
+        border-radius: 44px;
         padding: 10px;
         background: oklch(0.18 0 0);
         box-shadow: 0 12px 32px -12px oklch(0 0 0 / 35%);
@@ -155,52 +100,52 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        border-radius: 31px;
+        border-radius: 35px;
         background: var(--background);
         color: var(--foreground);
         display: flex;
         flex-direction: column;
-        font-size: 13px;
+        font-size: 14px;
       }
       .status {
-        height: 34px;
+        height: 38px;
         flex: none;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 22px;
-        font-size: 11px;
+        padding: 0 24px;
+        font-size: 12px;
         font-weight: 600;
       }
       .conteudo {
         flex: 1;
         overflow: hidden;
-        padding: 6px 14px 0;
+        padding: 8px 16px 0;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
       }
       .conteudo h3 {
         margin: 4px 0 2px;
-        font-size: 19px;
+        font-size: 21px;
         font-weight: 600;
       }
       .bloco {
         border: 1px solid var(--border);
         border-radius: 10px;
-        padding: 12px;
+        padding: 14px;
         background: var(--card);
       }
       .bloco h4 {
         margin: 0 0 8px;
-        font-size: 13.5px;
+        font-size: 15px;
         font-weight: 500;
       }
       .meta {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 4px 0;
+        padding: 5px 0;
       }
       .meta + .meta {
         border-top: 1px solid var(--border);
@@ -215,33 +160,29 @@
         flex: 1;
       }
       .meta .dim {
-        font-size: 11px;
-        font-weight: 600;
-      }
-      .pct {
-        font-variant-numeric: tabular-nums;
-        color: var(--muted-foreground);
         font-size: 12px;
-      }
-      .saldo {
-        font-size: 20px;
         font-weight: 600;
-        font-variant-numeric: tabular-nums;
       }
+      .pct,
       .apagado {
         color: var(--muted-foreground);
-        font-size: 12px;
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+      }
+      .saldo {
+        font-size: 22px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
       }
 
-      /* ---------- Barra inferior: base comum ---------- */
+      /* Barra inferior: Pílula */
       .barra {
         flex: none;
-        position: relative;
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
-        background: var(--bar);
+        background: var(--background);
         border-top: 1px solid var(--border);
-        padding: 4px 4px 18px; /* 18px = área do indicador de início do iPhone (safe-area) */
+        padding: 4px 4px 20px; /* 20px = indicador de início do iPhone */
       }
       .item {
         appearance: none;
@@ -249,21 +190,16 @@
         background: none;
         font: inherit;
         color: var(--muted-foreground);
-        min-height: 52px;
+        min-height: 56px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 3px;
+        gap: 4px;
         cursor: pointer;
         border-radius: 12px;
-        position: relative;
-        font-size: 10.5px;
+        font-size: 11px;
         font-weight: 500;
-      }
-      .item svg {
-        width: 21px;
-        height: 21px;
       }
       .item:focus-visible {
         outline: 2px solid var(--foreground);
@@ -273,75 +209,24 @@
         color: var(--foreground);
         font-weight: 600;
       }
-
-      /* 1 — Pílula: o ativo ganha uma pílula sólida atrás do ícone (rótulo continua embaixo). */
-      .pilula .icone {
+      .icone {
         display: grid;
         place-items: center;
-        width: 54px;
+        width: 56px;
         height: 28px;
         border-radius: 999px;
         transition: background-color 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
       }
-      .pilula .item[aria-current="page"] .icone {
-        background: var(--primary);
-        color: var(--primary-foreground);
+      .icone svg {
+        width: 20px;
+        height: 20px;
+      }
+      .item[aria-current="page"] .icone {
+        background: var(--marcador);
+        color: var(--marcador-foreground);
       }
 
-      /* 2 — Traço: um traço curto sobre o item ativo. */
-      .traco .item::before {
-        content: "";
-        position: absolute;
-        top: -5px;
-        left: 50%;
-        width: 28px;
-        height: 3px;
-        border-radius: 0 0 3px 3px;
-        background: var(--foreground);
-        transform: translateX(-50%) scaleX(0);
-        transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
-      }
-      .traco .item[aria-current="page"]::before {
-        transform: translateX(-50%) scaleX(1);
-      }
-
-      /* 3 — Botão central: "+" redondo acima da barra; Metas sai da barra e vai para "Mais". */
-      .fab .criar {
-        appearance: none;
-        border: 0;
-        cursor: pointer;
-        align-self: start;
-        justify-self: center;
-        width: 52px;
-        height: 52px;
-        margin-top: -22px;
-        border-radius: 999px;
-        background: var(--primary);
-        color: var(--primary-foreground);
-        display: grid;
-        place-items: center;
-        box-shadow:
-          0 6px 14px -6px oklch(0 0 0 / 45%),
-          0 0 0 5px var(--background);
-      }
-      .fab .criar:focus-visible {
-        outline: 2px solid var(--foreground);
-        outline-offset: 4px;
-      }
-      .fab .criar svg {
-        width: 24px;
-        height: 24px;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .pilula .icone,
-        .traco .item::before,
-        .folha {
-          transition: none !important;
-        }
-      }
-
-      /* ---------- Folha "Mais" / "Criar" ---------- */
+      /* Folha "Mais" */
       .veu {
         position: absolute;
         inset: 0;
@@ -355,11 +240,11 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: var(--card);
+        background: var(--popover);
         color: var(--foreground);
         border-radius: 18px 18px 0 0;
         border-top: 1px solid var(--border);
-        padding: 10px 12px 22px;
+        padding: 10px 12px 24px;
         transform: translateY(100%);
         transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
       }
@@ -370,89 +255,76 @@
       .tela.aberta .folha {
         transform: translateY(0);
       }
-      .folha .alca {
+      .alca {
         width: 36px;
         height: 4px;
         border-radius: 999px;
         background: var(--border);
         margin: 0 auto 10px;
       }
-      .folha h5 {
-        margin: 0 0 6px 6px;
-        font-size: 13px;
-        font-weight: 600;
-      }
       .folha a {
         display: flex;
         align-items: center;
         gap: 12px;
-        min-height: 46px;
-        padding: 0 8px;
+        min-height: 48px;
+        padding: 0 12px;
         border-radius: 10px;
         color: inherit;
         text-decoration: none;
-        font-size: 13.5px;
-      }
-      .folha a:hover {
-        background: var(--muted);
+        font-size: 15px;
+        font-weight: 500;
       }
       .folha a svg {
-        width: 19px;
-        height: 19px;
+        width: 20px;
+        height: 20px;
         color: var(--muted-foreground);
+      }
+      .folha a[aria-current="page"] {
+        background: var(--marcador);
+        color: var(--marcador-foreground);
+        font-weight: 600;
+      }
+      .folha a[aria-current="page"] svg {
+        color: inherit;
       }
       .folha hr {
         border: 0;
         border-top: 1px solid var(--border);
         margin: 6px 0;
       }
-
-      .desktop {
-        margin-top: 40px;
-        max-width: 72ch;
-        font-size: 0.92rem;
-        color: oklch(0.3 0 0);
-      }
-      .desktop h2 {
-        font-size: 1.1rem;
-        margin: 0 0 6px;
-      }
-      code {
-        font-size: 0.85em;
-        background: oklch(0.91 0.004 80);
-        padding: 1px 5px;
-        border-radius: 4px;
+      @media (prefers-reduced-motion: reduce) {
+        .icone,
+        .folha,
+        .veu {
+          transition: none !important;
+        }
       }
     </style>
   </head>
   <body>
     <main class="pagina">
-      <h1>Menu inferior no celular: 3 estilos</h1>
-      <p class="intro">
-        Os três quadros usam as telas e os nomes reais do OrchestraPlanner. A barra aparece só no
-        celular (tela com menos de 768 px). No computador entra o menu lateral fixo, com a mesma
-        lista de itens. Toque nos itens para ver o estado ativo; "Mais" (e o "+") abre a folha com o
-        resto.
+      <h1>Menu inferior no celular: Pílula</h1>
+      <p class="texto">
+        Decisão do dono em 2026-10-12. A barra aparece só no celular (tela com menos de 768 px); no
+        computador entra o menu lateral fixo, com a mesma lista de telas e o mesmo marcador. Toque
+        nos itens para ver o estado ativo; "Mais" abre a folha com o resto.
       </p>
-      <p class="nota">
-        As metas e o saldo dentro dos quadros são dados de exemplo. As cores de Corpo (terracota),
-        Alma (azul-petróleo) e Espírito (dourado) aparecem só onde querem dizer a dimensão. Se o
-        menu usasse terracota para o item ativo, "estou aqui" ficaria parecendo "Corpo".
-      </p>
-
-      <div class="grade" id="grade"></div>
-
-      <section class="desktop">
-        <h2>Trocar de estilo depois</h2>
-        <p>
-          Pílula e Traço estão os dois no código. Trocar um pelo outro é mudar uma linha (<code
-            >BOTTOM_NAV_STYLE</code
-          >
-          em <code>src/app/dashboard/nav-items.ts</code>), uns 5 minutos com o CI. O Botão central
-          exige criar uma janela de "criação rápida" que o app ainda não tem: são ~2–3 h a mais, e
-          Metas sai da barra.
-        </p>
-      </section>
+      <ul class="lista">
+        <li>
+          A pílula é o <strong>marcador de página</strong> do planner: cor de couro de capa no tema
+          claro e de papel no escuro. É da mesma família quente das dimensões, sem ser nenhuma
+          delas.
+        </li>
+        <li>
+          Corpo (terracota), Alma (azul-petróleo) e Espírito (dourado) continuam só onde querem
+          dizer a dimensão, como nas metas abaixo. Metas e saldo são dados de exemplo.
+        </li>
+        <li>
+          Todos os itens com nome visível, alvo de toque de 56 px, ativo marcado por forma, cor e
+          negrito (não só cor). Pílula com contraste ≥ 9:1 nos dois temas.
+        </li>
+      </ul>
+      <div class="quadros" id="quadros"></div>
     </main>
 
     <template id="icones">
@@ -534,19 +406,6 @@
         <circle cx="12" cy="12" r="1" />
         <circle cx="19" cy="12" r="1" />
         <circle cx="5" cy="12" r="1" />
-      </svg>
-      <svg
-        data-i="criar"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M5 12h14" />
-        <path d="M12 5v14" />
       </svg>
       <svg
         data-i="roda"
@@ -632,12 +491,13 @@
         .content.querySelectorAll("svg")
         .forEach((svg) => (ICONES[svg.dataset.i] = svg.outerHTML));
 
-      // Rotas e nomes reais do app (src/app/dashboard/*).
+      // Rotas e nomes reais do app (src/app/dashboard/nav-items.ts).
       const BARRA = [
         { id: "painel", nome: "Painel", rota: "/dashboard" },
         { id: "prioridades", nome: "Prioridades", rota: "/dashboard/prioridades" },
         { id: "agenda", nome: "Agenda", rota: "/dashboard/agenda" },
         { id: "metas", nome: "Metas", rota: "/dashboard/metas" },
+        { id: "mais", nome: "Mais" },
       ];
       const MAIS = [
         { id: "pessoas", nome: "Pessoas", rota: "/dashboard/pessoas" },
@@ -645,140 +505,57 @@
         { id: "roda", nome: "Roda da Vida", rota: "/dashboard/roda-da-vida" },
         { id: "areas", nome: "Áreas de Vida", rota: "/dashboard/areas" },
       ];
-      const CRIAR = [
-        { id: "prioridades", nome: "Nova prioridade" },
-        { id: "metas", nome: "Nova meta" },
-        { id: "agenda", nome: "Novo compromisso" },
-        { id: "financeiro", nome: "Novo lançamento" },
-      ];
+      const CONTA = { id: "conta", nome: "Conta", rota: "/dashboard/conta" };
 
-      const OPCOES = [
-        {
-          classe: "pilula",
-          nome: "1. Pílula",
-          recomendado: true,
-          porque:
-            "Recomendado: dá para ver de relance onde você está, porque o item atual fica dentro de uma pílula escura, e os cinco itens continuam com nome e ícone.",
-          fatos: [
-            "Ativo marcado por forma, cor e negrito: não depende só da cor.",
-            "Contraste alto nos dois temas (pílula sólida, sem vidro nem degradê).",
-            "Padrão do Android e de muitos apps de iPhone: nada a aprender.",
-          ],
-        },
-        {
-          classe: "traco",
-          nome: "2. Traço sobre o ativo",
-          porque: "Mais discreto: um traço curto em cima do item atual e o nome em negrito.",
-          fatos: [
-            "A barra fica mais leve e o conteúdo aparece mais.",
-            "O traço é fino (3 px): no sol, ao ar livre, chama menos atenção.",
-            "Troca com a Pílula em uma linha de código.",
-          ],
-        },
-        {
-          classe: "fab",
-          nome: "3. Botão central (+)",
-          porque:
-            'Um "+" redondo no meio para criar prioridade, meta, compromisso ou lançamento de qualquer tela.',
-          fatos: [
-            "Bom se você cria coisas no celular o tempo todo.",
-            'Metas sai da barra e vai para "Mais" (a barra só tem 5 lugares).',
-            "Exige uma janela de criação rápida que não existe: ~2–3 h a mais.",
-          ],
-        },
-      ];
-
-      function botao(item, ativo) {
-        return `<button class="item" type="button" data-id="${item.id}" ${ativo ? 'aria-current="page"' : ""} title="${item.rota || ""}">
-      <span class="icone">${ICONES[item.id]}</span><span>${item.nome}</span></button>`;
-      }
-
-      function barra(classe) {
-        const itens =
-          classe === "fab"
-            ? [BARRA[0], BARRA[1], null, BARRA[2], { id: "mais", nome: "Mais" }]
-            : [...BARRA, { id: "mais", nome: "Mais" }];
-        return `<nav class="barra ${classe}" aria-label="Navegação principal">${itens
-          .map((item, i) =>
-            item === null
-              ? `<button class="criar" type="button" aria-label="Criar" data-id="criar">${ICONES.criar}</button>`
-              : botao(item, i === 0),
-          )
-          .join("")}</nav>`;
-      }
-
-      function folha(classe) {
-        const mais = classe === "fab" ? [BARRA[3], ...MAIS] : MAIS;
+      function celular(tema) {
+        const itens = BARRA.map(
+          (item, i) =>
+            `<button class="item" type="button" data-id="${item.id}" title="${item.rota || ""}" ${i === 0 ? 'aria-current="page"' : ""}><span class="icone">${ICONES[item.id]}</span><span>${item.nome}</span></button>`,
+        ).join("");
         const link = (i) =>
-          `<a href="#" data-id="${i.id}">${ICONES[i.id]}<span>${i.nome}</span></a>`;
-        return `<div class="veu" data-fechar></div>
-      <div class="folha" role="dialog" aria-label="Mais">
-        <div class="alca"></div>
-        <div data-conteudo="mais">${mais.map(link).join("")}<hr>${link({ id: "conta", nome: "Conta" })}</div>
-        <div data-conteudo="criar" hidden><h5>Criar agora</h5>${CRIAR.map(link).join("")}</div>
-      </div>`;
+          `<a href="#" data-id="${i.id}" title="${i.rota}">${ICONES[i.id]}<span>${i.nome}</span></a>`;
+        const meta = (dim, nome, rotulo, pct) =>
+          `<div class="meta"><span class="ponto" style="background:var(--${dim})"></span><span class="nome">${nome}</span><span class="dim" style="color:var(--${dim})">${rotulo}</span><span class="pct">${pct}</span></div>`;
+        return `<div>
+      <p class="rotulo-tema">${tema === "claro" ? "Tema claro" : "Tema escuro"}</p>
+      <div class="celular"><div class="tela ${tema}">
+        <div class="status"><span>9:41</span><span>Orchestra</span></div>
+        <div class="conteudo">
+          <h3>Olá, Joabe</h3>
+          <div class="bloco"><h4>Panorama das metas</h4>
+            ${meta("corpo", "Correr 5 km", "Corpo", "60%")}${meta("alma", "Ler 12 livros", "Alma", "42%")}${meta("espirito", "Devocional diário", "Espírito", "85%")}
+          </div>
+          <div class="bloco"><h4>Panorama do dinheiro</h4><div class="saldo">R$ 1.240,00</div><div class="apagado">sobra do mês, até hoje</div></div>
+        </div>
+        <nav class="barra" aria-label="Navegação principal">${itens}</nav>
+        <div class="veu" data-fechar></div>
+        <div class="folha" role="dialog" aria-label="Mais telas"><div class="alca"></div>${MAIS.map(link).join("")}<hr>${link(CONTA)}</div>
+      </div></div>
+    </div>`;
       }
 
-      function celular(opcao, tema) {
-        return `<p class="rotulo-tema">${tema === "claro" ? "Tema claro" : "Tema escuro"}</p>
-    <div class="celular"><div class="tela ${tema}">
-      <div class="status"><span>9:41</span><span>Orchestra</span></div>
-      <div class="conteudo">
-        <h3>Olá, Joabe</h3>
-        <div class="bloco">
-          <h4>Panorama das metas</h4>
-          <div class="meta"><span class="ponto" style="background:var(--corpo)"></span><span class="nome">Correr 5 km</span><span class="dim" style="color:var(--corpo)">Corpo</span><span class="pct">60%</span></div>
-          <div class="meta"><span class="ponto" style="background:var(--alma)"></span><span class="nome">Ler 12 livros</span><span class="dim" style="color:var(--alma)">Alma</span><span class="pct">42%</span></div>
-          <div class="meta"><span class="ponto" style="background:var(--espirito)"></span><span class="nome">Devocional diário</span><span class="dim" style="color:var(--espirito)">Espírito</span><span class="pct">85%</span></div>
-        </div>
-        <div class="bloco">
-          <h4>Panorama do dinheiro</h4>
-          <div class="saldo">R$ 1.240,00</div>
-          <div class="apagado">sobra do mês, até hoje</div>
-        </div>
-      </div>
-      ${barra(opcao.classe)}
-      ${folha(opcao.classe)}
-    </div></div>`;
-      }
+      const quadros = document.getElementById("quadros");
+      quadros.innerHTML = celular("claro") + celular("escuro");
 
-      const grade = document.getElementById("grade");
-      grade.innerHTML = OPCOES.map(
-        (o) => `
-    <section class="opcao ${o.recomendado ? "recomendado" : ""}">
-      <h2>${o.nome}${o.recomendado ? ' <span class="selo">Recomendado</span>' : ""}</h2>
-      <p class="porque">${o.porque}</p>
-      <ul class="fatos">${o.fatos.map((f) => `<li>${f}</li>`).join("")}</ul>
-      ${celular(o, "claro")}
-      ${celular(o, "escuro")}
-    </section>`,
-      ).join("");
-
-      grade.addEventListener("click", (event) => {
+      quadros.addEventListener("click", (event) => {
         const tela = event.target.closest(".tela");
         if (!tela) return;
-        if (event.target.closest("[data-fechar]")) {
-          tela.classList.remove("aberta");
-          return;
-        }
+        if (event.target.closest("[data-fechar]")) return tela.classList.remove("aberta");
         const alvo = event.target.closest("[data-id]");
         if (!alvo) return;
         event.preventDefault();
         const id = alvo.dataset.id;
-        if (id === "mais" || id === "criar") {
-          tela.querySelector('[data-conteudo="mais"]').hidden = id !== "mais";
-          tela.querySelector('[data-conteudo="criar"]').hidden = id !== "criar";
-          tela.classList.add("aberta");
-          return;
-        }
+        if (id === "mais") return tela.classList.add("aberta");
         tela.classList.remove("aberta");
-        // Item da folha que não está na barra acende o "Mais" (é onde ele mora).
+        // Tela que mora no "Mais" acende o "Mais" na barra e a si mesma na folha.
         const naBarra = tela.querySelector(`.barra [data-id="${id}"]`);
-        const destino = naBarra || tela.querySelector('.barra [data-id="mais"]');
-        tela
-          .querySelectorAll(".barra [aria-current]")
-          .forEach((el) => el.removeAttribute("aria-current"));
-        destino.setAttribute("aria-current", "page");
+        tela.querySelectorAll("[aria-current]").forEach((el) => el.removeAttribute("aria-current"));
+        (naBarra || tela.querySelector('.barra [data-id="mais"]')).setAttribute(
+          "aria-current",
+          "page",
+        );
+        if (!naBarra)
+          tela.querySelector(`.folha [data-id="${id}"]`).setAttribute("aria-current", "page");
       });
     </script>
   </body>

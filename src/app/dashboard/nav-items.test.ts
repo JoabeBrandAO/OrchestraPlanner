@@ -3,15 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  BOTTOM_NAV_STYLE,
-  CONTA,
-  MOBILE_MORE,
-  MOBILE_PRIMARY,
-  NAV_GROUPS,
-  PAINEL,
-  isActive,
-} from "./nav-items";
+import { CONTA, MOBILE_MORE, MOBILE_PRIMARY, NAV_GROUPS, PAINEL, isActive } from "./nav-items";
 
 /** Toda tela da área autenticada — o menu tem de levar a cada uma, uma vez só. */
 const TELAS = [
@@ -55,10 +47,6 @@ describe("itens do menu", () => {
       const page = path.join(process.cwd(), "src", "app", ...href.split("/"), "page.tsx");
       expect(existsSync(page), href).toBe(true);
     }
-  });
-
-  it("o estilo da barra é um dos dois que existem no código", () => {
-    expect(["pilula", "traco"]).toContain(BOTTOM_NAV_STYLE);
   });
 });
 

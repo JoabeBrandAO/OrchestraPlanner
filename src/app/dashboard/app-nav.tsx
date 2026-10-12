@@ -11,8 +11,6 @@ import { DimensionDot } from "@/components/ui/dimension-dot";
 import { cn } from "@/lib/utils";
 
 import {
-  BOTTOM_NAV_STYLE,
-  type BottomNavStyle,
   CONTA,
   MOBILE_MORE,
   MOBILE_PRIMARY,
@@ -27,9 +25,10 @@ import {
  * fixo no computador, barra inferior no celular. Os dois leem a mesma lista
  * (`nav-items.ts`) e se excluem pelo corte `md` (768 px): nunca aparecem juntos.
  *
- * A tela atual é marcada do mesmo jeito nos dois: fundo sólido na cor principal (preto no
- * claro, quase branco no escuro) + `aria-current="page"`. As cores de Corpo / Alma /
- * Espírito ficam fora do menu de propósito: lá elas querem dizer a dimensão.
+ * A tela atual é marcada do mesmo jeito nos dois, como o **marcador de página** de um planner:
+ * pílula na cor `--marcador` (couro no claro, papel no escuro) + `aria-current="page"`. As
+ * cores de Corpo / Alma / Espírito ficam fora do menu de propósito: lá elas querem dizer a
+ * dimensão.
  */
 
 /** Anel de foco forte (cor do texto), visível nos dois temas — o padrão `ring/50` some no branco. */
@@ -47,7 +46,7 @@ function SideLink({ item, pathname }: { item: NavItem; pathname: string | null }
         "flex h-9 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none",
         focusRing,
         active
-          ? "bg-primary text-primary-foreground"
+          ? "bg-marcador text-marcador-foreground"
           : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
       )}
     >
@@ -110,32 +109,19 @@ export function SideNav() {
   );
 }
 
-/** Conteúdo de um lugar da barra: ícone + rótulo sempre visível, no estilo escolhido. */
-function BarItemBody({
-  item,
-  active,
-  variant,
-}: {
-  item: Pick<NavItem, "label" | "icon">;
-  active: boolean;
-  variant: BottomNavStyle;
-}) {
+/**
+ * Conteúdo de um lugar da barra: ícone + rótulo sempre visível. O ativo ganha a pílula atrás
+ * do ícone (o marcador de página) e o rótulo em negrito: forma, cor e peso, não só cor.
+ */
+function BarItemBody({ item, active }: { item: Pick<NavItem, "label" | "icon">; active: boolean }) {
   const Icon = item.icon;
   return (
     <>
-      {variant === "traco" && (
-        <span
-          aria-hidden
-          className={cn(
-            "bg-foreground absolute top-0 left-1/2 h-[3px] w-7 -translate-x-1/2 rounded-b-full transition-transform duration-200 ease-out motion-reduce:transition-none",
-            active ? "scale-x-100" : "scale-x-0",
-          )}
-        />
-      )}
       <span
+        data-slot={active ? "marcador" : undefined}
         className={cn(
           "grid h-7 w-14 place-items-center rounded-full transition-colors duration-200 ease-out motion-reduce:transition-none",
-          variant === "pilula" && active && "bg-primary text-primary-foreground",
+          active && "bg-marcador text-marcador-foreground",
         )}
       >
         <Icon aria-hidden className="size-5" />
@@ -159,7 +145,7 @@ function barItemClass(active: boolean) {
  * resto. A folha fecha sozinha quando a tela muda (inclusive pelo voltar do navegador): ela
  * guarda a rota em que foi aberta e só fica aberta enquanto a rota for a mesma.
  */
-export function BottomNav({ variant = BOTTOM_NAV_STYLE }: { variant?: BottomNavStyle }) {
+export function BottomNav() {
   const pathname = usePathname();
   const [openAt, setOpenAt] = useState<string | null>(null);
   const open = openAt !== null && openAt === pathname;
@@ -180,7 +166,7 @@ export function BottomNav({ variant = BOTTOM_NAV_STYLE }: { variant?: BottomNavS
                 aria-current={active ? "page" : undefined}
                 className={barItemClass(active)}
               >
-                <BarItemBody item={item} active={active} variant={variant} />
+                <BarItemBody item={item} active={active} />
               </Link>
             </li>
           );
@@ -195,11 +181,7 @@ export function BottomNav({ variant = BOTTOM_NAV_STYLE }: { variant?: BottomNavS
               data-active={moreActive ? "true" : undefined}
               className={barItemClass(moreActive)}
             >
-              <BarItemBody
-                item={{ label: "Mais", icon: Ellipsis }}
-                active={moreActive}
-                variant={variant}
-              />
+              <BarItemBody item={{ label: "Mais", icon: Ellipsis }} active={moreActive} />
             </DialogPrimitive.Trigger>
             <DialogPrimitive.Portal>
               <DialogBackdrop className="md:hidden" />
@@ -222,7 +204,7 @@ export function BottomNav({ variant = BOTTOM_NAV_STYLE }: { variant?: BottomNavS
                           className={cn(
                             "focus-visible:ring-foreground flex min-h-12 items-center gap-3 rounded-lg px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-inset",
                             active
-                              ? "bg-primary text-primary-foreground font-semibold"
+                              ? "bg-marcador text-marcador-foreground font-semibold"
                               : "hover:bg-muted font-medium",
                           )}
                         >

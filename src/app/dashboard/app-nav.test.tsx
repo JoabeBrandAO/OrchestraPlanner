@@ -51,7 +51,7 @@ describe("SideNav (computador)", () => {
   });
 });
 
-describe.each(["pilula", "traco"] as const)("BottomNav (celular), estilo %s", (variant) => {
+describe("BottomNav (celular)", () => {
   beforeEach(() => at("/dashboard"));
 
   function bar() {
@@ -59,7 +59,7 @@ describe.each(["pilula", "traco"] as const)("BottomNav (celular), estilo %s", (v
   }
 
   it("mostra 4 destinos com rótulo visível e o botão Mais", () => {
-    render(<BottomNav variant={variant} />);
+    render(<BottomNav />);
     const links = within(bar()).getAllByRole("link");
     expect(links.map((link) => link.textContent)).toEqual([
       "Painel",
@@ -72,15 +72,23 @@ describe.each(["pilula", "traco"] as const)("BottomNav (celular), estilo %s", (v
 
   it("marca o destino atual com aria-current", () => {
     at("/dashboard/agenda");
-    render(<BottomNav variant={variant} />);
+    render(<BottomNav />);
     expect(within(bar()).getByRole("link", { name: "Agenda" }).getAttribute("aria-current")).toBe(
       "page",
     );
     expect(bar().querySelectorAll('[aria-current="page"]')).toHaveLength(1);
   });
 
+  it("só o destino atual ganha a pílula (o marcador de página)", () => {
+    at("/dashboard/agenda");
+    render(<BottomNav />);
+    const pills = bar().querySelectorAll('[data-slot="marcador"]');
+    expect(pills).toHaveLength(1);
+    expect(pills[0]!.closest("a")?.textContent).toBe("Agenda");
+  });
+
   it("o Mais abre a folha com o resto das telas e a Conta", () => {
-    render(<BottomNav variant={variant} />);
+    render(<BottomNav />);
     const more = within(bar()).getByRole("button", { name: "Mais" });
     expect(more.getAttribute("aria-expanded")).toBe("false");
 
@@ -97,7 +105,7 @@ describe.each(["pilula", "traco"] as const)("BottomNav (celular), estilo %s", (v
 
   it("numa tela que mora no Mais, o Mais acende e a folha marca a tela", () => {
     at("/dashboard/pessoas");
-    render(<BottomNav variant={variant} />);
+    render(<BottomNav />);
     const more = within(bar()).getByRole("button", { name: "Mais" });
     expect(more.getAttribute("data-active")).toBe("true");
     expect(bar().querySelectorAll('[aria-current="page"]')).toHaveLength(0);
@@ -110,7 +118,7 @@ describe.each(["pilula", "traco"] as const)("BottomNav (celular), estilo %s", (v
   });
 
   it("escolher uma tela na folha fecha a folha", () => {
-    render(<BottomNav variant={variant} />);
+    render(<BottomNav />);
     fireEvent.click(within(bar()).getByRole("button", { name: "Mais" }));
     const sheet = screen.getByRole("dialog", { name: "Mais telas" });
 
