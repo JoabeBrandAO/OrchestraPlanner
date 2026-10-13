@@ -40,11 +40,14 @@
 3. **Clerk de produção** pelo `docs/CLERK-PRODUCAO.md`, ~2,5 h do dono em dois dias. A etapa 7
    agora tem o script e o passo a passo; **não entrar no app de produção antes dela** (o e-mail
    único faz o primeiro acesso dar erro).
-4. **Pendências menores:** contraste das cores de tag; resumo por área do painel sem a cor da
+4. **Decisões do dono sobre a lentidão** (ver o log de 2026-10-12): mover Vercel e Neon juntos
+   para São Paulo (−165 ms por pedido, exige migrar o banco); `staleTimes.dynamic` (experimental);
+   limite do arrasto em 30% com implementação própria. Só depois de testar a gaveta no celular.
+5. **Pendências menores:** contraste das cores de tag; resumo por área do painel sem a cor da
    dimensão; `provisioning.test.ts` estourando 30 s contra o Neon quando roda local; o botão
    "Mais" não anuncia ao leitor de tela qual tela está dentro dele (P3).
-5. **Com o dono:** #64 (validação manual da Fase 1, ~3 h).
-6. **Dependabot:** #118 (Vitest 5), #119 (dotenv 18) e #133 (grupo rotina) abertos; os dois
+6. **Com o dono:** #64 (validação manual da Fase 1, ~3 h).
+7. **Dependabot:** #118 (Vitest 5), #119 (dotenv 18) e #133 (grupo rotina) abertos; os dois
    primeiros são major e pedem leitura das notas de mudança.
 
 ### 💡 Aprendizados de 2026-10-10/11
@@ -68,6 +71,21 @@
 ## Histórico recente
 _Histórico de 2026-06-17 a 2026-09-04:
 [docs/sessions/historico-progresso-ate-2026-09-04.md](docs/sessions/historico-progresso-ate-2026-09-04.md)._
+
+- **2026-10-12 — Barra 10% mais alta, gaveta do Mais e resposta ao toque (este PR):**
+  - **Barra:** item de 56 → 62 px (barra de 61 → 67 px), pílula e ícone na mesma proporção, rótulo
+    segue 11 px; recuo do conteúdo 4,5 → 5 rem.
+  - **Gaveta:** o "Mais" usa o `Drawer` do `@base-ui/react` (já instalado): sobe em 240 ms,
+    fecha por Esc, fundo, rota e **arrastando para baixo**, com o fundo clareando junto. **Limite
+    do arrasto é o da biblioteca (50% da folha ou gesto ≥ 0,5 px/ms), não os ~30% pedidos** —
+    não é configurável; fica decisão do dono depois de testar no celular.
+  - **Lentidão (medida):** causa = cada ida ao servidor custa ~165 ms só de distância até
+    Washington (`gru1 → iad1`; Vercel e Neon estão alinhados em `us-east-1`/`iad1`, não mexi em
+    região) e rota dinâmica sem `loading.tsx` não é prefetchada, então o toque ficava mudo até a
+    resposta inteira. Agora: pílula no toque (**186 → 5 ms**), esqueleto em 26 ms; o conteúdo
+    pronto chega ~140 ms mais tarde (326 ms) por causa dos 300 ms que o React segura depois de um
+    esqueleto. Números, método e opções em
+    [docs/sessions/2026-10-12-barra-gaveta-resposta.md](docs/sessions/2026-10-12-barra-gaveta-resposta.md).
 
 - **2026-10-12 — Menu fixo, barra do celular, Conta e troca de dono (subagente):**
   - **#135:** navegação persistente (achado 9) e tela de Conta (achado 12). Uma lista de telas
