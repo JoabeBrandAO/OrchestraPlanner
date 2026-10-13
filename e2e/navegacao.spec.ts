@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 import { signIn } from "./sign-in";
 
@@ -40,10 +40,11 @@ test.describe("navegação persistente", () => {
         "page",
       );
 
-      // Alvo de toque de pelo menos 44 px em todos os lugares da barra.
+      // Alvo de toque de 62 px em todos os lugares da barra (o mínimo do app é 44; a barra
+      // ficou 10% mais alta que os 56 px de antes).
       for (const item of await bar.locator("a, button").all()) {
         const box = await item.boundingBox();
-        expect(box!.height).toBeGreaterThanOrEqual(44);
+        expect(box!.height).toBeGreaterThanOrEqual(61.5);
       }
 
       await bar.getByRole("link", { name: "Agenda" }).click();
@@ -73,6 +74,36 @@ test.describe("navegação persistente", () => {
         "data-active",
         "true",
       );
+    });
+
+    await test.step("celular: o toque responde na hora, mesmo com o servidor lento", async () => {
+      const bar = mainNav(page);
+      // Deixa o prefetch dos links da barra terminar: é ele que traz o esqueleto da tela.
+      await page.waitForTimeout(3000);
+      // Daqui em diante toda navegação (não o prefetch) leva 3 s para o servidor responder.
+      const devagar = async (route: Route) => {
+        const headers = route.request().headers();
+        if (headers["rsc"] === "1" && !headers["next-router-prefetch"]) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+        await route.continue();
+      };
+      const rotaDashboard = /\/dashboard(\/|\?|$)/;
+      await page.route(rotaDashboard, devagar);
+
+      const inicio = Date.now();
+      const agenda = bar.getByRole("link", { name: "Agenda" });
+      await agenda.click();
+      // A pílula muda no toque e o esqueleto ocupa a tela — ambos bem antes dos 3 s.
+      await expect(agenda.locator('[data-slot="marcador"]')).toBeVisible({ timeout: 1000 });
+      await expect(page.locator('[data-slot="page-skeleton"]')).toBeVisible({ timeout: 1500 });
+      expect(Date.now() - inicio).toBeLessThan(2500);
+      // aria-current segue a página real: só muda quando a tela chega.
+      await heading(page, "Agenda");
+      await expect(agenda).toHaveAttribute("aria-current", "page");
+      await expect(page.locator('[data-slot="page-skeleton"]')).toHaveCount(0);
+
+      await page.unroute(rotaDashboard, devagar);
     });
 
     await test.step("celular: a barra não cobre o fim da tela", async () => {

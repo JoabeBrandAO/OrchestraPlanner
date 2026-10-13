@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div
         id="conteudo"
         tabIndex={-1}
-        className="min-w-0 flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] outline-none md:pb-0"
+        className="min-w-0 flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] outline-none md:pb-0"
       >
         {children}
       </div>
