@@ -48,6 +48,24 @@ async function rowsOf(userId: string, table: string): Promise<number> {
   return row!.n;
 }
 
+/** Uma viagem para todas as tabelas do catálogo, sob a mesma RLS do usuário. */
+async function rowsByTable(userId: string, tables: readonly string[]) {
+  const rows = await withUserContext(userId, (tx) =>
+    tx.execute<{ table: string; rows: number }>(
+      sql.join(
+        tables.map(
+          (table) => sql`
+            select ${table}::text as "table", count(*)::int as rows
+            from ${sql.identifier("public")}.${sql.identifier(table)} where user_id = ${userId}
+          `,
+        ),
+        sql` union all `,
+      ),
+    ),
+  );
+  return [...rows];
+}
+
 /** Um pouco de dado em cada módulo: é o que um usuário real deixaria para trás. */
 async function fillAllModules(userId: string): Promise<void> {
   await createGoal(userId, { title: "Correr 5km" });
@@ -122,8 +140,12 @@ describe.skipIf(!hasDb)("provisionamento e exclusão do usuário", () => {
     await deleteUserData(uid);
 
     expect(await userExists(uid)).toBe(false);
-    for (const table of tables) {
-      expect({ table, rows: await rowsOf(uid, table) }).toEqual({ table, rows: 0 });
+    const [remaining, queries] = await countQueries(() => rowsByTable(uid, tables));
+    // A cobertura continua vindo do catálogo; o custo não cresce com cada tabela nova.
+    expect(queries).toBe(MOLDURA + 1);
+    expect(remaining.map((row) => row.table).sort()).toEqual(tables);
+    for (const { table, rows } of remaining) {
+      expect({ table, rows }).toEqual({ table, rows: 0 });
     }
     // O vizinho continua inteiro.
     expect(await userExists(other)).toBe(true);

@@ -62,10 +62,15 @@ describe.skipIf(!hasDb)("dashboard de metas — agregação, vencidas e atividad
     expect(dashboard.overdue.map((goal) => goal.title)).toEqual(["Declarar imposto"]);
 
     const saude = dashboard.summary.byArea.find((entry) => entry.areaId === area.id);
-    expect(saude).toMatchObject({ name: "Saúde", total: 1, averageProgress: 50 });
+    expect(saude).toMatchObject({
+      name: "Saúde",
+      dimension: "corpo",
+      total: 1,
+      averageProgress: 50,
+    });
 
     const semArea = dashboard.summary.byArea.find((entry) => entry.areaId === null);
-    expect(semArea).toMatchObject({ name: "Sem área", total: 2 });
+    expect(semArea).toMatchObject({ name: "Sem área", dimension: null, total: 2 });
   });
 
   it("atividade recente traz marcos concluídos e metas mexidas, mais novo primeiro", async () => {

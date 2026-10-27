@@ -75,8 +75,8 @@ export function TagEditor({
           <button
             key={tag.id}
             type="button"
-            className="rounded-full border px-2 py-0.5 text-xs"
-            style={tag.color ? { borderColor: tag.color, color: tag.color } : undefined}
+            className="bg-background text-foreground rounded-full border px-2 py-0.5 text-xs"
+            style={tag.color ? { borderColor: tag.color } : undefined}
             onClick={() => setIds((current) => current.filter((id) => id !== tag.id))}
             aria-label={`Remover tag ${tag.name}`}
           >

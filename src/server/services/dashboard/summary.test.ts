@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isOverdue, summarizeGoals, todayIso, type SummaryGoal } from "./summary";
+import { isOverdue, summarizeGoals, todayIso, type SummaryArea, type SummaryGoal } from "./summary";
 
 /** Agregações do dashboard (#16) — regra pura, sem banco, roda no CI. */
 
@@ -30,9 +30,9 @@ describe("isOverdue", () => {
 
 describe("summarizeGoals", () => {
   const areas = [
-    { id: "a1", name: "Saúde" },
-    { id: "a2", name: "Finanças" },
-  ];
+    { id: "a1", name: "Saúde", dimension: "corpo" },
+    { id: "a2", name: "Finanças", dimension: "alma" },
+  ] satisfies SummaryArea[];
 
   it("conta por status e média só das não concluídas", () => {
     const summary = summarizeGoals(
@@ -63,9 +63,30 @@ describe("summarizeGoals", () => {
     );
 
     expect(summary.byArea).toEqual([
-      { areaId: "a1", name: "Saúde", total: 2, completed: 1, averageProgress: 75 },
-      { areaId: "a2", name: "Finanças", total: 0, completed: 0, averageProgress: 0 },
-      { areaId: null, name: "Sem área", total: 1, completed: 0, averageProgress: 10 },
+      {
+        areaId: "a1",
+        name: "Saúde",
+        dimension: "corpo",
+        total: 2,
+        completed: 1,
+        averageProgress: 75,
+      },
+      {
+        areaId: "a2",
+        name: "Finanças",
+        dimension: "alma",
+        total: 0,
+        completed: 0,
+        averageProgress: 0,
+      },
+      {
+        areaId: null,
+        name: "Sem área",
+        dimension: null,
+        total: 1,
+        completed: 0,
+        averageProgress: 10,
+      },
     ]);
   });
 

@@ -177,3 +177,25 @@
 - **Causa raiz:** "garantir as áreas" foi escrito como idempotente (`on conflict do nothing`), mas idempotente em relação ao que **existe**, não ao que a pessoa **escolheu apagar**. O teste só cobria "repetir não duplica".
 - **Correção:** semear só quando a linha nasce (`xmax = 0` no `returning` do upsert), com teste "user.updated não ressuscita área apagada" (#136).
 - **Como evitar a recorrência:** semente de dado editável pelo usuário roda **uma vez**, no nascimento, nunca num caminho que se repete (webhook, renderização). O teste de idempotência inclui "apagar e chamar de novo".
+
+### 2026-10-26 — Contagem do teste de exclusão multiplicava a latência do Neon
+- **Contexto:** continuação da pendência registrada em 2026-10-10 sobre `provisioning.test.ts`.
+- **O que ocorreu:** cada tabela descoberta no catálogo abria uma transação só para contar linhas.
+- **Causa raiz:** N tabelas custavam N contagens e N molduras RLS (`BEGIN`, contexto, `COMMIT`).
+- **Correção:** uma consulta com `UNION ALL` conta todas as tabelas sob o mesmo contexto RLS;
+  nomes vêm do catálogo e usam `sql.identifier`, e valores são parâmetros. Mantidas as
+  asserções de exclusão completa e preservação do outro usuário, com cobertura do catálogo
+  e teto de quatro statements para a varredura. `provisionUser` não foi alterado.
+- **Como evitar a recorrência:** manter o orçamento `MOLDURA + 1` mesmo ao adicionar tabelas.
+  O efeito no timeout de 30 s ainda precisa ser provado contra o Neon; integração não foi
+  executada nesta sessão, que mantém as duas URLs de banco vazias e não usa rede.
+
+### 2026-10-26 — Cor livre da tag usada como texto não garante contraste
+- **Contexto:** tags no quadro de Prioridades e no editor, nos temas claro e escuro.
+- **O que ocorreu:** `tag.color` também definia `color`, independentemente do fundo do tema.
+- **Causa raiz:** uma cor escolhida para identificar a tag não garante 4,5:1 nos dois fundos.
+- **Correção:** texto e fundo usam os tokens do tema, com a cor livre preservada na borda.
+  Razões calculadas: 19,793:1 no claro e 18,958:1 no escuro. Memória de cálculo em
+  `docs/ux/2026-10-26-pendencias-fase-1.md`.
+- **Como evitar a recorrência:** não aplicar cor livre a texto sem verificar o contraste
+  contra o fundo efetivo nos dois temas.

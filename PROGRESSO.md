@@ -7,7 +7,7 @@
 
 ---
 
-## Estado atual — atualizado em 2026-10-12
+## Estado atual — atualizado em 2026-10-26
 
 ### ✅ Feito
 - **Fase 1 (uso pessoal) completa e no ar** na Vercel (`orchestra-planner.vercel.app`), sob RLS por
@@ -22,33 +22,42 @@
   Contexto de design em `PRODUCT.md`; diagnóstico em `docs/ux/2026-10-10-diagnostico-impeccable.md`.
 - **Segurança zerada:** `npm audit --omit=dev` com 0 vulnerabilidades desde o #128 (Next.js
   16.3.8, `shadcn` em `devDependencies`).
-- **Qualidade:** 517 casos no Vitest e 4 E2E (landing, login → painel, CSP obrigatória e varredura
-  de violações). A `main` é protegida: PR obrigatório com o CI exigido, inclusive para admin.
+- **Qualidade local (2026-10-26):** 396 testes passaram e 182 integrações foram puladas com
+  as duas URLs de banco vazias; typecheck passou e lint teve 0 erros/94 avisos em scripts
+  existentes da Impeccable. E2E não executado; build offline falhou nas fontes. A proteção
+  da `main` registrada anteriormente exige PR e CI, inclusive para admin.
 
 ### 🔄 Onde paramos
-- **Dois PRs com CI verde esperando o merge do dono** (2026-10-12), independentes entre si:
-  - **#135** menu fixo no computador, barra inferior no celular (Pílula, escolhida pelo dono)
-    e tela de Conta. Mockup em `docs/mockups/menu-inferior.html`; auditoria 19/20 em
-    `docs/ux/2026-10-12-auditoria-navegacao.md`.
-  - **#136** script de troca de dono (`scripts/troca-de-dono.ts`, simula por padrão) e a
-    correção do `provisionUser` que ressuscitava área apagada. Nunca rodado contra produção.
+- **Fase 1 em manutenção; Fases 2 e 3 continuam congeladas.** O histórico local confirma
+  os merges antes indicados como pendentes (`git log --oneline --merges -20`):
+  - **#135** menu fixo, barra inferior e Conta: `5fccc3f`.
+  - **#136** script de troca de dono e correção da área apagada: `78aed8a`.
+    O script continua sem execução contra produção nesta sessão.
+  - **#133** dependências de rotina: `21c138b`; **#118** Vitest 5: `1145f2d`;
+    **#119** dotenv 18: `f845226`.
+  - **#137** barra, gaveta e resposta ao toque: `a76bf33` (2026-10-12).
+- Trabalho local em `secretario/2026-10-26`, sem commit, push ou PR. Merge na `main` é do dono.
+- **Pendências menores implementadas em 2026-10-26:** contagem de tabelas em uma consulta no
+  teste de exclusão, contraste das tags nos dois temas, dimensão no resumo por área e anúncio
+  da tela atual no "Mais". Verificações locais concluídas; timeout contra o Neon ainda não
+  comprovado. Detalhes e limites no histórico abaixo.
 
 ### 📋 Próximos passos, em ordem
-1. **Dono:** mesclar #135 e #136 (qualquer ordem).
-2. **Dono, ~10 min:** abrir o app instalado no iPhone e conferir a barra (acima do indicador
+1. Conferir o diff local de 2026-10-26 antes de commitar. Não houve push ou PR nesta sessão;
+   eventual merge na `main` continua reservado ao dono.
+2. Em sessão futura autorizada com rede, provar o teste de exclusão contra um **Neon de teste
+   isolado**, sem produção, e repetir o build com fontes disponíveis. As integrações foram
+   puladas de propósito nesta verificação offline.
+3. **Dono, ~10 min:** abrir o app instalado no iPhone e conferir a barra (acima do indicador
    de início; título fora da barra de status). Só foi testado em navegador emulado.
-3. **Clerk de produção** pelo `docs/CLERK-PRODUCAO.md`, ~2,5 h do dono em dois dias. A etapa 7
+4. **Clerk de produção** pelo `docs/CLERK-PRODUCAO.md`, ~2,5 h do dono em dois dias. A etapa 7
    agora tem o script e o passo a passo; **não entrar no app de produção antes dela** (o e-mail
    único faz o primeiro acesso dar erro).
-4. **Decisões do dono sobre a lentidão** (ver o log de 2026-10-12): mover Vercel e Neon juntos
+5. **Decisões do dono sobre a lentidão** (ver o log de 2026-10-12): mover Vercel e Neon juntos
    para São Paulo (−165 ms por pedido, exige migrar o banco); `staleTimes.dynamic` (experimental);
    limite do arrasto em 30% com implementação própria. Só depois de testar a gaveta no celular.
-5. **Pendências menores:** contraste das cores de tag; resumo por área do painel sem a cor da
-   dimensão; `provisioning.test.ts` estourando 30 s contra o Neon quando roda local; o botão
-   "Mais" não anuncia ao leitor de tela qual tela está dentro dele (P3).
 6. **Com o dono:** #64 (validação manual da Fase 1, ~3 h).
-7. **Dependabot:** #118 (Vitest 5), #119 (dotenv 18) e #133 (grupo rotina) abertos; os dois
-   primeiros são major e pedem leitura das notas de mudança.
+7. **Fora desta sessão:** PR #139 do Dependabot. #118, #119 e #133 já foram mesclados.
 
 ### 💡 Aprendizados de 2026-10-10/11
 - **O merge autônomo agora é barrado pelo sistema de permissões do Claude Code.** O fluxo atual:
@@ -71,6 +80,43 @@
 ## Histórico recente
 _Histórico de 2026-06-17 a 2026-09-04:
 [docs/sessions/historico-progresso-ate-2026-09-04.md](docs/sessions/historico-progresso-ate-2026-09-04.md)._
+
+- **2026-10-26 — Codex, não commitado:**
+  - **Estado corrigido:** merges #135 (`5fccc3f`), #136 (`78aed8a`), #133 (`21c138b`),
+    #118 (`1145f2d`), #119 (`f845226`) e #137 (`a76bf33`) conferidos com
+    `git log --oneline --merges -20`. Histórico e aprendizados anteriores preservados.
+  - **Provisionamento:** sem alteração em `provisionUser`; o teste de exclusão agora conta
+    todas as tabelas do catálogo com `UNION ALL` em uma transação RLS, preservando as
+    asserções existentes. Acrescentadas cobertura do catálogo e asserção de orçamento
+    `MOLDURA + 1` (quatro statements). **Não provado contra o Neon** nesta sessão.
+  - **Interface:** tags com texto/fundo do tema e cor livre na borda (19,793:1 no claro,
+    18,958:1 no escuro); painel repassa a dimensão e reutiliza `DimensionDot`; "Sem área"
+    fica neutro. "Mais" anuncia a tela real com `aria-current="true"` e rótulo acessível,
+    inclusive em subrotas e durante navegação pendente. Testes de agregação e Testing
+    Library cobrem o fluxo. Cálculos em `docs/ux/2026-10-26-pendencias-fase-1.md`.
+  - **Comandos**, todos com `DATABASE_URL` e `MIGRATION_DATABASE_URL` vazias:
+
+    | Comando | Resultado |
+    | --- | --- |
+    | `npm run typecheck` | Passou (exit 0). |
+    | `npm run lint` | Passou (exit 0): 0 erros, 94 avisos nos scripts existentes `.claude/skills/impeccable/scripts/`. |
+    | `npx vitest run` | Rodada final: 396 passaram, 182 pulados; 45 arquivos passaram e 23 de integração foram pulados (exit 0). |
+    | `npm run build` | Uma tentativa, exit 1: fontes Geist/Geist Mono indisponíveis no mapa offline (`url not found`). |
+
+  - **Isolamento:** `DOTENV_CONFIG_PATH` apontou para um caminho inexistente, evitando
+    carregar `.env` nos testes; npm em modo offline e cache dentro do projeto. No build,
+    auxiliar temporário bloqueou leitura de `.env` e rede externa em Node; o mapa de fontes
+    vazio impediu download pelo Turbopack. Não foram fornecidas fontes simuladas.
+  - **Limites:** dependências já instaladas são Next **16.3.8** e Vitest **4.1.11**,
+    embora `package.json` declare Next 16.4.0 e Vitest ^5.0.3. Não houve instalação nem
+    atualização; validação com as versões declaradas permanece pendente. O Vitest emitiu
+    aviso sobre o futuro carregador nativo do Vite e limitações de navegação do jsdom.
+  - A primeira rodada revelou um seletor amplo no teste novo de "Sem área": encontrava o
+    preenchimento da barra de progresso. Corrigido para inspecionar só o rótulo da área;
+    a suíte completa foi repetida e passou, sem enfraquecer testes existentes.
+  - Não conferidos: timeout real no Neon, integração/RLS real, build completo, aparência
+    renderizada, leitor de tela real ou iPhone. Sem E2E, acesso a produção, commit, push ou
+    PR; #139, Clerk de produção, região, `staleTimes`, arrasto e #64 continuam com o dono.
 
 - **2026-10-12 — Barra 10% mais alta, gaveta do Mais e resposta ao toque (este PR):**
   - **Barra:** item de 56 → 62 px (barra de 61 → 67 px), pílula e ícone na mesma proporção, rótulo

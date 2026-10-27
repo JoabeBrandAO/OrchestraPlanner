@@ -44,7 +44,7 @@ export async function getGoalsDashboard(
       tx.select({ timeZone: users.timeZone }).from(users).where(eq(users.id, userId)),
       tx.select().from(goals),
       tx
-        .select({ id: lifeAreas.id, name: lifeAreas.name })
+        .select({ id: lifeAreas.id, name: lifeAreas.name, dimension: lifeAreas.dimension })
         .from(lifeAreas)
         .orderBy(asc(lifeAreas.position), asc(lifeAreas.createdAt)),
       tx

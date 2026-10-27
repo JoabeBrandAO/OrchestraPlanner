@@ -106,8 +106,9 @@ describe("BottomNav (celular)", () => {
   it("numa tela que mora no Mais, o Mais acende e a folha marca a tela", () => {
     at("/dashboard/pessoas");
     render(<BottomNav />);
-    const more = within(bar()).getByRole("button", { name: "Mais" });
+    const more = within(bar()).getByRole("button", { name: "Mais, atual: Pessoas" });
     expect(more.getAttribute("data-active")).toBe("true");
+    expect(more.getAttribute("aria-current")).toBe("true");
     expect(bar().querySelectorAll('[aria-current="page"]')).toHaveLength(0);
 
     fireEvent.click(more);
@@ -115,6 +116,40 @@ describe("BottomNav (celular)", () => {
     expect(within(sheet).getByRole("link", { name: "Pessoas" }).getAttribute("aria-current")).toBe(
       "page",
     );
+  });
+
+  it.each([
+    ["/dashboard/pessoas/ana", "Pessoas"],
+    ["/dashboard/financeiro", "Financeiro"],
+    ["/dashboard/roda-da-vida", "Roda da Vida"],
+    ["/dashboard/areas/", "Áreas de Vida"],
+    ["/dashboard/conta", "Conta"],
+  ])("anuncia a tela atual dentro do Mais em %s", (pathname, label) => {
+    at(pathname);
+    render(<BottomNav />);
+    const more = within(bar()).getByRole("button", { name: `Mais, atual: ${label}` });
+    expect(more.getAttribute("aria-current")).toBe("true");
+    expect(more.textContent).toBe("Mais");
+  });
+
+  it("atualiza o anúncio ao mudar de tela e o remove ao voltar a um destino principal", () => {
+    at("/dashboard/pessoas");
+    const { rerender } = render(<BottomNav />);
+
+    at("/dashboard/conta");
+    rerender(<BottomNav />);
+    expect(
+      within(bar())
+        .getByRole("button", { name: "Mais, atual: Conta" })
+        .getAttribute("aria-current"),
+    ).toBe("true");
+
+    at("/dashboard/agenda");
+    rerender(<BottomNav />);
+    expect(
+      within(bar()).getByRole("button", { name: "Mais" }).getAttribute("aria-current"),
+    ).toBeNull();
+    expect(bar().querySelectorAll("[aria-current]")).toHaveLength(1);
   });
 
   it("escolher uma tela na folha fecha a folha", () => {
@@ -226,7 +261,21 @@ describe("BottomNav: resposta ao toque", () => {
     );
 
     expect(more.getAttribute("data-active")).toBe("true");
+    expect(more.getAttribute("aria-current")).toBeNull();
+    expect(more.getAttribute("aria-label")).toBeNull();
     expect(lit("Painel")).toBe(false);
+  });
+
+  it("ao tocar num destino principal, o Mais ainda anuncia a tela real até a rota mudar", () => {
+    at("/dashboard/pessoas");
+    render(<BottomNav />);
+
+    fireEvent.click(link("Agenda"));
+
+    const more = within(bar()).getByRole("button", { name: "Mais, atual: Pessoas" });
+    expect(more.getAttribute("aria-current")).toBe("true");
+    expect(more.getAttribute("data-active")).toBeNull();
+    expect(link("Agenda").getAttribute("aria-current")).toBeNull();
   });
 });
 

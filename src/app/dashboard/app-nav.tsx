@@ -180,6 +180,8 @@ export function BottomNav() {
   }
   const shown = pending ?? pathname;
   const moreLit = MOBILE_MORE.some((item) => isActive(shown, item.href));
+  // O anúncio segue a rota real, mesmo quando a pílula já respondeu ao toque seguinte.
+  const currentMore = MOBILE_MORE.find((item) => isActive(pathname, item.href));
 
   useEffect(() => {
     if (pending === null) return;
@@ -220,6 +222,8 @@ export function BottomNav() {
           >
             <DrawerPrimitive.Trigger
               aria-expanded={open}
+              aria-current={currentMore ? "true" : undefined}
+              aria-label={currentMore ? `Mais, atual: ${currentMore.label}` : undefined}
               data-active={moreLit ? "true" : undefined}
               className={barItemClass(moreLit)}
             >

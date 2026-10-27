@@ -8,6 +8,7 @@
  * bundle (ver `docs/ERROS.md` 2026-08-11).
  */
 
+import type { Dimension } from "@/lib/dimension-style";
 import { DEFAULT_TIME_ZONE, dateIn } from "@/server/services/shared/time-zone";
 
 export type SummaryGoalStatus = "ativa" | "pausada" | "completada";
@@ -20,11 +21,12 @@ export type SummaryGoal = {
   targetDate: string | null;
 };
 
-export type SummaryArea = { id: string; name: string };
+export type SummaryArea = { id: string; name: string; dimension: Dimension };
 
 export type AreaBreakdown = {
   areaId: string | null;
   name: string;
+  dimension: Dimension | null;
   total: number;
   completed: number;
   averageProgress: number;
@@ -80,6 +82,7 @@ export function summarizeGoals(
     return {
       areaId: area.id,
       name: area.name,
+      dimension: area.dimension,
       total: inArea.length,
       completed: inArea.filter((goal) => goal.status === "completada").length,
       averageProgress: average(inArea.map((goal) => goal.progress)),
@@ -91,6 +94,7 @@ export function summarizeGoals(
     byArea.push({
       areaId: null,
       name: "Sem área",
+      dimension: null,
       total: orphans.length,
       completed: orphans.filter((goal) => goal.status === "completada").length,
       averageProgress: average(orphans.map((goal) => goal.progress)),

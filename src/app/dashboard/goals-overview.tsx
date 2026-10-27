@@ -1,5 +1,6 @@
 "use client";
 
+import { DimensionDot } from "@/components/ui/dimension-dot";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { trpc } from "@/trpc/react";
 
@@ -64,7 +65,10 @@ export function GoalsOverview() {
         <ul className="flex flex-col gap-2">
           {summary.byArea.map((area) => (
             <li key={area.areaId ?? "sem-area"} className="flex items-center gap-3">
-              <span className="w-32 shrink-0 truncate text-sm">{area.name}</span>
+              <span className="flex w-32 shrink-0 items-center gap-1.5 text-sm">
+                {area.dimension && <DimensionDot dimension={area.dimension} />}
+                <span className="truncate">{area.name}</span>
+              </span>
               <ProgressBar
                 value={area.averageProgress}
                 label={`Progresso médio em ${area.name}`}
