@@ -143,7 +143,8 @@ describe.skipIf(!hasDb)("provisionamento e exclusão do usuário", () => {
     const [remaining, queries] = await countQueries(() => rowsByTable(uid, tables));
     // A cobertura continua vindo do catálogo; o custo não cresce com cada tabela nova.
     expect(queries).toBe(MOLDURA + 1);
-    expect(remaining.map((row) => row.table).sort()).toEqual(tables);
+    // Os dois lados ordenados em JS: o `order by` do Postgres segue a collation e pode divergir.
+    expect(remaining.map((row) => row.table).sort()).toEqual([...tables].sort());
     for (const { table, rows } of remaining) {
       expect({ table, rows }).toEqual({ table, rows: 0 });
     }
